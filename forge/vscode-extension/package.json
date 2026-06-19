@@ -1,0 +1,89 @@
+{
+  "name": "forge",
+  "displayName": "Forge - Engineering Memory",
+  "description": "Persistent engineering memory system. Remembers every decision, bug, and codebase.",
+  "version": "0.1.0",
+  "publisher": "forge",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "forge.chat",
+        "title": "Forge: Chat"
+      },
+      {
+        "command": "forge.explainFile",
+        "title": "Forge: Explain File"
+      },
+      {
+        "command": "forge.explainRepo",
+        "title": "Forge: Explain Repo"
+      },
+      {
+        "command": "forge.findSimilarBug",
+        "title": "Forge: Find Similar Bug"
+      },
+      {
+        "command": "forge.summarizeWork",
+        "title": "Forge: Summarize Work"
+      },
+      {
+        "command": "forge.saveDecision",
+        "title": "Forge: Save Decision"
+      },
+      {
+        "command": "forge.projectTimeline",
+        "title": "Forge: Project Timeline"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "forge-sidebar",
+          "title": "Forge",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "forge-sidebar": [
+        {
+          "id": "forge-memories",
+          "name": "Memories",
+          "type": "tree"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Forge",
+      "properties": {
+        "forge.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "Forge backend server URL"
+        },
+        "forge.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Forge API key for authentication"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {}
+}

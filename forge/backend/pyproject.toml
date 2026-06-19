@@ -1,0 +1,55 @@
+[tool.poetry]
+name = "forge"
+version = "0.1.0"
+description = "Persistent engineering memory system"
+authors = ["Forge Team"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.25"}
+asyncpg = "^0.29.0"
+aiosqlite = "^0.20.0"
+pydantic = "^2.5.3"
+pydantic-settings = "^2.1.0"
+pyjwt = "^2.8.0"
+qdrant-client = "^1.7.3"
+openai = "^1.12.0"
+tree-sitter = "^0.20.4"
+tree-sitter-python = "^0.20.4"
+tree-sitter-typescript = "^0.20.3"
+tree-sitter-javascript = "^0.20.4"
+gitpython = "^3.1.41"
+alembic = "^1.13.1"
+httpx = "^0.26.0"
+structlog = "^24.1.0"
+prometheus-client = "^0.20.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
+pytest-asyncio = "^0.23.3"
+ruff = "^0.2.0"
+mypy = "^1.8.0"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
