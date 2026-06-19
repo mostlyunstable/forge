@@ -1,4 +1,5 @@
 """API integration tests using TestClient."""
+import os
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -12,6 +13,7 @@ from forge.infrastructure.database.connection import database_manager
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
+    os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing"
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

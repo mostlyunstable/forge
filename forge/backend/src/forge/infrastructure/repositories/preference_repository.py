@@ -32,16 +32,14 @@ class PreferenceRepository(IPreferenceRepository):
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, preference: DeveloperPreference) -> DeveloperPreference:
-        existing = await self.get_by_key(preference.key)
-        if existing:
-            model = await self._session.get(PreferenceModel, str(preference.key))
-            if model:
-                model.value = preference.value
-                model.confidence = preference.confidence
-                model.evidence_count = preference.evidence_count
-                model.updated_at = preference.updated_at
-                await self._session.flush()
-                return self._to_domain(model)
+        model = await self._session.get(PreferenceModel, str(preference.key))
+        if model:
+            model.value = preference.value
+            model.confidence = preference.confidence
+            model.evidence_count = preference.evidence_count
+            model.updated_at = preference.updated_at
+            await self._session.flush()
+            return self._to_domain(model)
         model = self._to_model(preference)
         self._session.add(model)
         await self._session.flush()

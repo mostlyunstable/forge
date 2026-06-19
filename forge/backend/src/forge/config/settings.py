@@ -32,16 +32,18 @@ class Settings(BaseSettings):
     model_config = {"env_file": ".env", "case_sensitive": True}
 
     def validate_production(self) -> None:
-        """Validate settings for production readiness. Call at startup."""
-        warnings_list = []
+        """Validate settings for production readiness. Call at startup.
+
+        Raises:
+            RuntimeError: If critical production settings are missing.
+        """
         if self.JWT_SECRET_KEY == "change-me-in-production":
-            warnings_list.append(
-                "JWT_SECRET_KEY is using default value - change it in production!"
+            raise RuntimeError(
+                "JWT_SECRET_KEY must be set to a secure value in production. "
+                "Set the JWT_SECRET_KEY environment variable."
             )
         if not self.LLM_API_KEY:
-            warnings_list.append("LLM_API_KEY is empty - LLM features will fail.")
-        for msg in warnings_list:
-            warnings.warn(msg, UserWarning, stacklevel=2)
+            warnings.warn("LLM_API_KEY is empty - LLM features will fail.", UserWarning, stacklevel=2)
 
 
 @lru_cache

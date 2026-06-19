@@ -44,20 +44,18 @@ class BugRepository(IBugRepository):
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, bug: Bug) -> Bug:
-        existing = await self.get_by_id(bug.id)
-        if existing:
-            model = await self._session.get(BugModel, str(bug.id.value))
-            if model:
-                model.title = bug.title
-                model.problem = bug.problem
-                model.root_cause = bug.root_cause
-                model.solution = bug.solution
-                model.affected_files = bug.affected_files
-                model.severity = bug.severity
-                model.resolved = bug.resolved
-                model.resolved_at = bug.resolved_at
-                await self._session.flush()
-                return self._to_domain(model)
+        model = await self._session.get(BugModel, str(bug.id.value))
+        if model:
+            model.title = bug.title
+            model.problem = bug.problem
+            model.root_cause = bug.root_cause
+            model.solution = bug.solution
+            model.affected_files = bug.affected_files
+            model.severity = bug.severity
+            model.resolved = bug.resolved
+            model.resolved_at = bug.resolved_at
+            await self._session.flush()
+            return self._to_domain(model)
         model = self._to_model(bug)
         self._session.add(model)
         await self._session.flush()

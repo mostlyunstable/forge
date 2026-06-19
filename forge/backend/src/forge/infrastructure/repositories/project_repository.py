@@ -42,19 +42,17 @@ class ProjectRepository(IProjectRepository):
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, project: Project) -> Project:
-        existing = await self.get_by_id(project.id)
-        if existing:
-            model = await self._session.get(ProjectModel, str(project.id.value))
-            if model:
-                model.name = project.name
-                model.description = project.description
-                model.stack = list(project.stack)
-                model.goals = project.goals
-                model.status = project.status
-                model.repository_url = project.repository_url
-                model.updated_at = project.updated_at
-                await self._session.flush()
-                return self._to_domain(model)
+        model = await self._session.get(ProjectModel, str(project.id.value))
+        if model:
+            model.name = project.name
+            model.description = project.description
+            model.stack = list(project.stack)
+            model.goals = project.goals
+            model.status = project.status
+            model.repository_url = project.repository_url
+            model.updated_at = project.updated_at
+            await self._session.flush()
+            return self._to_domain(model)
         model = self._to_model(project)
         self._session.add(model)
         await self._session.flush()

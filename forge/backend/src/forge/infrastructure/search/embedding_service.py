@@ -33,6 +33,11 @@ class EmbeddingService:
 
     def _ensure_client(self) -> AsyncOpenAI:
         if self._client is None:
+            if not self._settings.LLM_API_KEY:
+                raise EmbeddingError(
+                    "LLM_API_KEY is not configured. "
+                    "Set the LLM_API_KEY environment variable to use embeddings."
+                )
             self._client = AsyncOpenAI(api_key=self._settings.LLM_API_KEY)
         return self._client
 

@@ -36,17 +36,15 @@ class DecisionRepository(IDecisionRepository):
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, decision: ArchitectureDecision) -> ArchitectureDecision:
-        existing = await self.get_by_id(decision.id)
-        if existing:
-            model = await self._session.get(DecisionModel, str(decision.id.value))
-            if model:
-                model.title = decision.title
-                model.decision = decision.decision
-                model.reason = decision.reason
-                model.alternatives = decision.alternatives
-                model.status = decision.status
-                await self._session.flush()
-                return self._to_domain(model)
+        model = await self._session.get(DecisionModel, str(decision.id.value))
+        if model:
+            model.title = decision.title
+            model.decision = decision.decision
+            model.reason = decision.reason
+            model.alternatives = decision.alternatives
+            model.status = decision.status
+            await self._session.flush()
+            return self._to_domain(model)
         model = self._to_model(decision)
         self._session.add(model)
         await self._session.flush()

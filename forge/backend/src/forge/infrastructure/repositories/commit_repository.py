@@ -61,23 +61,21 @@ class CommitRepository(ICommitRepository):
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, commit: Commit) -> Commit:
-        existing = await self.get_by_sha(commit.project_id, commit.sha)
-        if existing:
-            model = await self._session.execute(
-                select(CommitModel).where(
-                    CommitModel.project_id == str(commit.project_id.value),
-                    CommitModel.sha == commit.sha.value,
-                )
+        result = await self._session.execute(
+            select(CommitModel).where(
+                CommitModel.project_id == str(commit.project_id.value),
+                CommitModel.sha == commit.sha.value,
             )
-            result = model.scalar_one_or_none()
-            if result:
-                result.message = commit.message
-                result.author = commit.author
-                result.files_changed = commit.files_changed
-                result.classification = commit.classification.value
-                result.summary = commit.summary
-                await self._session.flush()
-                return self._to_domain(result)
+        )
+        model = result.scalar_one_or_none()
+        if model:
+            model.message = commit.message
+            model.author = commit.author
+            model.files_changed = commit.files_changed
+            model.classification = commit.classification.value
+            model.summary = commit.summary
+            await self._session.flush()
+            return self._to_domain(model)
         new_model = self._to_model(commit)
         self._session.add(new_model)
         await self._session.flush()
