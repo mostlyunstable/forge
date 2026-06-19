@@ -11,7 +11,7 @@ from forge.domain.projects.entities.project import Project
 from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain._utils import escape_like_pattern
+from forge.infrastructure._utils import escape_like_pattern
 from forge.infrastructure.database.models.project_model import ProjectModel
 
 

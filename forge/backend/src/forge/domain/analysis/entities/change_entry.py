@@ -42,3 +42,14 @@ class ChangeEntry:
         if len(meaningful) >= 3:
             return ".".join(meaningful[:3])
         return ".".join(meaningful) if meaningful else self.file_path
+
+    @classmethod
+    def classify(cls, file_path: str) -> tuple[bool, bool]:
+        """Classify a file path as test file and core module.
+
+        Returns:
+            (is_test_file, is_core_module)
+        """
+        is_test = "test" in file_path.lower() or file_path.endswith("_test.py")
+        is_core = any(seg in file_path for seg in ("domain/", "application/", "infrastructure/"))
+        return is_test, is_core

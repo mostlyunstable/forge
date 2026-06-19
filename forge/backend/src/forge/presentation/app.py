@@ -90,11 +90,11 @@ def create_app() -> FastAPI:
     app.add_exception_handler(CommitNotFoundError, commit_not_found_handler)
     app.add_exception_handler(
         AnalysisReportNotFoundError,
-        lambda req, exc: _error_response(404, ErrorCode.CODE_ENTRY_NOT_FOUND, str(exc)),
+        lambda req, exc: _error_response(404, ErrorCode.ANALYSIS_REPORT_NOT_FOUND, str(exc)),
     )
     app.add_exception_handler(
         AnalysisError,
-        lambda req, exc: _error_response(422, ErrorCode.VALIDATION_ERROR, str(exc)),
+        lambda req, exc: _error_response(422, ErrorCode.ANALYSIS_ERROR, str(exc)),
     )
     app.add_exception_handler(Exception, generic_error_handler)
 

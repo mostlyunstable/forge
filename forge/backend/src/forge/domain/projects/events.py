@@ -43,22 +43,6 @@ class ProjectUpdated(DomainEvent):
 
 
 @dataclass(frozen=True)
-class ProjectArchived(DomainEvent):
-    """Published when a project is archived."""
-
-    project_id: str = ""
-
-    @property
-    def event_type(self) -> str:
-        return "project.archived"
-
-    def to_dict(self):
-        base = super().to_dict()
-        base["project_id"] = self.project_id
-        return base
-
-
-@dataclass(frozen=True)
 class ProjectDeleted(DomainEvent):
     """Published when a project is deleted."""
 

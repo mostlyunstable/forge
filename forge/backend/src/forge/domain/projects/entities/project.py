@@ -35,10 +35,6 @@ class Project:
             self.goals.append(goal)
             self._touch()
 
-    def archive(self) -> None:
-        self.status = "archived"
-        self._touch()
-
     def _touch(self) -> None:
         self.updated_at = datetime.now(timezone.utc)
 

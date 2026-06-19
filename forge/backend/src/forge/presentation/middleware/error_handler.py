@@ -28,6 +28,8 @@ class ErrorCode:
     VALIDATION_ERROR = "VALIDATION_ERROR"
     RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
     UNAUTHORIZED = "UNAUTHORIZED"
+    ANALYSIS_REPORT_NOT_FOUND = "ANALYSIS_REPORT_NOT_FOUND"
+    ANALYSIS_ERROR = "ANALYSIS_ERROR"
 
 
 def _error_response(status_code: int, error_code: str, detail: str) -> JSONResponse:

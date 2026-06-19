@@ -12,7 +12,7 @@ from forge.domain.code.repository_contracts.code_repository import ICodeReposito
 from forge.domain.code.value_objects.code_location import FilePath, LineRange
 from forge.domain.code.value_objects.entry_type import EntryType
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain._utils import escape_like_pattern
+from forge.infrastructure._utils import escape_like_pattern
 from forge.infrastructure.database.models.code_entry_model import CodeEntryModel
 
 

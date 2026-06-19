@@ -27,24 +27,6 @@ class DecisionRecorded(DomainEvent):
 
 
 @dataclass(frozen=True)
-class DecisionSuperseded(DomainEvent):
-    """Published when a decision is superseded by a newer one."""
-
-    decision_id: str = ""
-    superseded_by: str = ""
-
-    @property
-    def event_type(self) -> str:
-        return "decision.superseded"
-
-    def to_dict(self):
-        base = super().to_dict()
-        base["decision_id"] = self.decision_id
-        base["superseded_by"] = self.superseded_by
-        return base
-
-
-@dataclass(frozen=True)
 class DecisionDeleted(DomainEvent):
     """Published when a decision is deleted."""
 

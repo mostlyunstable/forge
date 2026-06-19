@@ -3,7 +3,7 @@ import pytest
 from forge.domain.shared.events import DomainEvent
 from forge.domain.projects.events import ProjectCreated, ProjectUpdated, ProjectDeleted
 from forge.domain.memory.events import DecisionRecorded, BugRecorded, PreferenceRecorded
-from forge.domain.code.events import CodeEntriesBatchIndexed, DependencyGraphBuilt
+from forge.domain.code.events import CodeEntriesBatchIndexed
 from forge.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 
 

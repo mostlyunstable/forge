@@ -15,12 +15,6 @@ class TechStack:
     def from_list(cls, items: list[str]) -> TechStack:
         return cls(frozenset(item.strip().lower() for item in items if item.strip()))
 
-    def contains(self, technology: str) -> bool:
-        return technology.lower() in self.technologies
-
-    def add(self, technology: str) -> TechStack:
-        return TechStack(self.technologies | {technology.lower()})
-
     def __len__(self) -> int:
         return len(self.technologies)
 

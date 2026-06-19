@@ -8,7 +8,6 @@ from forge.domain.analysis.repository_contracts.analysis_repository import (
 )
 from forge.domain.analysis.value_objects.analysis_id import AnalysisId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.application.analysis.get_report import GetAnalysisReportUseCase
 
 
 @dataclass
@@ -25,7 +24,6 @@ class ListAnalysisReportsUseCase:
 
     def __init__(self, report_repo: IAnalysisReportRepository) -> None:
         self._report_repo = report_repo
-        self._get_use_case = GetAnalysisReportUseCase(report_repo)
 
     async def execute(self, request: ListAnalysisReportsRequest) -> list[dict]:
         """Returns list of report summaries for a project."""

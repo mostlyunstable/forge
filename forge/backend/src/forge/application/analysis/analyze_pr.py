@@ -144,14 +144,15 @@ class AnalyzePRUseCase:
                 change_type = ChangeType.MODIFIED
 
             file_path = file_info.get("file_path", "")
+            is_test, is_core = ChangeEntry.classify(file_path)
             entries.append(
                 ChangeEntry(
                     file_path=file_path,
                     change_type=change_type,
                     lines_added=file_info.get("additions", 0),
                     lines_removed=file_info.get("deletions", 0),
-                    is_test_file="test" in file_path.lower() or file_path.endswith("_test.py"),
-                    is_core_module=any(l in file_path for l in ("domain/", "application/", "infrastructure/")),
+                    is_test_file=is_test,
+                    is_core_module=is_core,
                     language=file_info.get("language", ""),
                 )
             )

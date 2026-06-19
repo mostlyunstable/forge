@@ -10,7 +10,7 @@ from forge.domain.memory.entities.decision import ArchitectureDecision
 from forge.domain.memory.repository_contracts.decision_repository import IDecisionRepository
 from forge.domain.memory.value_objects.decision_id import DecisionId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain._utils import escape_like_pattern
+from forge.infrastructure._utils import escape_like_pattern
 from forge.infrastructure.database.models.decision_model import DecisionModel
 
 

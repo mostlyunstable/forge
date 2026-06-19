@@ -2,13 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.database.connection import database_manager
-from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.infrastructure.repositories.decision_repository import DecisionRepository
-from forge.infrastructure.repositories.bug_repository import BugRepository
-from forge.infrastructure.repositories.commit_repository import CommitRepository
 from forge.infrastructure.search.graph_adapter import InMemoryDependencyGraph
-from forge.infrastructure.analysis.analysis_repository import AnalysisReportRepository
 from forge.infrastructure.analysis.git_diff_provider import GitDiffProvider
 from forge.infrastructure.analysis.memory_context_searcher import MemoryContextSearcher
 from forge.infrastructure.events.in_memory_event_bus import event_bus
@@ -20,7 +14,7 @@ from forge.application.analysis.list_reports import (
 )
 from forge.domain.analysis.exceptions import AnalysisReportNotFoundError, AnalysisError
 from forge.domain.projects.exceptions import ProjectNotFoundError
-from forge.presentation.deps import get_session
+from forge.presentation.deps import get_session, get_project_repo, get_analysis_report_repo
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.analysis_schemas import (
     AnalyzePRRequest as AnalyzePRSchema,
@@ -41,8 +35,8 @@ async def analyze_pr(
     _auth: dict = Depends(verify_token),
 ):
     """Analyze a pull request for context and impact."""
-    report_repo = AnalysisReportRepository(session)
-    project_repo = ProjectRepository(session)
+    report_repo = get_analysis_report_repo(session)
+    project_repo = get_project_repo(session)
     dep_graph = InMemoryDependencyGraph()
     diff_provider = GitDiffProvider()
     context_searcher = MemoryContextSearcher(session)
@@ -97,7 +91,7 @@ async def list_reports(
     _auth: dict = Depends(verify_token),
 ):
     """List analysis reports for a project."""
-    report_repo = AnalysisReportRepository(session)
+    report_repo = get_analysis_report_repo(session)
     use_case = ListAnalysisReportsUseCase(report_repo)
 
     reports = await use_case.execute(
@@ -129,7 +123,7 @@ async def get_report(
     _auth: dict = Depends(verify_token),
 ):
     """Get a specific analysis report."""
-    report_repo = AnalysisReportRepository(session)
+    report_repo = get_analysis_report_repo(session)
     use_case = GetAnalysisReportUseCase(report_repo)
 
     result = await use_case.execute(report_id)

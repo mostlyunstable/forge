@@ -10,7 +10,7 @@ from forge.domain.memory.entities.bug import Bug
 from forge.domain.memory.repository_contracts.bug_repository import IBugRepository
 from forge.domain.memory.value_objects.bug_id import BugId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain._utils import escape_like_pattern
+from forge.infrastructure._utils import escape_like_pattern
 from forge.infrastructure.database.models.bug_model import BugModel
 
 
