@@ -13,7 +13,7 @@ from forge.config.metrics import APP_INFO
 from forge.infrastructure.database.connection import database_manager
 from forge.infrastructure.search.qdrant_client import vector_store
 from forge.infrastructure.search.in_memory_vector_store import in_memory_vector_store
-from forge.presentation.routes import projects, memory, chat, code, git, dependencies, metrics
+from forge.presentation.routes import projects, memory, chat, code, git, dependencies, metrics, analysis
 from forge.presentation.middleware.error_handler import (
     project_not_found_handler,
     project_already_exists_handler,
@@ -24,6 +24,8 @@ from forge.presentation.middleware.error_handler import (
     indexing_error_handler,
     commit_not_found_handler,
     generic_error_handler,
+    _error_response,
+    ErrorCode,
 )
 from forge.presentation.middleware.rate_limit import RateLimitMiddleware
 from forge.presentation.middleware.request_id import RequestIDMiddleware
@@ -32,6 +34,7 @@ from forge.domain.projects.exceptions import ProjectNotFoundError, ProjectAlread
 from forge.domain.memory.exceptions import DecisionNotFoundError, BugNotFoundError, PreferenceNotFoundError
 from forge.domain.code.exceptions import CodeEntryNotFoundError, IndexingError
 from forge.domain.git.exceptions import CommitNotFoundError
+from forge.domain.analysis.exceptions import AnalysisReportNotFoundError, AnalysisError
 
 logger = structlog.get_logger()
 
@@ -85,6 +88,14 @@ def create_app() -> FastAPI:
     app.add_exception_handler(CodeEntryNotFoundError, code_entry_not_found_handler)
     app.add_exception_handler(IndexingError, indexing_error_handler)
     app.add_exception_handler(CommitNotFoundError, commit_not_found_handler)
+    app.add_exception_handler(
+        AnalysisReportNotFoundError,
+        lambda req, exc: _error_response(404, ErrorCode.CODE_ENTRY_NOT_FOUND, str(exc)),
+    )
+    app.add_exception_handler(
+        AnalysisError,
+        lambda req, exc: _error_response(422, ErrorCode.VALIDATION_ERROR, str(exc)),
+    )
     app.add_exception_handler(Exception, generic_error_handler)
 
     app.include_router(projects.router, prefix="/api/v1")
@@ -93,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(code.router, prefix="/api/v1")
     app.include_router(git.router, prefix="/api/v1")
     app.include_router(dependencies.router, prefix="/api/v1")
+    app.include_router(analysis.router, prefix="/api/v1")
     app.include_router(metrics.router)
 
     @app.get("/health")
