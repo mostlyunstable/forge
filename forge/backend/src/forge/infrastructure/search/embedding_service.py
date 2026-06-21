@@ -22,8 +22,8 @@ class EmbeddingError(Exception):
 class EmbeddingService:
     """Generates and caches text embeddings with bounded memory."""
 
-    MODEL = "text-embedding-3-small"
-    DIMENSIONS = 1536
+    MODEL = "nvidia/nv-embedqa-e5-v5"
+    DIMENSIONS = 1024
     MAX_CACHE_SIZE = 10000
 
     def __init__(self) -> None:
@@ -38,7 +38,10 @@ class EmbeddingService:
                     "LLM_API_KEY is not configured. "
                     "Set the LLM_API_KEY environment variable to use embeddings."
                 )
-            self._client = AsyncOpenAI(api_key=self._settings.LLM_API_KEY)
+            kwargs = {"api_key": self._settings.LLM_API_KEY}
+            if self._settings.LLM_BASE_URL:
+                kwargs["base_url"] = self._settings.LLM_BASE_URL
+            self._client = AsyncOpenAI(**kwargs)
         return self._client
 
     def _cache_put(self, key: str, value: list[float]) -> None:
@@ -58,7 +61,9 @@ class EmbeddingService:
         start_time = time.perf_counter()
         try:
             client = self._ensure_client()
-            response = await client.embeddings.create(model=self.MODEL, input=text)
+            response = await client.embeddings.create(
+                model=self.MODEL, input=text, extra_body={"input_type": "passage"}
+            )
             embedding = response.data[0].embedding
             self._cache_put(cache_key, embedding)
             duration = time.perf_counter() - start_time
@@ -92,6 +97,7 @@ class EmbeddingService:
                 response = await client.embeddings.create(
                     model=self.MODEL,
                     input=[t for _, t in uncached],
+                    extra_body={"input_type": "passage"},
                 )
                 for (idx, text), data in zip(uncached, response.data):
                     cache_key = hashlib.md5(text.encode()).hexdigest()

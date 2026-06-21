@@ -32,7 +32,10 @@ class LLMService:
 
     def _ensure_client(self) -> AsyncOpenAI:
         if self._client is None:
-            self._client = AsyncOpenAI(api_key=self._settings.LLM_API_KEY)
+            kwargs = {"api_key": self._settings.LLM_API_KEY}
+            if self._settings.LLM_BASE_URL:
+                kwargs["base_url"] = self._settings.LLM_BASE_URL
+            self._client = AsyncOpenAI(**kwargs)
         return self._client
 
     async def chat(

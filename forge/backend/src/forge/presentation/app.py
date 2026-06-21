@@ -13,7 +13,7 @@ from forge.config.metrics import APP_INFO
 from forge.infrastructure.database.connection import database_manager
 from forge.infrastructure.search.qdrant_client import vector_store
 from forge.infrastructure.search.in_memory_vector_store import in_memory_vector_store
-from forge.presentation.routes import projects, memory, chat, code, git, dependencies, metrics, analysis
+from forge.presentation.routes import projects, memory, chat, code, git, dependencies, metrics, analysis, index
 from forge.presentation.middleware.error_handler import (
     project_not_found_handler,
     project_already_exists_handler,
@@ -105,6 +105,7 @@ def create_app() -> FastAPI:
     app.include_router(git.router, prefix="/api/v1")
     app.include_router(dependencies.router, prefix="/api/v1")
     app.include_router(analysis.router, prefix="/api/v1")
+    app.include_router(index.router, prefix="/api/v1")
     app.include_router(metrics.router)
 
     @app.get("/health")

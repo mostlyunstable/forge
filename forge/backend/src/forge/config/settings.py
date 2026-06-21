@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "openai"
     LLM_MODEL: str = "gpt-4"
     LLM_API_KEY: str = ""
+    LLM_BASE_URL: str = ""
 
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
