@@ -14,11 +14,20 @@ import type {
   AnalysisReportDetail,
   SendMessageResponse,
   SearchMemoriesResponse,
+  AnalyzeCommitsResponse,
 } from './api-types';
 
-const BASE_URL = 'http://127.0.0.1:8000/api/v1';
-
+const DEFAULT_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+let _baseUrl = DEFAULT_BASE_URL;
 let _token: string | null = null;
+
+export function setApiBaseUrl(url: string) {
+  _baseUrl = url.endsWith('/api/v1') ? url : `${url}/api/v1`;
+}
+
+export function getApiBaseUrl(): string {
+  return _baseUrl;
+}
 
 export function setAuthToken(token: string) {
   _token = token;
@@ -37,17 +46,29 @@ class ApiError extends Error {
   }
 }
 
+function getBaseUrl(): string {
+  // Use module-level _baseUrl as default; settings store overrides via setApiBaseUrl
+  return _baseUrl;
+}
+
+function getAuthTokenValue(): string | null {
+  return _token;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const baseUrl = getBaseUrl();
+  const token = getAuthTokenValue();
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
-  if (_token) {
-    headers['Authorization'] = `Bearer ${_token}`;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers,
   });
@@ -149,4 +170,11 @@ export const search = {
     if (projectId) params.set('project_id', projectId);
     return request<SearchMemoriesResponse>(`/memory/search?${params}`);
   },
+};
+
+// ── Git ──
+
+export const git = {
+  getCommits: (projectId: string, limit = 50) =>
+    request<AnalyzeCommitsResponse>(`/git/commits/${projectId}?limit=${limit}`),
 };

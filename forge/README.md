@@ -149,16 +149,18 @@ infrastructure/ → Repository implementations, external services
 
 ### Test Suite
 
-131 tests across four layers:
+214 tests across four layers:
 
 ```bash
 cd backend
 rm -f forge.db
 PYTHONPATH=src python3 -m pytest tests/ -v
 # architecture/  - 11 tests (dependency rules)
-# unit/          - 65 tests (use cases, domain, events, middleware)
-# integration/   - 20 tests (SQLite repository tests)
-# api/           - 15 tests (HTTP endpoint tests)
+# unit/          - 105 tests (use cases, domain, events, middleware)
+# integration/   - 31 tests (SQLite repository tests)
+# api/           - 26 tests (HTTP endpoint tests)
+# analysis/      - 30 tests (PR analysis engine)
+# indexing/      - 46 tests (code indexing engine)
 ```
 
 ## Tech Stack
@@ -169,7 +171,7 @@ PYTHONPATH=src python3 -m pytest tests/ -v
 | Database | PostgreSQL (prod) / SQLite (dev) |
 | Vectors | Qdrant |
 | Code Parsing | Tree-sitter (Python, TypeScript, JavaScript) |
-| LLM | OpenAI API |
+| LLM | NVIDIA NIM (Meta Llama 3.1) |
 | Auth | JWT (PyJWT) |
 | Frontend | VS Code Extension (TypeScript) |
 | Containerization | Docker, Docker Compose |
@@ -207,8 +209,8 @@ forge/
 | `QDRANT_HOST` | `localhost` | Qdrant host |
 | `QDRANT_PORT` | `6333` | Qdrant port |
 | `USE_QDRANT` | `true` | Set `false` for in-memory vector store |
-| `LLM_API_KEY` | — | OpenAI API key |
-| `LLM_MODEL` | `gpt-4` | LLM model name |
+| `LLM_API_KEY` | — | NVIDIA NIM API key |
+| `LLM_MODEL` | `gpt-4` | LLM model name (default: meta/llama-3.1-8b-instruct via NVIDIA NIM) |
 | `JWT_SECRET_KEY` | — | JWT signing secret |
 | `DEBUG` | `false` | Enable debug mode |
 

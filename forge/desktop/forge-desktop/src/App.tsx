@@ -1,5 +1,7 @@
+import { Toaster } from 'react-hot-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryProvider } from '@/components/QueryProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { DashboardView } from '@/components/views/DashboardView';
 import { CodeView } from '@/components/views/CodeView';
@@ -8,7 +10,9 @@ import { BugsView } from '@/components/views/BugsView';
 import { AnalysisView } from '@/components/views/AnalysisView';
 import { HistoryView } from '@/components/views/HistoryView';
 import { GraphView } from '@/components/views/GraphView';
+import { LoginView } from '@/components/views/LoginView';
 import { useNavigation } from '@/stores/navigation';
+import { useSettings } from '@/stores/settings';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 function ViewRouter() {
@@ -36,15 +40,42 @@ function ViewRouter() {
 
 function App() {
   useKeyboardShortcuts();
+  const authToken = useSettings((s) => s.authToken);
+
+  if (!authToken) {
+    return (
+      <ErrorBoundary>
+        <QueryProvider>
+          <LoginView />
+        </QueryProvider>
+      </ErrorBoundary>
+    );
+  }
 
   return (
-    <QueryProvider>
-      <TooltipProvider>
-        <AppLayout>
-          <ViewRouter />
-        </AppLayout>
-      </TooltipProvider>
-    </QueryProvider>
+    <ErrorBoundary>
+      <QueryProvider>
+        <TooltipProvider>
+          <Toaster
+            position="bottom-right"
+            containerStyle={{ bottom: 16, right: 16 }}
+            toastOptions={{
+              style: {
+                background: 'var(--color-bg-overlay)',
+                color: 'var(--color-text-primary)',
+                border: '1px solid var(--color-border-default)',
+                borderRadius: '4px',
+                fontSize: '13px',
+                fontFamily: 'var(--font-sans)',
+              },
+            }}
+          />
+          <AppLayout>
+            <ViewRouter />
+          </AppLayout>
+        </TooltipProvider>
+      </QueryProvider>
+    </ErrorBoundary>
   );
 }
 

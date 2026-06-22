@@ -214,3 +214,20 @@ export interface SearchMemoriesResponse {
   query: string;
   total: number;
 }
+
+// ── Git ──
+
+export interface CommitSummary {
+  sha: string;
+  message: string;
+  author: string;
+  classification: string;
+  files_changed: string[];
+  timestamp: string;
+}
+
+export interface AnalyzeCommitsResponse {
+  commits: CommitSummary[];
+  total: number;
+  by_classification: Record<string, number>;
+}

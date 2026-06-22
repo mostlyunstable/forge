@@ -1,6 +1,9 @@
-import { type View } from '@/stores/navigation';
-import { useNavigation } from '@/stores/navigation';
+import { type View, useNavigation } from '@/stores/navigation';
 import { useCommandPalette } from '@/stores/command-palette';
+import { useDecisions, useBugs } from '@/hooks/useApi';
+import { useSettings } from '@/stores/settings';
+import { SettingsDialog } from '@/components/SettingsDialog';
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Code2,
@@ -9,11 +12,9 @@ import {
   BarChart3,
   History,
   Network,
-  Search,
   Settings,
   ChevronsLeft,
   ChevronsRight,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -22,26 +23,33 @@ interface NavItem {
   id: View;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  badge?: number;
-  section?: 'primary' | 'secondary';
+  count?: number;
+  group?: number;
 }
-
-const mainNav: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, section: 'primary' },
-  { id: 'code', label: 'Code', icon: Code2, section: 'primary' },
-  { id: 'decisions', label: 'Decisions', icon: GitBranch, badge: 7, section: 'primary' },
-  { id: 'bugs', label: 'Bugs', icon: Bug, badge: 3, section: 'primary' },
-  { id: 'analysis', label: 'Analysis', icon: BarChart3, section: 'secondary' },
-  { id: 'history', label: 'History', icon: History, section: 'secondary' },
-  { id: 'graph', label: 'Graph', icon: Network, section: 'secondary' },
-];
-
-const primaryNav = mainNav.filter((n) => n.section === 'primary');
-const secondaryNav = mainNav.filter((n) => n.section === 'secondary');
 
 export function Sidebar() {
   const { activeView, sidebarCollapsed, setView, toggleSidebar } = useNavigation();
   const commandPalette = useCommandPalette();
+  const currentProjectId = useSettings((s) => s.currentProjectId);
+  const decisionsQuery = useDecisions(currentProjectId);
+  const bugsQuery = useBugs(currentProjectId);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const decisionsCount = decisionsQuery.data?.total ?? 0;
+  const openBugsCount = bugsQuery.data?.bugs?.filter((b) => !b.resolved).length ?? 0;
+
+  const navItems: NavItem[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 0 },
+    { id: 'code', label: 'Code', icon: Code2, group: 0 },
+    { id: 'decisions', label: 'Decisions', icon: GitBranch, count: decisionsCount, group: 0 },
+    { id: 'bugs', label: 'Bugs', icon: Bug, count: openBugsCount, group: 0 },
+    { id: 'analysis', label: 'Analysis', icon: BarChart3, group: 1 },
+    { id: 'history', label: 'History', icon: History, group: 1 },
+    { id: 'graph', label: 'Graph', icon: Network, group: 1 },
+  ];
+
+  const group0 = navItems.filter((n) => n.group === 0);
+  const group1 = navItems.filter((n) => n.group === 1);
 
   const renderNavItem = (item: NavItem) => {
     const Icon = item.icon;
@@ -52,28 +60,23 @@ export function Sidebar() {
         key={item.id}
         onClick={() => setView(item.id)}
         className={cn(
-          'group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all duration-150',
-          sidebarCollapsed && 'justify-center px-0',
+          'group flex w-full items-center gap-3 rounded-[4px] px-3 text-[13px] font-medium transition-colors duration-120',
+          sidebarCollapsed ? 'justify-center h-[32px] px-0' : 'h-[32px]',
           isActive
-            ? 'bg-[var(--color-accent-muted)] text-[var(--color-accent)]'
-            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-secondary)]'
+            ? 'bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)] border-l-2 border-l-[var(--color-accent-blue)] pl-[10px]'
+            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-secondary)] border-l-2 border-l-transparent'
         )}
       >
         <Icon className={cn(
-          'h-4 w-4 shrink-0 transition-colors duration-150',
-          isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-faint)] group-hover:text-[var(--color-text-muted)]'
+          'h-[14px] w-[14px] shrink-0',
+          isActive ? 'text-[var(--color-accent-blue)]' : 'text-[var(--color-text-muted)]'
         )} />
         {!sidebarCollapsed && (
           <>
             <span className="flex-1 text-left">{item.label}</span>
-            {item.badge !== undefined && (
-              <span className={cn(
-                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums',
-                isActive
-                  ? 'bg-[var(--color-accent)]/20 text-[var(--color-accent)]'
-                  : 'bg-[var(--color-surface-elevated)] text-[var(--color-text-faint)]'
-              )}>
-                {item.badge}
+            {item.count !== undefined && item.count > 0 && (
+              <span className="font-mono text-[10px] text-[var(--color-text-muted)] tabular-nums">
+                {item.count}
               </span>
             )}
           </>
@@ -96,16 +99,18 @@ export function Sidebar() {
   };
 
   return (
+    <>
     <aside
+      data-tauri-drag-region="false"
       className={cn(
-        'flex h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-200 ease-out',
+        'flex h-full flex-col border-r border-[var(--color-border-subtle)] bg-[var(--color-bg-surface)]',
         sidebarCollapsed ? 'w-[var(--sidebar-collapsed)]' : 'w-[var(--sidebar-width)]'
       )}
     >
-      {/* Logo area */}
-      <div className="flex h-[var(--titlebar-height)] items-center gap-2.5 border-b border-[var(--color-border-subtle)] px-3">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--color-accent)]">
-          <Sparkles className="h-3.5 w-3.5 text-white" />
+      {/* Logo */}
+      <div className="flex h-[var(--titlebar-height)] items-center gap-2 border-b border-[var(--color-border-subtle)] px-3">
+        <div className="flex h-[20px] w-[20px] items-center justify-center rounded-[4px] bg-[var(--color-accent-blue)]">
+          <span className="text-[10px] font-bold text-white">F</span>
         </div>
         {!sidebarCollapsed && (
           <span className="text-[14px] font-semibold tracking-tight text-[var(--color-text-primary)]">
@@ -115,91 +120,80 @@ export function Sidebar() {
       </div>
 
       {/* Search trigger */}
-      <div className="px-2 pt-2.5 pb-1">
+      <div className="px-2 pt-[8px] pb-[4px]">
         <button
           onClick={commandPalette.open}
           className={cn(
-            'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] transition-all duration-150',
+            'flex w-full items-center gap-2 rounded-[4px] px-3 h-[28px] text-[12px] transition-colors duration-120',
             sidebarCollapsed && 'justify-center px-0',
-            'text-[var(--color-text-faint)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-muted)]'
+            'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-secondary)]'
           )}
         >
-          <Search className="h-3.5 w-3.5 shrink-0" />
-          {!sidebarCollapsed && (
+          {!sidebarCollapsed ? (
             <>
               <span className="flex-1 text-left">Search</span>
-              <kbd className="pointer-events-none rounded border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-text-faint)]">
+              <kbd className="font-mono text-[10px] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)] rounded-[2px] px-1 py-0.5">
                 ⌘K
               </kbd>
             </>
+          ) : (
+            <span className="text-[12px]">⌘K</span>
           )}
         </button>
       </div>
 
-      {/* Primary nav */}
-      <nav className="flex-1 overflow-y-auto px-2 pt-1">
-        <div className="space-y-0.5">
-          {primaryNav.map(renderNavItem)}
+      {/* Nav groups */}
+      <nav className="flex-1 overflow-y-auto px-2 pt-[4px]">
+        <div className="space-y-[2px]">
+          {group0.map(renderNavItem)}
         </div>
 
-        {/* Secondary nav section */}
-        {secondaryNav.length > 0 && (
-          <div className="mt-4">
-            {!sidebarCollapsed && (
-              <div className="mb-1 px-2.5 text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-faint)]">
-                Tools
-              </div>
-            )}
-            <div className="space-y-0.5">
-              {secondaryNav.map(renderNavItem)}
-            </div>
-          </div>
-        )}
+        <div className="mt-[8px] space-y-[2px]">
+          {group1.map(renderNavItem)}
+        </div>
       </nav>
 
       {/* Bottom section */}
-      <div className="border-t border-[var(--color-border-subtle)]">
-        <div className="space-y-0.5 px-2 py-2">
+      <div className="mt-auto">
+        {/* Settings */}
+        <div className="px-2 pb-[4px]">
           <button
-            onClick={toggleSidebar}
+            onClick={() => setSettingsOpen(true)}
             className={cn(
-              'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] transition-all duration-150',
+              'flex w-full items-center gap-3 rounded-[4px] px-3 h-[32px] text-[13px] transition-colors duration-120',
               sidebarCollapsed && 'justify-center px-0',
-              'text-[var(--color-text-faint)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-muted)]'
+              'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-secondary)]'
             )}
           >
-            {sidebarCollapsed ? (
-              <ChevronsRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronsLeft className="h-4 w-4" />
-                <span>Collapse</span>
-              </>
-            )}
-          </button>
-
-          <button
-            className={cn(
-              'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-[12px] transition-all duration-150',
-              sidebarCollapsed && 'justify-center px-0',
-              'text-[var(--color-text-faint)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-muted)]'
-            )}
-          >
-            <Settings className="h-4 w-4 shrink-0" />
+            <Settings className="h-[14px] w-[14px] shrink-0" />
             {!sidebarCollapsed && <span>Settings</span>}
           </button>
         </div>
 
-        {/* Status bar */}
-        {!sidebarCollapsed && (
-          <div className="border-t border-[var(--color-border-subtle)] px-3 py-2">
-            <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-faint)]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
-              <span>Connected</span>
-            </div>
-          </div>
-        )}
+        {/* Collapse */}
+        <div className="border-t border-[var(--color-border-subtle)] px-2 py-[4px]">
+          <button
+            onClick={toggleSidebar}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-[4px] px-3 h-[32px] text-[13px] transition-colors duration-120',
+              sidebarCollapsed && 'justify-center px-0',
+              'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-secondary)]'
+            )}
+          >
+            {sidebarCollapsed ? (
+              <ChevronsRight className="h-[14px] w-[14px]" />
+            ) : (
+              <>
+                <ChevronsLeft className="h-[14px] w-[14px]" />
+                <span>Collapse</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </aside>
+
+    <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    </>
   );
 }

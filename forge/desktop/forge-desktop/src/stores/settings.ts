@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { setApiBaseUrl } from '@/lib/api';
 
 interface SettingsState {
   apiUrl: string;
@@ -16,7 +17,10 @@ export const useSettings = create<SettingsState>()(
       apiUrl: 'http://127.0.0.1:8000',
       authToken: null,
       currentProjectId: null,
-      setApiUrl: (url) => set({ apiUrl: url }),
+      setApiUrl: (url) => {
+        setApiBaseUrl(url);
+        set({ apiUrl: url });
+      },
       setAuthToken: (token) => set({ authToken: token }),
       setCurrentProject: (id) => set({ currentProjectId: id }),
     }),

@@ -1,33 +1,82 @@
-import { useCommandPalette } from '@/stores/command-palette';
-import { Search, Command } from 'lucide-react';
+import { useSettings } from '@/stores/settings';
+import { useProjects } from '@/hooks/useApi';
+import { useState, useRef, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 export function TitleBar() {
-  const commandPalette = useCommandPalette();
+  const { currentProjectId, setCurrentProject } = useSettings();
+  const projectsQuery = useProjects();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const projects = projectsQuery.data?.projects ?? [];
+  const currentProject = projects.find((p) => p.id === currentProjectId);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   return (
     <header
       data-tauri-drag-region
-      className="flex h-[var(--titlebar-height)] items-center border-b border-[var(--color-border-subtle)] bg-[var(--color-surface)]"
+      className="flex h-[var(--titlebar-height)] items-center border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-base)]"
     >
       {/* Spacer for macOS traffic lights */}
       <div className="w-[78px] shrink-0" />
 
-      {/* Search trigger (centered) */}
+      {/* Center: Project selector */}
       <div className="flex flex-1 items-center justify-center">
-        <button
-          onClick={commandPalette.open}
-          className="flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-1 text-[12px] text-[var(--color-text-faint)] transition-all duration-150 hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-muted)]"
-        >
-          <Search className="h-3.5 w-3.5" />
-          <span>Search commands...</span>
-          <kbd className="ml-1 flex items-center gap-0.5 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-0.5 font-mono text-[10px] text-[var(--color-text-faint)]">
-            <Command className="h-2.5 w-2.5" />K
-          </kbd>
-        </button>
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-1 rounded-[4px] px-2 py-1 text-[13px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] transition-colors duration-120"
+          >
+            <span>{currentProject?.name ?? 'No Project'}</span>
+            <ChevronDown className="h-[12px] w-[12px] text-[var(--color-text-muted)]" />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 min-w-[200px] rounded-[4px] border border-[var(--color-border-default)] bg-[var(--color-bg-overlay)] py-1 z-50">
+              {projects.length === 0 ? (
+                <div className="px-3 py-2 text-[12px] text-[var(--color-text-muted)]">
+                  No projects found
+                </div>
+              ) : (
+                projects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => {
+                      setCurrentProject(project.id);
+                      setDropdownOpen(false);
+                    }}
+                    className={`flex w-full items-center px-3 py-[6px] text-[12px] transition-colors duration-120 ${
+                      project.id === currentProjectId
+                        ? 'bg-[var(--color-bg-elevated)] text-[var(--color-text-primary)]'
+                        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-primary)]'
+                    }`}
+                  >
+                    <span className="truncate">{project.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Right spacer */}
-      <div className="w-[78px] shrink-0" />
+      {/* Right: Connection status + settings */}
+      <div className="flex items-center gap-3 pr-4">
+        <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
+          <span className={`h-[6px] w-[6px] rounded-full ${projectsQuery.error ? 'bg-[var(--color-accent-red)]' : 'bg-[var(--color-accent-green)]'}`} />
+          <span>{projectsQuery.error ? 'Offline' : 'Connected'}</span>
+        </div>
+      </div>
     </header>
   );
 }
