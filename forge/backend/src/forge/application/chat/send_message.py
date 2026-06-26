@@ -58,6 +58,31 @@ class SendMessageUseCase:
             project_id=project.id,
         )
 
+        # Build sources from context
+        sources = []
+        for r in context.get("relevant_code", [])[:3]:
+            sources.append({
+                "type": "code",
+                "name": r["payload"]["name"],
+                "file": r["payload"]["file_path"],
+                "score": r["score"],
+            })
+        for r in context.get("relevant_decisions", [])[:3]:
+            sources.append({
+                "type": "decision",
+                "name": r["payload"]["title"],
+                "score": r["score"],
+            })
+
+        # If LLM is not configured, return raw context
+        if not self._llm_service.is_configured:
+            response = self._format_raw_context(context)
+            return SendMessageResponse(
+                response=response,
+                sources=sources,
+                project_id=request.project_id,
+            )
+
         system_prompt = (
             "You are Forge, an AI engineering companion embedded in the developer's workflow. "
             "You have access to the project's code, architectural decisions, bug history, "
@@ -103,23 +128,38 @@ class SendMessageUseCase:
 
         llm_response = await self._llm_service.chat(messages)
 
-        sources = []
-        for r in context.get("relevant_code", [])[:3]:
-            sources.append({
-                "type": "code",
-                "name": r["payload"]["name"],
-                "file": r["payload"]["file_path"],
-                "score": r["score"],
-            })
-        for r in context.get("relevant_decisions", [])[:3]:
-            sources.append({
-                "type": "decision",
-                "name": r["payload"]["title"],
-                "score": r["score"],
-            })
-
         return SendMessageResponse(
             response=llm_response.content,
             sources=sources,
             project_id=request.project_id,
         )
+
+    def _format_raw_context(self, context: dict) -> str:
+        """Format context as readable text when no LLM is available."""
+        parts = []
+
+        if context.get("relevant_code"):
+            parts.append("**Relevant code:**")
+            for r in context["relevant_code"][:5]:
+                name = r["payload"]["name"]
+                file_path = r["payload"]["file_path"]
+                parts.append(f"- {name} in {file_path}")
+
+        if context.get("relevant_decisions"):
+            parts.append("\n**Related decisions:**")
+            for r in context["relevant_decisions"][:5]:
+                title = r["payload"]["title"]
+                decision = r["payload"]["decision"]
+                parts.append(f"- {title}: {decision}")
+
+        if context.get("relevant_bugs"):
+            parts.append("\n**Similar bugs resolved:**")
+            for r in context["relevant_bugs"][:3]:
+                title = r["payload"]["title"]
+                solution = r["payload"].get("solution", "No solution recorded")
+                parts.append(f"- {title}: {solution}")
+
+        if not parts:
+            return "No relevant context found for this query. Configure an LLM API key in Settings to enable AI-powered responses."
+
+        return "\n".join(parts)

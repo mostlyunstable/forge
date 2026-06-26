@@ -31,6 +31,11 @@ class IContextRetriever(ABC):
 class ILLMService(ABC):
     """Port for LLM interactions."""
 
+    @property
+    @abstractmethod
+    def is_configured(self) -> bool:
+        """Check if an API key is configured."""
+
     @abstractmethod
     async def chat(
         self,

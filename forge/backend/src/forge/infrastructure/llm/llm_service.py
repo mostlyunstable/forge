@@ -30,6 +30,11 @@ class LLMService:
         self._settings = get_settings()
         self._client: AsyncOpenAI | None = None
 
+    @property
+    def is_configured(self) -> bool:
+        """Check if an API key is configured for LLM calls."""
+        return bool(self._settings.LLM_API_KEY)
+
     def _ensure_client(self) -> AsyncOpenAI:
         if self._client is None:
             kwargs = {"api_key": self._settings.LLM_API_KEY}

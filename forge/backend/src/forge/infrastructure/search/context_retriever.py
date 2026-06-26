@@ -18,7 +18,7 @@ class ContextRetriever:
 
     async def retrieve(self, query: str, project_id) -> dict:
         try:
-            query_embedding = await self._embedding_service.get_embedding(query)
+            query_embedding = await self._embedding_service.get_embedding(query, input_type="query")
             project_uuid = project_id.value if hasattr(project_id, "value") else project_id
             code = await self._vector_store.search_code(query_embedding, project_uuid, limit=5)
             decisions = await self._vector_store.search_decisions(query_embedding, project_uuid, limit=5)

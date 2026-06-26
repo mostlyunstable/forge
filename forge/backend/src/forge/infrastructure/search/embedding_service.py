@@ -51,9 +51,14 @@ class EmbeddingService:
         if len(self._cache) > self.MAX_CACHE_SIZE:
             self._cache.popitem(last=False)
 
-    async def get_embedding(self, text: str) -> list[float]:
-        """Get embedding for a single text, with caching."""
-        cache_key = hashlib.md5(text.encode()).hexdigest()
+    async def get_embedding(self, text: str, input_type: str = "passage") -> list[float]:
+        """Get embedding for a single text, with caching.
+
+        Args:
+            text: The text to embed.
+            input_type: "passage" for documents to index, "query" for search queries.
+        """
+        cache_key = hashlib.md5(f"{input_type}:{text}".encode()).hexdigest()
         if cache_key in self._cache:
             self._cache.move_to_end(cache_key)
             return self._cache[cache_key]
@@ -62,7 +67,7 @@ class EmbeddingService:
         try:
             client = self._ensure_client()
             response = await client.embeddings.create(
-                model=self.MODEL, input=text, extra_body={"input_type": "passage"}
+                model=self.MODEL, input=text, extra_body={"input_type": input_type}
             )
             embedding = response.data[0].embedding
             self._cache_put(cache_key, embedding)
