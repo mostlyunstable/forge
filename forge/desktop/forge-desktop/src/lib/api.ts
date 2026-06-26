@@ -37,6 +37,16 @@ export function getAuthToken(): string | null {
   return _token;
 }
 
+export async function checkServerConnection(baseUrl: string = _baseUrl): Promise<boolean> {
+  try {
+    const url = baseUrl.replace('/api/v1', '/health');
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {

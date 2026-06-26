@@ -82,18 +82,18 @@ function FileTreeItem({ node, selectedFile, onSelect, level = 0 }: FileTreeItemP
       <button
         onClick={() => onSelect(node.path)}
         className={cn(
-          'group flex w-full items-center gap-2 py-[5px] text-[12px] transition-all duration-100',
+          'group flex w-full items-center gap-2 h-[28px] text-[12px] transition-colors duration-120',
           isSelected
-            ? 'bg-[var(--color-accent-muted)] text-[var(--color-accent)]'
-            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-secondary)]'
+            ? 'bg-[var(--color-bg-elevated)] text-[var(--color-accent-blue)]'
+            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-secondary)]'
         )}
         style={{ paddingLeft: `${(level * 14) + 12}px`, paddingRight: '12px' }}
       >
         <FileIcon className={cn(
-          'h-3.5 w-3.5 shrink-0',
-          isSelected ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-faint)] group-hover:text-[var(--color-text-muted)]'
+          'h-[14px] w-[14px] shrink-0',
+          isSelected ? 'text-[var(--color-accent-blue)]' : 'text-[var(--color-text-muted)]'
         )} />
-        <span className="truncate font-mono text-[11px]">{node.name}</span>
+        <span className="truncate font-mono text-[12px]">{node.name}</span>
       </button>
     );
   }
@@ -102,25 +102,25 @@ function FileTreeItem({ node, selectedFile, onSelect, level = 0 }: FileTreeItemP
     <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="group flex w-full items-center gap-2 py-[5px] text-[12px] text-[var(--color-text-muted)] transition-all duration-100 hover:bg-[var(--color-surface-elevated)] hover:text-[var(--color-text-secondary)]"
+        className="group flex w-full items-center gap-2 h-[28px] text-[12px] text-[var(--color-text-muted)] transition-colors duration-120 hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-secondary)]"
         style={{ paddingLeft: `${(level * 14) + 12}px`, paddingRight: '12px' }}
       >
-        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+        <span className="flex h-[14px] w-[14px] shrink-0 items-center justify-center">
           {expanded ? (
-            <ChevronDown className="h-3 w-3 text-[var(--color-text-faint)]" />
+            <ChevronDown className="h-[12px] w-[12px] text-[var(--color-text-muted)]" />
           ) : (
-            <ChevronRight className="h-3 w-3 text-[var(--color-text-faint)]" />
+            <ChevronRight className="h-[12px] w-[12px] text-[var(--color-text-muted)]" />
           )}
         </span>
         {expanded ? (
-          <FolderOpen className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
+          <FolderOpen className="h-[14px] w-[14px] shrink-0 text-[var(--color-accent-blue)]" />
         ) : (
-          <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-faint)] group-hover:text-[var(--color-text-muted)]" />
+          <Folder className="h-[14px] w-[14px] shrink-0 text-[var(--color-text-muted)]" />
         )}
         <span className="truncate text-[12px] font-medium">{node.name}</span>
       </button>
       {expanded && node.children && (
-        <div className="animate-fade-in">
+        <div>
           {node.children.map((child) => (
             <FileTreeItem
               key={child.path}

@@ -8,9 +8,9 @@ interface ReportListProps {
 }
 
 const riskConfig = {
-  low: { color: 'text-[var(--color-risk-low)]', bg: 'bg-[var(--color-success-muted)]', label: 'Low' },
-  medium: { color: 'text-[var(--color-risk-medium)]', bg: 'bg-[var(--color-warning-muted)]', label: 'Medium' },
-  high: { color: 'text-[var(--color-risk-high)]', bg: 'bg-[var(--color-danger-muted)]', label: 'High' },
+  low: { color: 'text-[var(--color-accent-green)]', label: 'Low' },
+  medium: { color: 'text-[var(--color-accent-amber)]', label: 'Medium' },
+  high: { color: 'text-[var(--color-accent-red)]', label: 'High' },
 };
 
 export function ReportList({ reports, onSelect, selectedReport }: ReportListProps) {
@@ -18,7 +18,7 @@ export function ReportList({ reports, onSelect, selectedReport }: ReportListProp
     <div className="p-6">
       <div className="space-y-2">
         {reports.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-[var(--color-border)] p-8 text-center text-[12px] text-[var(--color-text-faint)]">
+          <div className="rounded-[4px] border border-dashed border-[var(--color-border-subtle)] p-8 text-center text-[12px] text-[var(--color-text-muted)]">
             No analysis reports yet
           </div>
         ) : (
@@ -38,7 +38,7 @@ export function ReportList({ reports, onSelect, selectedReport }: ReportListProp
                     <div className="text-[13px] font-medium text-[var(--color-text-primary)] leading-snug">
                       {report.title || `PR #${report.pr_number}`}
                     </div>
-                    <div className="mt-2 flex items-center gap-3 text-[11px] text-[var(--color-text-faint)]">
+                    <div className="mt-2 flex items-center gap-3 text-[11px] text-[var(--color-text-muted)]">
                       <span>{report.files_changed} files</span>
                       <span>·</span>
                       <span>Risk {report.risk_score}/10</span>
@@ -46,7 +46,7 @@ export function ReportList({ reports, onSelect, selectedReport }: ReportListProp
                       <span>{new Date(report.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  <span className={cn('badge', config.bg, config.color)}>
+                  <span className={cn('badge-muted', config.color)}>
                     {config.label}
                   </span>
                 </div>

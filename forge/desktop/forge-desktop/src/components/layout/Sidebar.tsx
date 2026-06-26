@@ -3,7 +3,8 @@ import { useCommandPalette } from '@/stores/command-palette';
 import { useDecisions, useBugs } from '@/hooks/useApi';
 import { useSettings } from '@/stores/settings';
 import { SettingsDialog } from '@/components/SettingsDialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { checkServerConnection } from '@/lib/api';
 import {
   LayoutDashboard,
   Code2,
@@ -30,10 +31,24 @@ interface NavItem {
 export function Sidebar() {
   const { activeView, sidebarCollapsed, setView, toggleSidebar } = useNavigation();
   const commandPalette = useCommandPalette();
-  const currentProjectId = useSettings((s) => s.currentProjectId);
+  const { currentProjectId, connectionStatus, setConnectionStatus, apiUrl } = useSettings();
   const decisionsQuery = useDecisions(currentProjectId);
   const bugsQuery = useBugs(currentProjectId);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Check connection on mount and when apiUrl changes
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      setConnectionStatus('checking');
+      const connected = await checkServerConnection(apiUrl);
+      if (!cancelled) {
+        setConnectionStatus(connected ? 'connected' : 'disconnected');
+      }
+    };
+    check();
+    return () => { cancelled = true; };
+  }, [apiUrl]);
 
   const decisionsCount = decisionsQuery.data?.total ?? 0;
   const openBugsCount = bugsQuery.data?.bugs?.filter((b) => !b.resolved).length ?? 0;
@@ -155,6 +170,19 @@ export function Sidebar() {
 
       {/* Bottom section */}
       <div className="mt-auto">
+        {/* Connection status */}
+        {!sidebarCollapsed && (
+          <div className="px-2 pb-[4px]">
+            <div className="flex items-center gap-2 rounded-[4px] px-3 h-[28px] text-[11px] text-[var(--color-text-muted)]">
+              <span className={`h-[6px] w-[6px] rounded-full shrink-0 ${
+                connectionStatus === 'connected' ? 'bg-[var(--color-accent-green)]' :
+                connectionStatus === 'disconnected' ? 'bg-[var(--color-accent-red)]' :
+                'bg-[var(--color-accent-amber)]'
+              }`} />
+              <span>{connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'disconnected' ? 'Offline' : 'Checking...'}</span>
+            </div>
+          </div>
+        )}
         {/* Settings */}
         <div className="px-2 pb-[4px]">
           <button

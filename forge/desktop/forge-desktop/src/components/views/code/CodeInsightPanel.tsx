@@ -18,17 +18,17 @@ export function CodeInsightPanel({ entries }: CodeInsightPanelProps) {
       <div className="card p-4">
         <div className="text-label mb-3">File Summary</div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-md bg-[var(--color-surface-elevated)] p-3 text-center">
-            <div className="font-mono text-[18px] font-semibold text-[var(--color-text-primary)] tabular-nums">
+          <div className="rounded-[4px] bg-[var(--color-bg-elevated)] p-3 text-center">
+            <div className="font-mono text-[18px] font-semibold text-[var(--color-text-primary)]">
               {entries.length}
             </div>
-            <div className="text-[11px] text-[var(--color-text-faint)]">Entries</div>
+            <div className="text-[11px] text-[var(--color-text-muted)]">Entries</div>
           </div>
-          <div className="rounded-md bg-[var(--color-surface-elevated)] p-3 text-center">
+          <div className="rounded-[4px] bg-[var(--color-bg-elevated)] p-3 text-center">
             <div className="font-mono text-[14px] font-semibold text-[var(--color-text-primary)]">
               {entries[0]?.language || '—'}
             </div>
-            <div className="text-[11px] text-[var(--color-text-faint)]">Language</div>
+            <div className="text-[11px] text-[var(--color-text-muted)]">Language</div>
           </div>
         </div>
       </div>
@@ -53,12 +53,12 @@ export function CodeInsightPanel({ entries }: CodeInsightPanelProps) {
           <div className="text-label mb-3">Entries in File</div>
           <div className="space-y-2">
             {entries.map((entry, i) => (
-              <div key={i} className="flex items-center gap-2.5 rounded-md bg-[var(--color-surface-elevated)] px-3 py-2 transition-colors hover:bg-[var(--color-surface-overlay)]">
-                <GitBranch className="h-3 w-3 shrink-0 text-[var(--color-accent)]" />
+              <div key={i} className="flex items-center gap-2.5 rounded-[4px] bg-[var(--color-bg-elevated)] px-3 py-2 transition-colors hover:bg-[var(--color-bg-overlay)]">
+                <GitBranch className="h-[14px] w-[14px] shrink-0 text-[var(--color-accent-blue)]" />
                 <span className="flex-1 truncate font-mono text-[11px] font-medium text-[var(--color-text-primary)]">
                   {entry.name}
                 </span>
-                <span className="text-[10px] text-[var(--color-text-faint)] tabular-nums">
+                <span className="text-[10px] text-[var(--color-text-muted)]">
                   L{entry.start_line}–{entry.end_line}
                 </span>
               </div>
