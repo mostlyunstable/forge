@@ -5,9 +5,9 @@
 Forge indexes codebases, tracks architectural decisions, records bug fixes, accumulates developer preferences, and retrieves relevant context. The longer it is used, the more valuable it becomes.
 
 ```
-VS Code Extension ──> FastAPI Backend ──> PostgreSQL (structured)
-                                      ──> Qdrant (vectors)
-                                      ──> LLM API (generation)
+Desktop App (Tauri 2) ──> FastAPI Backend ──> PostgreSQL (structured)
+                   VS Code ──                  ──> Qdrant (vectors)
+                                                ──> NVIDIA NIM (embeddings + generation)
 ```
 
 ## Features
@@ -18,8 +18,10 @@ VS Code Extension ──> FastAPI Backend ──> PostgreSQL (structured)
 - **Code Intelligence** — Index repos with Tree-sitter, extract structured metadata, semantic search
 - **Git Intelligence** — Commit analysis, classification (feature/bugfix/refactor), project timelines
 - **Semantic Search** — Vector-powered search across all memories via Qdrant
-- **VS Code Extension** — 7 commands, sidebar tree view, webview chat
+- **Knowledge Graph** — D3 force-directed graph showing relationships between decisions, bugs, and reports
+- **Native Desktop App** — Tauri 2 with macOS-native window chrome, deep-space design system
 - **Full REST API** — 33 endpoints with JWT auth, rate limiting, structured error codes
+- **LLM-Optional** — Returns raw context when no LLM API key is configured
 
 ## Quick Start
 
@@ -171,9 +173,12 @@ PYTHONPATH=src python3 -m pytest tests/ -v
 | Database | PostgreSQL (prod) / SQLite (dev) |
 | Vectors | Qdrant |
 | Code Parsing | Tree-sitter (Python, TypeScript, JavaScript) |
-| LLM | NVIDIA NIM (Meta Llama 3.1) |
+| LLM | NVIDIA NIM (optional, Meta Llama 3.1) |
+| Embeddings | NVIDIA NV-EmbedQA-E5-V5 (1024 dimensions) |
 | Auth | JWT (PyJWT) |
-| Frontend | VS Code Extension (TypeScript) |
+| Desktop App | Tauri 2, React 19, TypeScript, Zustand, React Query |
+| Design System | Deep-space palette, 4px grid, Geist typography |
+| VS Code Extension | TypeScript |
 | Containerization | Docker, Docker Compose |
 | Testing | pytest, pytest-asyncio |
 | Linting | Ruff, mypy |
@@ -195,8 +200,12 @@ forge/
 │   │   ├── integration/     # Repository tests with SQLite
 │   │   └── api/             # HTTP endpoint tests
 │   └── pyproject.toml
+├── desktop/forge-desktop/   # Tauri 2 desktop app
+│   ├── src/                 # React components, hooks, stores
+│   └── src-tauri/           # Tauri Rust backend
 ├── vscode-extension/        # VS Code extension
 ├── docs/                    # ADRs, architecture docs
+├── Dockerfile
 ├── docker-compose.yml
 └── Makefile
 ```
@@ -209,7 +218,7 @@ forge/
 | `QDRANT_HOST` | `localhost` | Qdrant host |
 | `QDRANT_PORT` | `6333` | Qdrant port |
 | `USE_QDRANT` | `true` | Set `false` for in-memory vector store |
-| `LLM_API_KEY` | — | NVIDIA NIM API key |
+| `LLM_API_KEY` | — | NVIDIA NIM API key (optional: chat returns raw context without it) |
 | `LLM_MODEL` | `gpt-4` | LLM model name (default: meta/llama-3.1-8b-instruct via NVIDIA NIM) |
 | `JWT_SECRET_KEY` | — | JWT signing secret |
 | `DEBUG` | `false` | Enable debug mode |
