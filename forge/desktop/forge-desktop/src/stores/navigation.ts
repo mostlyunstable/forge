@@ -2,6 +2,8 @@ import { create } from 'zustand';
 
 export type View = 'dashboard' | 'code' | 'decisions' | 'bugs' | 'analysis' | 'history' | 'graph';
 
+export type PendingAction = 'create-decision' | 'create-bug' | 'index-codebase' | null;
+
 interface NavigationState {
   activeView: View;
   sidebarCollapsed: boolean;
@@ -11,6 +13,7 @@ interface NavigationState {
   selectedBug: string | null;
   selectedReport: string | null;
   selectedCommit: string | null;
+  pendingAction: PendingAction;
   setView: (view: View) => void;
   toggleSidebar: () => void;
   toggleDetailPanel: () => void;
@@ -19,6 +22,8 @@ interface NavigationState {
   selectBug: (id: string | null) => void;
   selectReport: (id: string | null) => void;
   selectCommit: (id: string | null) => void;
+  setPendingAction: (action: PendingAction) => void;
+  clearPendingAction: () => void;
 }
 
 export const useNavigation = create<NavigationState>((set) => ({
@@ -30,6 +35,7 @@ export const useNavigation = create<NavigationState>((set) => ({
   selectedBug: null,
   selectedReport: null,
   selectedCommit: null,
+  pendingAction: null,
   setView: (view) => set({ activeView: view }),
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   toggleDetailPanel: () => set((s) => ({ detailPanelOpen: !s.detailPanelOpen })),
@@ -38,4 +44,6 @@ export const useNavigation = create<NavigationState>((set) => ({
   selectBug: (id) => set({ selectedBug: id, detailPanelOpen: id !== null }),
   selectReport: (id) => set({ selectedReport: id, detailPanelOpen: id !== null }),
   selectCommit: (id) => set({ selectedCommit: id, detailPanelOpen: id !== null }),
+  setPendingAction: (action) => set({ pendingAction: action }),
+  clearPendingAction: () => set({ pendingAction: null }),
 }));

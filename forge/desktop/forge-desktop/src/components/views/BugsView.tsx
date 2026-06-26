@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBugs, useCreateBug, useUpdateBug, useDeleteBug } from '@/hooks/useApi';
 import { useSettings } from '@/stores/settings';
+import { useNavigation } from '@/stores/navigation';
 import { SkeletonRow } from '@/components/ui/SkeletonRow';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Plus, Trash2 } from 'lucide-react';
@@ -11,6 +12,7 @@ export function BugsView() {
   const createBug = useCreateBug();
   const updateBug = useUpdateBug();
   const deleteBug = useDeleteBug();
+  const { pendingAction, clearPendingAction } = useNavigation();
 
   const bugList = bugsQuery.data?.bugs ?? [];
   const [slideOpen, setSlideOpen] = useState(false);
@@ -24,6 +26,14 @@ export function BugsView() {
     resolved: false,
   });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Listen for pending create-bug action from command palette
+  useEffect(() => {
+    if (pendingAction === 'create-bug') {
+      openCreate();
+      clearPendingAction();
+    }
+  }, [pendingAction]);
 
   const openCreate = () => {
     setEditingId(null);

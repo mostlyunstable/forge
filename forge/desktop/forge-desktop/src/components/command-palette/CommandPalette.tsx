@@ -34,18 +34,18 @@ const views: { id: View; label: string; icon: React.ComponentType<{ className?: 
 ];
 
 const commands = [
-  { id: 'index', label: 'Index Codebase', icon: Play },
-  { id: 'new-decision', label: 'New Decision', icon: GitBranch },
-  { id: 'new-bug', label: 'New Bug Report', icon: Bug },
-  { id: 'analyze-pr', label: 'Analyze PR', icon: BarChart3 },
-  { id: 'open-project', label: 'Open Project', icon: FolderOpen },
-  { id: 'export', label: 'Export Report', icon: FileText },
-  { id: 'settings', label: 'Open Settings', icon: Settings },
+  { id: 'index', label: 'Index Codebase', icon: Play, view: 'code' as View },
+  { id: 'new-decision', label: 'New Decision', icon: GitBranch, view: 'decisions' as View },
+  { id: 'new-bug', label: 'New Bug Report', icon: Bug, view: 'bugs' as View },
+  { id: 'analyze-pr', label: 'Analyze PR', icon: BarChart3, view: 'analysis' as View },
+  { id: 'open-project', label: 'Open Project', icon: FolderOpen, view: 'settings' as View },
+  { id: 'export', label: 'Export Report', icon: FileText, view: null },
+  { id: 'settings', label: 'Open Settings', icon: Settings, view: 'settings' as View },
 ];
 
 export function CommandPalette() {
   const { isOpen, close, recentCommands, addRecentCommand } = useCommandPalette();
-  const { setView } = useNavigation();
+  const { setView, setPendingAction } = useNavigation();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -60,22 +60,53 @@ export function CommandPalette() {
 
   const handleSelect = useCallback(
     (value: string) => {
-      if (views.find((v) => v.id === value)) {
-        setView(value as View);
-        addRecentCommand(`Go to ${value}`);
-      } else if (commands.find((c) => c.id === value)) {
-        addRecentCommand(commands.find((c) => c.id === value)!.label);
+      // Check if it's a view
+      const view = views.find((v) => v.id === value);
+      if (view) {
+        setView(view.id);
+        addRecentCommand(`Go to ${view.label}`);
+        close();
+        return;
       }
-      close();
+
+      // Check if it's a command
+      const cmd = commands.find((c) => c.id === value);
+      if (cmd) {
+        // Handle settings specially — don't navigate, emit action
+        if (cmd.id === 'settings' || cmd.id === 'open-project') {
+          // Dispatch a custom event that App listens for
+          window.dispatchEvent(new CustomEvent('forge:open-settings'));
+          addRecentCommand(cmd.label);
+          close();
+          return;
+        }
+
+        // Navigate to the view and set pending action
+        if (cmd.view) {
+          setView(cmd.view);
+        }
+
+        // Set pending action for create commands
+        if (cmd.id === 'new-decision') {
+          setPendingAction('create-decision');
+        } else if (cmd.id === 'new-bug') {
+          setPendingAction('create-bug');
+        } else if (cmd.id === 'index') {
+          setPendingAction('index-codebase');
+        }
+
+        addRecentCommand(cmd.label);
+        close();
+      }
     },
-    [setView, addRecentCommand, close]
+    [setView, setPendingAction, addRecentCommand, close]
   );
 
   return (
     <CommandDialog open={isOpen} onOpenChange={(open) => !open && close()}>
       <CommandInput placeholder="Search commands..." className="text-[13px]" />
       <CommandList>
-        <CommandEmpty className="py-6 text-[12px] text-[var(--color-text-faint)]">
+        <CommandEmpty className="py-6 text-[12px] text-[var(--color-text-muted)]">
           No results found.
         </CommandEmpty>
 
@@ -86,9 +117,9 @@ export function CommandPalette() {
                 key={cmd}
                 value={cmd}
                 onSelect={handleSelect}
-                className="rounded-md px-2 py-1.5 text-[12px] data-[selected]:bg-[var(--color-accent-muted)] data-[selected]:text-[var(--color-accent)]"
+                className="rounded-[4px] px-2 py-1.5 text-[12px] data-[selected]:bg-[var(--color-bg-elevated)] data-[selected]:text-[var(--color-text-primary)]"
               >
-                <span className="text-[var(--color-text-muted)]">{cmd}</span>
+                <span className="text-[var(--color-text-secondary)]">{cmd}</span>
               </CommandItem>
             ))}
           </CommandGroup>
@@ -102,9 +133,9 @@ export function CommandPalette() {
                 key={cmd.id}
                 value={cmd.id}
                 onSelect={handleSelect}
-                className="rounded-md px-2 py-1.5 text-[12px] data-[selected]:bg-[var(--color-accent-muted)] data-[selected]:text-[var(--color-accent)]"
+                className="rounded-[4px] px-2 py-1.5 text-[12px] data-[selected]:bg-[var(--color-bg-elevated)] data-[selected]:text-[var(--color-text-primary)]"
               >
-                <Icon className="mr-2 h-3.5 w-3.5 text-[var(--color-text-faint)]" />
+                <Icon className="mr-2 h-[14px] w-[14px] text-[var(--color-text-muted)]" />
                 <span>{cmd.label}</span>
               </CommandItem>
             );
@@ -119,9 +150,9 @@ export function CommandPalette() {
                 key={view.id}
                 value={`go-to-${view.id}`}
                 onSelect={handleSelect}
-                className="rounded-md px-2 py-1.5 text-[12px] data-[selected]:bg-[var(--color-accent-muted)] data-[selected]:text-[var(--color-accent)]"
+                className="rounded-[4px] px-2 py-1.5 text-[12px] data-[selected]:bg-[var(--color-bg-elevated)] data-[selected]:text-[var(--color-text-primary)]"
               >
-                <Icon className="mr-2 h-3.5 w-3.5 text-[var(--color-text-faint)]" />
+                <Icon className="mr-2 h-[14px] w-[14px] text-[var(--color-text-muted)]" />
                 <span>Go to {view.label}</span>
               </CommandItem>
             );

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDecisions, useCreateDecision, useUpdateDecision, useDeleteDecision } from '@/hooks/useApi';
 import { useSettings } from '@/stores/settings';
+import { useNavigation } from '@/stores/navigation';
 import { SkeletonRow } from '@/components/ui/SkeletonRow';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Plus, Trash2 } from 'lucide-react';
@@ -11,12 +12,21 @@ export function DecisionsView() {
   const createDecision = useCreateDecision();
   const updateDecision = useUpdateDecision();
   const deleteDecision = useDeleteDecision();
+  const { pendingAction, clearPendingAction } = useNavigation();
 
   const decisions = decisionsQuery.data?.decisions ?? [];
   const [slideOpen, setSlideOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', decision: '', reason: '', status: 'proposed' });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  // Listen for pending create-decision action from command palette
+  useEffect(() => {
+    if (pendingAction === 'create-decision') {
+      openCreate();
+      clearPendingAction();
+    }
+  }, [pendingAction]);
 
   const openCreate = () => {
     setEditingId(null);

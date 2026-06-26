@@ -3,6 +3,7 @@ import { useCommandPalette } from '@/stores/command-palette';
 import { useDecisions, useBugs } from '@/hooks/useApi';
 import { useSettings } from '@/stores/settings';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { useSettingsDialog } from '@/stores/settings-dialog';
 import { useState, useEffect } from 'react';
 import { checkServerConnection } from '@/lib/api';
 import {
@@ -34,7 +35,7 @@ export function Sidebar() {
   const { currentProjectId, connectionStatus, setConnectionStatus, apiUrl } = useSettings();
   const decisionsQuery = useDecisions(currentProjectId);
   const bugsQuery = useBugs(currentProjectId);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { isOpen: settingsOpen, open: openSettings, close: closeSettings } = useSettingsDialog();
 
   // Check connection on mount and when apiUrl changes
   useEffect(() => {
@@ -49,6 +50,13 @@ export function Sidebar() {
     check();
     return () => { cancelled = true; };
   }, [apiUrl]);
+
+  // Listen for forge:open-settings event from command palette
+  useEffect(() => {
+    const handler = () => openSettings();
+    window.addEventListener('forge:open-settings', handler);
+    return () => window.removeEventListener('forge:open-settings', handler);
+  }, [openSettings]);
 
   const decisionsCount = decisionsQuery.data?.total ?? 0;
   const openBugsCount = bugsQuery.data?.bugs?.filter((b) => !b.resolved).length ?? 0;
@@ -186,7 +194,7 @@ export function Sidebar() {
         {/* Settings */}
         <div className="px-2 pb-[4px]">
           <button
-            onClick={() => setSettingsOpen(true)}
+            onClick={openSettings}
             className={cn(
               'flex w-full items-center gap-3 rounded-[4px] px-3 h-[32px] text-[13px] transition-colors duration-120',
               sidebarCollapsed && 'justify-center px-0',
@@ -221,7 +229,7 @@ export function Sidebar() {
       </div>
     </aside>
 
-    <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    <SettingsDialog open={settingsOpen} onClose={closeSettings} />
     </>
   );
 }
