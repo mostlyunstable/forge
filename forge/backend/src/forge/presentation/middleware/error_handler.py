@@ -9,6 +9,11 @@ from forge.domain.projects.exceptions import ProjectNotFoundError, ProjectAlread
 from forge.domain.memory.exceptions import DecisionNotFoundError, BugNotFoundError, PreferenceNotFoundError
 from forge.domain.code.exceptions import CodeEntryNotFoundError, IndexingError
 from forge.domain.git.exceptions import CommitNotFoundError
+from forge.domain.conversation.exceptions import (
+    ConversationNotFoundError,
+    ConversationAccessDenied,
+    ConversationLimitExceeded,
+)
 
 logger = structlog.get_logger()
 
@@ -30,6 +35,9 @@ class ErrorCode:
     UNAUTHORIZED = "UNAUTHORIZED"
     ANALYSIS_REPORT_NOT_FOUND = "ANALYSIS_REPORT_NOT_FOUND"
     ANALYSIS_ERROR = "ANALYSIS_ERROR"
+    CONVERSATION_NOT_FOUND = "CONVERSATION_NOT_FOUND"
+    CONVERSATION_ACCESS_DENIED = "CONVERSATION_ACCESS_DENIED"
+    CONVERSATION_LIMIT_EXCEEDED = "CONVERSATION_LIMIT_EXCEEDED"
 
 
 def _error_response(status_code: int, error_code: str, detail: str) -> JSONResponse:
@@ -78,3 +86,15 @@ async def commit_not_found_handler(request: Request, exc: CommitNotFoundError) -
 async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("unhandled_exception", error=str(exc), exc_info=True)
     return _error_response(500, ErrorCode.INTERNAL_ERROR, "Internal server error")
+
+
+async def conversation_not_found_handler(request: Request, exc: ConversationNotFoundError) -> JSONResponse:
+    return _error_response(404, ErrorCode.CONVERSATION_NOT_FOUND, str(exc))
+
+
+async def conversation_access_denied_handler(request: Request, exc: ConversationAccessDenied) -> JSONResponse:
+    return _error_response(403, ErrorCode.CONVERSATION_ACCESS_DENIED, str(exc))
+
+
+async def conversation_limit_exceeded_handler(request: Request, exc: ConversationLimitExceeded) -> JSONResponse:
+    return _error_response(429, ErrorCode.CONVERSATION_LIMIT_EXCEEDED, str(exc))

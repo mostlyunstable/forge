@@ -27,6 +27,8 @@ from forge.infrastructure.database.models.analysis_report_model import AnalysisR
 from forge.infrastructure.database.models.extraction_candidate_model import ExtractionCandidateModel  # noqa: F401
 from forge.infrastructure.database.models.file_index_model import FileIndexModel      # noqa: F401
 from forge.infrastructure.database.models.index_job_model import IndexJobModel        # noqa: F401
+from forge.infrastructure.database.models.conversation_model import ConversationModel  # noqa: F401
+from forge.infrastructure.database.models.message_model import MessageModel            # noqa: F401
 # fmt: on
 
 from forge.config.settings import get_settings

@@ -18,6 +18,11 @@ from forge.domain.memory.value_objects.preference_key import PreferenceKey
 from forge.domain.memory.repository_contracts.preference_repository import IPreferenceRepository
 from forge.domain.shared.events import IEventBus, DomainEvent
 from forge.infrastructure.events.in_memory_event_bus import InMemoryEventBus
+from forge.domain.conversation.entities.conversation import Conversation
+from forge.domain.conversation.entities.message import Message
+from forge.domain.conversation.value_objects.conversation_id import ConversationId
+from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
+from forge.domain.projects.value_objects.project_id import ProjectId
 
 
 # --- Fake Repositories ---
@@ -102,6 +107,45 @@ class FakeBugRepo(IBugRepository):
 
     async def search_by_problem(self, query: str):
         return [b for b in self._bugs.values() if query.lower() in b.problem.lower()]
+
+
+class FakeConversationRepo(IConversationRepository):
+    def __init__(self):
+        self._conversations: dict[ConversationId, Conversation] = {}
+
+    async def save(self, conversation: Conversation) -> Conversation:
+        self._conversations[conversation.id] = conversation
+        return conversation
+
+    async def get_by_id(self, conversation_id: ConversationId):
+        return self._conversations.get(conversation_id)
+
+    async def get_by_project(self, project_id: ProjectId, skip: int = 0, limit: int = 50):
+        convs = [
+            c for c in self._conversations.values()
+            if c.project_id == project_id
+        ]
+        convs.sort(key=lambda c: c.updated_at, reverse=True)
+        return convs[skip:skip + limit]
+
+    async def delete(self, conversation_id: ConversationId) -> bool:
+        if conversation_id in self._conversations:
+            del self._conversations[conversation_id]
+            return True
+        return False
+
+    async def search(self, project_id: ProjectId, query: str):
+        return [
+            c for c in self._conversations.values()
+            if c.project_id == project_id
+            and (query.lower() in c.title.lower() or query.lower() in c.summary.lower())
+        ]
+
+    async def count_by_project(self, project_id: ProjectId) -> int:
+        return sum(
+            1 for c in self._conversations.values()
+            if c.project_id == project_id
+        )
 
 
 class FakePreferenceRepo(IPreferenceRepository):
@@ -208,3 +252,18 @@ def sample_preference(preference_repo):
     )
     preference_repo._prefs[pref.key] = pref
     return pref
+
+
+@pytest.fixture
+def conversation_repo():
+    return FakeConversationRepo()
+
+
+@pytest.fixture
+def sample_conversation(conversation_repo, sample_project):
+    conv = Conversation.create(
+        project_id=sample_project.id,
+        title="Debugging session",
+    )
+    conversation_repo._conversations[conv.id] = conv
+    return conv
