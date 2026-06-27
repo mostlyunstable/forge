@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryProvider } from '@/components/QueryProvider';
@@ -7,13 +8,14 @@ import { DashboardView } from '@/components/views/DashboardView';
 import { CodeView } from '@/components/views/CodeView';
 import { DecisionsView } from '@/components/views/DecisionsView';
 import { BugsView } from '@/components/views/BugsView';
-import { AnalysisView } from '@/components/views/AnalysisView';
 import { HistoryView } from '@/components/views/HistoryView';
-import { GraphView } from '@/components/views/GraphView';
 import { LoginView } from '@/components/views/LoginView';
 import { useNavigation } from '@/stores/navigation';
 import { useSettings } from '@/stores/settings';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+
+const AnalysisView = lazy(() => import('@/components/views/AnalysisView').then(m => ({ default: m.AnalysisView })));
+const GraphView = lazy(() => import('@/components/views/GraphView').then(m => ({ default: m.GraphView })));
 
 function ViewRouter() {
   const activeView = useNavigation((s) => s.activeView);
@@ -28,11 +30,11 @@ function ViewRouter() {
     case 'bugs':
       return <BugsView />;
     case 'analysis':
-      return <AnalysisView />;
+      return <Suspense fallback={<div className="p-6 text-[var(--color-text-muted)]">Loading...</div>}><AnalysisView /></Suspense>;
     case 'history':
       return <HistoryView />;
     case 'graph':
-      return <GraphView />;
+      return <Suspense fallback={<div className="p-6 text-[var(--color-text-muted)]">Loading...</div>}><GraphView /></Suspense>;
     default:
       return <DashboardView />;
   }
