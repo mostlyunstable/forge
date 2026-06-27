@@ -1,6 +1,7 @@
 """Database connection and session management."""
 from __future__ import annotations
 
+import warnings
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -12,7 +13,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from forge.config.settings import get_settings
-from forge.infrastructure.database.base import Base
 
 
 class DatabaseManager:
@@ -46,8 +46,38 @@ class DatabaseManager:
             )
         return self._session_factory
 
+    async def run_migrations(self) -> None:
+        """Apply Alembic migrations to bring the schema up to date.
+
+        This is the recommended way to initialise the database at startup.
+        It runs ``alembic upgrade head`` programmatically.
+        """
+        from alembic.config import Config
+        from alembic import command
+
+        alembic_cfg = Config("alembic.ini")
+        # Override the URL with the runtime setting so env.py picks it up.
+        alembic_cfg.set_main_option("sqlalchemy.url", self._settings.DATABASE_URL)
+
+        # Run migrations in a thread since alembic.command is synchronous.
+        import asyncio
+        await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
+
     async def init_db(self) -> None:
-        """Create all tables. Used at startup."""
+        """Create all tables directly (legacy).
+
+        .. deprecated::
+            Use :meth:`run_migrations` instead.  ``init_db`` is kept for
+            backward compatibility with tests that create fresh databases
+            and do not want to depend on Alembic.
+        """
+        warnings.warn(
+            "DatabaseManager.init_db() is deprecated. Use run_migrations() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        from forge.infrastructure.database.base import Base
+
         engine = self._ensure_engine()
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

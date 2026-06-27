@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
     settings.validate_production()
     APP_INFO.info({"version": settings.APP_VERSION, "name": settings.APP_NAME})
     logger.info("application_starting", version=settings.APP_VERSION)
-    await database_manager.init_db()
+    await database_manager.run_migrations()
     if settings.USE_QDRANT:
         await vector_store.init_collections()
     else:

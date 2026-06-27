@@ -1,4 +1,9 @@
-"""Alembic environment configuration."""
+"""Alembic environment configuration.
+
+This file runs migrations against the database defined by DATABASE_URL.
+It imports all ORM models so ``alembic revision --autogenerate`` can diff
+the model metadata against the live schema.
+"""
 import asyncio
 from logging.config import fileConfig
 
@@ -9,6 +14,21 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from forge.infrastructure.database.base import Base
+
+# Import every model so Base.metadata knows about all tables.
+# fmt: off
+from forge.infrastructure.database.models.project_model import ProjectModel          # noqa: F401
+from forge.infrastructure.database.models.decision_model import DecisionModel        # noqa: F401
+from forge.infrastructure.database.models.bug_model import BugModel                  # noqa: F401
+from forge.infrastructure.database.models.code_entry_model import CodeEntryModel      # noqa: F401
+from forge.infrastructure.database.models.commit_model import CommitModel            # noqa: F401
+from forge.infrastructure.database.models.preference_model import PreferenceModel    # noqa: F401
+from forge.infrastructure.database.models.analysis_report_model import AnalysisReportModel  # noqa: F401
+from forge.infrastructure.database.models.extraction_candidate_model import ExtractionCandidateModel  # noqa: F401
+from forge.infrastructure.database.models.file_index_model import FileIndexModel      # noqa: F401
+from forge.infrastructure.database.models.index_job_model import IndexJobModel        # noqa: F401
+# fmt: on
+
 from forge.config.settings import get_settings
 
 config = context.config
@@ -17,31 +37,42 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+# Override the URL from alembic.ini with the runtime setting.
 settings = get_settings()
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode."""
+    """Run migrations in 'offline' mode.
+
+    Generates SQL scripts without connecting to the database.
+    Useful for generating migration SQL for review or manual execution.
+    """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,  # needed for SQLite ALTER TABLE support
     )
     with context.begin_transaction():
         context.run_migrations()
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    """Run migrations with an explicit connection (used in online mode)."""
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        render_as_batch=True,  # needed for SQLite ALTER TABLE support
+    )
     with context.begin_transaction():
         context.run_migrations()
 
 
 async def run_async_migrations() -> None:
-    """Run migrations in 'online' mode with async engine."""
+    """Run migrations in 'online' mode with an async engine."""
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

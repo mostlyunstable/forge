@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint docker-up docker-down
+.PHONY: help install dev test lint docker-up docker-down migrate migrate-new migrate-down migrate-history
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -26,6 +26,18 @@ docker-build: ## Build the backend image
 
 migrate: ## Run database migrations
 	cd backend && alembic upgrade head
+
+migrate-new: ## Generate a new migration (usage: make migrate-new MESSAGE="add users table")
+	cd backend && alembic revision --autogenerate -m "$(MESSAGE)"
+
+migrate-down: ## Downgrade by one revision
+	cd backend && alembic downgrade -1
+
+migrate-history: ## Show migration history
+	cd backend && alembic history
+
+migrate-current: ## Show current revision
+	cd backend && alembic current
 
 index: ## Index a repository (usage: make index REPO_PATH=/path/to/repo)
 	curl -X POST http://localhost:8000/api/v1/code/index \
