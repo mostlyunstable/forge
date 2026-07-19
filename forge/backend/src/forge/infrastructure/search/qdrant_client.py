@@ -42,10 +42,13 @@ class QdrantVectorStore:
 
     def _ensure_client(self) -> QdrantClient:
         if self._client is None:
-            self._client = QdrantClient(
-                host=self._settings.QDRANT_HOST,
-                port=self._settings.QDRANT_PORT,
-            )
+            if self._settings.QDRANT_HOST == "memory":
+                self._client = QdrantClient(location=":memory:")
+            else:
+                self._client = QdrantClient(
+                    host=self._settings.QDRANT_HOST,
+                    port=self._settings.QDRANT_PORT,
+                )
         return self._client
 
     async def init_collections(self) -> None:
@@ -71,7 +74,13 @@ class QdrantVectorStore:
         embedding: list[float],
         metadata: dict[str, Any],
     ) -> None:
-        deterministic_id = hashlib.sha256(f"{project_id}:{file_path}:{name}".encode()).hexdigest()
+        semantic_hash = metadata.get("semantic_hash", "")
+        if not semantic_hash:
+            import re
+            norm = re.sub(r'#.*|//.*', '', content)
+            semantic_hash = hashlib.sha256(re.sub(r'\s+', '', norm).encode()).hexdigest()
+            
+        deterministic_id = hashlib.sha256(f"{project_id}:{file_path}:{name}:{semantic_hash}".encode()).hexdigest()
         point_id = int(deterministic_id[:16], 16) % (2**63)
         client = self._ensure_client()
         await asyncio.to_thread(
@@ -152,22 +161,23 @@ class QdrantVectorStore:
         query_embedding: list[float],
         project_id: UUID | None = None,
         limit: int = 10,
+        filters: dict[str, str] | None = None,
     ) -> list[dict[str, Any]]:
         start_time = time.perf_counter()
         try:
-            search_filter = self._build_project_filter(project_id)
+            search_filter = self._build_filter(project_id, filters)
             client = self._ensure_client()
             results = await asyncio.to_thread(
-                client.search,
+                client.query_points,
                 collection_name=COLLECTIONS["code"],
-                query_vector=query_embedding,
+                query=query_embedding,
                 query_filter=search_filter,
                 limit=limit,
             )
             duration = time.perf_counter() - start_time
             VECTOR_SEARCH_CALLS.labels(collection="code", status="success").inc()
             VECTOR_SEARCH_LATENCY.labels(collection="code").observe(duration)
-            return [{"id": h.id, "score": h.score, "payload": h.payload} for h in results]
+            return [{"id": h.id, "score": h.score, "payload": h.payload} for h in results.points]
         except Exception as e:
             duration = time.perf_counter() - start_time
             VECTOR_SEARCH_CALLS.labels(collection="code", status="error").inc()
@@ -186,16 +196,16 @@ class QdrantVectorStore:
             search_filter = self._build_project_filter(project_id)
             client = self._ensure_client()
             results = await asyncio.to_thread(
-                client.search,
+                client.query_points,
                 collection_name=COLLECTIONS["decisions"],
-                query_vector=query_embedding,
+                query=query_embedding,
                 query_filter=search_filter,
                 limit=limit,
             )
             duration = time.perf_counter() - start_time
             VECTOR_SEARCH_CALLS.labels(collection="decisions", status="success").inc()
             VECTOR_SEARCH_LATENCY.labels(collection="decisions").observe(duration)
-            return [{"id": h.id, "score": h.score, "payload": h.payload} for h in results]
+            return [{"id": h.id, "score": h.score, "payload": h.payload} for h in results.points]
         except Exception as e:
             duration = time.perf_counter() - start_time
             VECTOR_SEARCH_CALLS.labels(collection="decisions", status="error").inc()
@@ -214,16 +224,16 @@ class QdrantVectorStore:
             search_filter = self._build_project_filter(project_id)
             client = self._ensure_client()
             results = await asyncio.to_thread(
-                client.search,
+                client.query_points,
                 collection_name=COLLECTIONS["bugs"],
-                query_vector=query_embedding,
+                query=query_embedding,
                 query_filter=search_filter,
                 limit=limit,
             )
             duration = time.perf_counter() - start_time
             VECTOR_SEARCH_CALLS.labels(collection="bugs", status="success").inc()
             VECTOR_SEARCH_LATENCY.labels(collection="bugs").observe(duration)
-            return [{"id": h.id, "score": h.score, "payload": h.payload} for h in results]
+            return [{"id": h.id, "score": h.score, "payload": h.payload} for h in results.points]
         except Exception as e:
             duration = time.perf_counter() - start_time
             VECTOR_SEARCH_CALLS.labels(collection="bugs", status="error").inc()
@@ -242,6 +252,34 @@ class QdrantVectorStore:
                 collection_name=collection_name,
                 points_selector=project_filter,
             )
+            
+    async def delete_by_file(self, project_id: UUID, file_path: str) -> None:
+        client = self._ensure_client()
+        file_filter = Filter(
+            must=[
+                FieldCondition(key="project_id", match=MatchValue(value=str(project_id))),
+                FieldCondition(key="file_path", match=MatchValue(value=file_path))
+            ]
+        )
+        await asyncio.to_thread(
+            client.delete,
+            collection_name=COLLECTIONS["code"],
+            points_selector=file_filter,
+        )
+
+    def _build_filter(self, project_id: UUID | None, additional_filters: dict[str, str] | None = None) -> Filter | None:
+        must_conditions = []
+        if project_id is not None:
+            must_conditions.append(FieldCondition(key="project_id", match=MatchValue(value=str(project_id))))
+        
+        if additional_filters:
+            for key, value in additional_filters.items():
+                must_conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
+
+        if not must_conditions:
+            return None
+            
+        return Filter(must=must_conditions)
 
     def _build_project_filter(self, project_id: UUID | None) -> Filter | None:
         if project_id is None:

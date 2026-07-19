@@ -37,6 +37,9 @@ class IncrementalIndexUseCase:
         memory_extractor: MemoryExtractor,
         git_diff_provider: IGitDiffProvider,
         commit_parser: IGitCommitParser,
+        vector_store=None,
+        embedding_service=None,
+        dep_graph=None,
     ) -> None:
         self._job_repo = job_repo
         self._file_index_repo = file_index_repo
@@ -44,6 +47,13 @@ class IncrementalIndexUseCase:
         self._memory_extractor = memory_extractor
         self._git_diff_provider = git_diff_provider
         self._commit_parser = commit_parser
+        self._vector_store = vector_store
+        self._embedding_service = embedding_service
+        self._dep_graph = dep_graph
+        self._code_indexer = None
+
+    def set_code_indexer(self, indexer):
+        self._code_indexer = indexer
 
     async def execute(
         self,
@@ -95,6 +105,7 @@ class IncrementalIndexUseCase:
             await self._job_repo.save(job)
 
             candidates = []
+            files_to_index = []
             for i, file_info in enumerate(changed_files):
                 file_path = file_info["file_path"]
                 change_type = file_info["change_type"]
@@ -110,11 +121,33 @@ class IncrementalIndexUseCase:
                     )
                     if existing:
                         await self._file_index_repo.delete_by_project(project_id)
+                    # Also delete from vector store if supported
+                    if self._vector_store and hasattr(self._vector_store, "delete_by_file"):
+                        await self._vector_store.delete_by_file(str(project_id), file_path)
+                    
+                    if self._dep_graph and hasattr(self._dep_graph, "delete_file_edges"):
+                        await self._dep_graph.delete_file_edges(project_id, file_path)
                     continue
 
                 # Parse file and create/update index
                 full_path = os.path.join(repo_path, file_path)
                 try:
+                    if not os.path.exists(full_path):
+                        continue
+                        
+                    # Check file size (>10MB)
+                    size = os.path.getsize(full_path)
+                    if size > 10 * 1024 * 1024:
+                        logger.warning("skipping_large_file", file=file_path, size=size, reason="too_large")
+                        continue
+                        
+                    # Check for null bytes (binary heuristic)
+                    with open(full_path, "rb") as f:
+                        chunk = f.read(1024)
+                        if b'\x00' in chunk:
+                            logger.warning("skipping_binary_file", file=file_path, reason="binary")
+                            continue
+
                     with open(full_path, "rb") as f:
                         content_hash = hashlib.sha256(f.read()).hexdigest()[:16]
 
@@ -137,13 +170,22 @@ class IncrementalIndexUseCase:
                     )
                     if existing:
                         file_index.id = existing.id
+                        if self._vector_store and hasattr(self._vector_store, "delete_by_file"):
+                            await self._vector_store.delete_by_file(str(project_id), file_path)
+                        if self._dep_graph and hasattr(self._dep_graph, "delete_file_edges"):
+                            await self._dep_graph.delete_file_edges(project_id, file_path)
                     await self._file_index_repo.save(file_index)
+                    files_to_index.append(file_path)
 
                     # Extract code comments
                     ext = os.path.splitext(file_path)[1]
                     if ext in {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs"}:
                         with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                             content = f.read()
+                            
+                        if self._dep_graph and hasattr(self._dep_graph, "add_file_edges"):
+                            await self._dep_graph.add_file_edges(project_id, file_path, content)
+                            
                         code_candidates = self._memory_extractor.extract_from_code_comments(
                             job_id=job.id,
                             file_path=file_path,
@@ -153,6 +195,10 @@ class IncrementalIndexUseCase:
 
                 except Exception as e:
                     job.log_error(file_path, str(e), "parse")
+
+            if self._code_indexer and files_to_index:
+                logger.info("re-indexing_changed_files", count=len(files_to_index))
+                await self._code_indexer.index_files(project_id, repo_path, files_to_index, self._commit_parser)
 
             # Phase 3: Extract knowledge from new commits
             job.update_progress("extract", 0, 0)

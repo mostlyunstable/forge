@@ -30,6 +30,8 @@ class EmbeddingService:
         self._settings = get_settings()
         self._client: AsyncOpenAI | None = None
         self._cache: OrderedDict[str, list[float]] = OrderedDict()
+        from forge.infrastructure.search.sqlite_embedding_cache import SQLiteEmbeddingCache
+        self._sqlite_cache = SQLiteEmbeddingCache()
 
     def _ensure_client(self) -> AsyncOpenAI:
         if self._client is None:
@@ -44,12 +46,27 @@ class EmbeddingService:
             self._client = AsyncOpenAI(**kwargs)
         return self._client
 
-    def _cache_put(self, key: str, value: list[float]) -> None:
-        if key in self._cache:
-            self._cache.move_to_end(key)
-        self._cache[key] = value
+    def _cache_put(self, content: str, input_type: str, embedding: list[float]) -> None:
+        cache_key = hashlib.md5(f"{input_type}:{content}".encode()).hexdigest()
+        if cache_key in self._cache:
+            self._cache.move_to_end(cache_key)
+        self._cache[cache_key] = embedding
         if len(self._cache) > self.MAX_CACHE_SIZE:
             self._cache.popitem(last=False)
+        
+        self._sqlite_cache.set(f"{input_type}:{content}", self.MODEL, "1.0", embedding)
+        
+    def _cache_get(self, content: str, input_type: str) -> list[float] | None:
+        cache_key = hashlib.md5(f"{input_type}:{content}".encode()).hexdigest()
+        if cache_key in self._cache:
+            self._cache.move_to_end(cache_key)
+            return self._cache[cache_key]
+            
+        cached_embedding = self._sqlite_cache.get(f"{input_type}:{content}", self.MODEL, "1.0")
+        if cached_embedding:
+            self._cache[cache_key] = cached_embedding
+            return cached_embedding
+        return None
 
     async def get_embedding(self, text: str, input_type: str = "passage") -> list[float]:
         """Get embedding for a single text, with caching.
@@ -58,10 +75,9 @@ class EmbeddingService:
             text: The text to embed.
             input_type: "passage" for documents to index, "query" for search queries.
         """
-        cache_key = hashlib.md5(f"{input_type}:{text}".encode()).hexdigest()
-        if cache_key in self._cache:
-            self._cache.move_to_end(cache_key)
-            return self._cache[cache_key]
+        cached = self._cache_get(text, input_type)
+        if cached:
+            return cached
 
         start_time = time.perf_counter()
         try:
@@ -70,7 +86,7 @@ class EmbeddingService:
                 model=self.MODEL, input=text, extra_body={"input_type": input_type}
             )
             embedding = response.data[0].embedding
-            self._cache_put(cache_key, embedding)
+            self._cache_put(text, input_type, embedding)
             duration = time.perf_counter() - start_time
             EMBEDDING_CALLS.labels(status="success").inc()
             EMBEDDING_LATENCY.observe(duration)
@@ -88,10 +104,9 @@ class EmbeddingService:
         results: list[list[float] | None] = [None] * len(texts)
 
         for i, text in enumerate(texts):
-            cache_key = hashlib.md5(text.encode()).hexdigest()
-            if cache_key in self._cache:
-                self._cache.move_to_end(cache_key)
-                results[i] = self._cache[cache_key]
+            cached = self._cache_get(text, "passage")
+            if cached:
+                results[i] = cached
             else:
                 uncached.append((i, text))
 
@@ -105,8 +120,7 @@ class EmbeddingService:
                     extra_body={"input_type": "passage"},
                 )
                 for (idx, text), data in zip(uncached, response.data):
-                    cache_key = hashlib.md5(text.encode()).hexdigest()
-                    self._cache_put(cache_key, data.embedding)
+                    self._cache_put(text, "passage", data.embedding)
                     results[idx] = data.embedding
                 duration = time.perf_counter() - start_time
                 EMBEDDING_CALLS.labels(status="success").inc()

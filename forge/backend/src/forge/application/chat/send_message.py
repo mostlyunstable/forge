@@ -84,10 +84,15 @@ class SendMessageUseCase:
             )
 
         system_prompt = (
-            "You are Forge, an AI engineering companion embedded in the developer's workflow. "
+            "You are Forge, an elite AI engineering companion embedded in the developer's workflow. "
             "You have access to the project's code, architectural decisions, bug history, "
-            "and developer preferences. Answer concisely with specific references when possible. "
-            "If you don't know, say so."
+            "and developer preferences. Answer concisely with specific references to the codebase.\n\n"
+            "CRITICAL RULES:\n"
+            "1. You MUST ground your answer in the provided context.\n"
+            "2. For EVERY piece of code or fact you use, you MUST provide an inline citation.\n"
+            "3. Format citations as markdown links using the file path: `[filename.ext](file_path)`.\n"
+            "4. Example: 'The `processData` function in `[data.ts](src/utils/data.ts)` handles this...'\n"
+            "5. If the context does not contain the answer, say 'I cannot find the answer in the provided context.'"
         )
 
         messages = [
@@ -95,13 +100,16 @@ class SendMessageUseCase:
         ]
 
         if context.get("relevant_code"):
-            code_ctx = "\n".join(
-                f"- {r['payload']['name']} in {r['payload']['file_path']}"
-                for r in context["relevant_code"][:5]
-            )
+            code_ctx = ""
+            for i, r in enumerate(context["relevant_code"][:8]):
+                name = r['payload'].get('name', 'unknown')
+                path = r['payload'].get('file_path', 'unknown')
+                content = r['payload'].get('content', '')
+                code_ctx += f"\n--- File: {path} | Symbol: {name} ---\n{content}\n"
+            
             messages.append({
                 "role": "system",
-                "content": f"Relevant code:\n{code_ctx}",
+                "content": f"Relevant codebase context:\n{code_ctx}",
             })
 
         if context.get("relevant_decisions"):
@@ -111,7 +119,7 @@ class SendMessageUseCase:
             )
             messages.append({
                 "role": "system",
-                "content": f"Related decisions:\n{dec_ctx}",
+                "content": f"Related architectural decisions:\n{dec_ctx}",
             })
 
         if context.get("relevant_bugs"):

@@ -12,3 +12,6 @@ class EntryType(str, Enum):
     METHOD = "method"
     VARIABLE = "variable"
     MODULE = "module"
+    ADR = "adr"
+    MARKDOWN_SECTION = "markdown_section"
+    SQL_STATEMENT = "sql_statement"

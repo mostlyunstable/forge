@@ -12,31 +12,109 @@ logger = structlog.get_logger()
 class ContextRetriever:
     """Adapter that implements IContextRetriever using vector store."""
 
-    def __init__(self, vector_store: Any = None) -> None:
+    def __init__(self, vector_store: Any = None, dependency_graph: Any = None) -> None:
         self._embedding_service = EmbeddingService()
         self._vector_store = vector_store
+        self._dependency_graph = dependency_graph
+        self.retrieval_budget = 6500
+
+    def _estimate_tokens(self, text: str) -> int:
+        return len(text) // 4
+
+    def _apply_token_budget(self, results: list[dict], max_tokens: int) -> list[dict]:
+        budgeted = []
+        current_tokens = 0
+        for res in results:
+            content = res.get("payload", {}).get("content", "")
+            tokens = self._estimate_tokens(content)
+            if current_tokens + tokens <= max_tokens:
+                budgeted.append(res)
+                current_tokens += tokens
+            else:
+                break
+        return budgeted
 
     async def retrieve(self, query: str, project_id) -> dict:
         try:
             query_embedding = await self._embedding_service.get_embedding(query, input_type="query")
             project_uuid = project_id.value if hasattr(project_id, "value") else project_id
-            code = await self._vector_store.search_code(query_embedding, project_uuid, limit=5)
+            
+            # 1. Semantic Search
+            code_results = await self._vector_store.search_code(query_embedding, project_uuid, limit=30)
             decisions = await self._vector_store.search_decisions(query_embedding, project_uuid, limit=5)
             bugs = await self._vector_store.search_bugs(query_embedding, project_uuid, limit=3)
+            
+            # 1b. Hybrid Search (Local Lexical + RRF Fallback)
+            from forge.infrastructure.search.lexical_scorer import LocalLexicalScorer
+            scorer = LocalLexicalScorer()
+            docs = [r["payload"].get("content", "") for r in code_results if "payload" in r]
+            lex_scores = scorer.score(query, docs)
+            
+            k = 60
+            semantic_ranks = {res["id"]: rank for rank, res in enumerate(code_results)}
+            lexical_ranked = sorted(zip([res["id"] for res in code_results], lex_scores), key=lambda x: x[1], reverse=True)
+            lexical_ranks = {id_: rank for rank, (id_, _) in enumerate(lexical_ranked)}
+            
+            for res in code_results:
+                r_sem = semantic_ranks[res["id"]]
+                r_lex = lexical_ranks.get(res["id"], len(code_results))
+                res["score"] = (1.0 / (k + r_sem)) + (1.0 / (k + r_lex))
+                
+            code_results.sort(key=lambda x: x["score"], reverse=True)
+            code_results = code_results[:10]
+            
+            # 2. Graph Traversal (expand context)
+            expanded_code = list(code_results)
+            seen_files = {res["payload"].get("file_path") for res in code_results if res.get("payload")}
+            
+            if self._dependency_graph:
+                for res in code_results:
+                    file_path = res["payload"].get("file_path")
+                    if not file_path:
+                        continue
+                        
+                    # Fetch direct imports and dependents
+                    imports = await self._dependency_graph.get_imports(project_uuid, file_path)
+                    dependents = await self._dependency_graph.get_dependents(project_uuid, file_path)
+                    
+                    for edge in imports + dependents:
+                        related_file = edge.target_file if edge in imports else edge.source_file
+                        if related_file and related_file not in seen_files:
+                            seen_files.add(related_file)
+                            # Create a synthetic result for the graph neighbor
+                            # In a real scenario we might fetch its embedding/payload from DB
+                            expanded_code.append({
+                                "id": f"graph_{related_file}",
+                                "score": res["score"] * 0.9, # slightly decay score
+                                "payload": {
+                                    "file_path": related_file,
+                                    "entry_type": "file",
+                                    "name": related_file.split("/")[-1],
+                                    "content": f"[Graph Context] Related to {file_path} via {edge.dependency_type.name if hasattr(edge.dependency_type, 'name') else str(edge.dependency_type)}"
+                                }
+                            })
+                            
+            # 3. Reranking / Deduplication
+            # Sort expanded_code by score descending
+            expanded_code.sort(key=lambda x: x["score"], reverse=True)
+            
+            # 4. Context Window Management
+            top_code = self._apply_token_budget(expanded_code, self.retrieval_budget)
+            
             return {
-                "relevant_code": code,
+                "relevant_code": top_code,
                 "relevant_decisions": decisions,
                 "relevant_bugs": bugs,
             }
         except EmbeddingError as e:
-            logger.warning("embedding_failed_returning_empty_context", error=str(e))
+            logger.warning("embedding_failed_returning_empty_context %s", str(e))
             return {
                 "relevant_code": [],
                 "relevant_decisions": [],
                 "relevant_bugs": [],
             }
         except Exception as e:
-            logger.warning("context_retrieval_failed", error=str(e))
+            logger.warning("context_retrieval_failed %s", str(e))
             return {
                 "relevant_code": [],
                 "relevant_decisions": [],

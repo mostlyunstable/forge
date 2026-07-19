@@ -10,6 +10,28 @@ from forge.domain.code.value_objects.entry_type import EntryType
 from forge.domain.projects.value_objects.project_id import ProjectId
 
 
+from typing import TypedDict, Any
+
+class CodeEntryMetadata(TypedDict, total=False):
+    repository: str
+    path: str
+    language: str
+    symbol: str
+    type: str
+    parent_symbol: str | None
+    imports: list[str]
+    exports: list[str]
+    hash: str
+    created: str | None
+    updated: str | None
+    git_commit: str | None
+    git_author: str | None
+    git_branch: str | None
+    # Add generic support for other keys
+    # Note: TypedDict handles generic keys via Any if we don't strict-enforce total=True, but 
+    # we can just use dict for the field and type-hint it. For runtime we'll just keep it a dict, 
+    # but with typed fields in CodeEntryMetadata.
+
 @dataclass
 class CodeEntry:
     """A code entry extracted from a repository by Tree-sitter."""
@@ -22,7 +44,7 @@ class CodeEntry:
     content: str
     language: str
     lines: LineRange
-    metadata: dict = field(default_factory=dict)
+    metadata: CodeEntryMetadata = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property

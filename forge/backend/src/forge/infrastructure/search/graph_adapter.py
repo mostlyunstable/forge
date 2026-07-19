@@ -12,152 +12,197 @@ from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.infrastructure.code_indexer.tree_sitter_parser import TreeSitterParser
 
 
-class InMemoryDependencyGraph(IDependencyGraph):
-    """In-memory graph for dependency analysis.
+import sqlite3
+import asyncio
+import json
 
-    Scalability note: This implementation loads the entire dependency graph
-    into memory. For repositories with >100k files, consider a graph database
-    (Neo4j, Neptune) or Redis-backed graph (RedisGraph).
-    """
+class SQLiteDependencyGraph(IDependencyGraph):
+    """SQLite-backed graph adapter for dependency analysis."""
 
-    def __init__(self) -> None:
-        self._forward: dict[str, list[DependencyEdge]] = defaultdict(list)
-        self._reverse: dict[str, list[DependencyEdge]] = defaultdict(list)
-        self._entries_by_file: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    def __init__(self, db_path: str = "forge_graph.db") -> None:
+        self.db_path = db_path
         self._parser = TreeSitterParser()
+        self._init_db()
 
-    async def build(
-        self,
-        project_id: ProjectId,
-        indexed_files: list[dict[str, Any]],
-    ) -> None:
+    def _init_db(self):
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS dependency_edges (
+                    project_id TEXT,
+                    source_file TEXT,
+                    source_name TEXT,
+                    target_file TEXT,
+                    target_name TEXT,
+                    dependency_type TEXT,
+                    line_number INTEGER,
+                    UNIQUE(project_id, source_file, target_file, source_name, target_name)
+                )
+            ''')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_source ON dependency_edges(project_id, source_file)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_target ON dependency_edges(project_id, target_file)')
+
+    async def build(self, project_id: ProjectId, indexed_files: list[dict[str, Any]]) -> None:
         """Build dependency graph from indexed file data."""
-        self._forward.clear()
-        self._reverse.clear()
-        self._entries_by_file.clear()
+        def _build():
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("DELETE FROM dependency_edges WHERE project_id = ?", (str(project_id),))
+                edges = []
+                for file_data in indexed_files:
+                    file_path = file_data.get("file_path", "")
+                    content = file_data.get("content", "")
+                    dependencies = self._parser.extract_dependencies(file_path, content)
+                    for dep in dependencies:
+                        target_file = self._resolve_import_path(file_path, dep.target_module)
+                        edges.append((
+                            str(project_id), file_path, dep.target_name, target_file,
+                            dep.target_name, dep.dependency_type.name if hasattr(dep.dependency_type, 'name') else str(dep.dependency_type), dep.line_number
+                        ))
+                
+                conn.executemany('''
+                    INSERT OR IGNORE INTO dependency_edges 
+                    (project_id, source_file, source_name, target_file, target_name, dependency_type, line_number)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', edges)
+        await asyncio.to_thread(_build)
 
-        for file_data in indexed_files:
-            file_path = file_data.get("file_path", "")
-            content = file_data.get("content", "")
-            entries = file_data.get("entries", [])
-            self._entries_by_file[file_path] = entries
+    async def delete_file_edges(self, project_id: ProjectId, file_path: str) -> None:
+        def _delete():
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("DELETE FROM dependency_edges WHERE project_id = ? AND source_file = ?", (str(project_id), file_path))
+        await asyncio.to_thread(_delete)
 
+    async def add_file_edges(self, project_id: ProjectId, file_path: str, content: str) -> None:
+        def _add():
             dependencies = self._parser.extract_dependencies(file_path, content)
+            edges = []
             for dep in dependencies:
                 target_file = self._resolve_import_path(file_path, dep.target_module)
-                edge = DependencyEdge(
-                    source_file=file_path,
-                    source_name=dep.target_name,
-                    target_file=target_file,
-                    target_name=dep.target_name,
-                    dependency_type=dep.dependency_type,
-                    line_number=dep.line_number,
-                )
-                self._forward[file_path].append(edge)
-                self._reverse[target_file].append(edge)
+                edges.append((
+                    str(project_id), file_path, dep.target_name, target_file,
+                    dep.target_name, dep.dependency_type.name if hasattr(dep.dependency_type, 'name') else str(dep.dependency_type), dep.line_number
+                ))
+            with sqlite3.connect(self.db_path) as conn:
+                conn.executemany('''
+                    INSERT OR IGNORE INTO dependency_edges 
+                    (project_id, source_file, source_name, target_file, target_name, dependency_type, line_number)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', edges)
+        await asyncio.to_thread(_add)
 
     def _resolve_import_path(self, source_file: str, module_name: str) -> str:
-        """Resolve a module import to a file path."""
         if not module_name:
             return ""
-
         if module_name.startswith("."):
             source_dir = source_file.rsplit("/", 1)[0] if "/" in source_file else ""
             rel_path = module_name.lstrip(".")
             if rel_path:
                 return f"{source_dir}/{rel_path}".lstrip("/")
             return source_dir
-
         parts = module_name.split(".")
         resolved = "/".join(parts)
-
         if source_file.endswith(".py"):
             return resolved + ".py"
         return resolved
 
     async def get_imports(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
-        """Get direct imports from a file."""
-        return self._forward.get(file_path, [])
+        def _get():
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("SELECT * FROM dependency_edges WHERE project_id = ? AND source_file = ?", (str(project_id), file_path))
+                return [self._row_to_edge(row) for row in cursor.fetchall()]
+        return await asyncio.to_thread(_get)
 
     async def get_dependents(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
-        """Get files that import this file."""
-        return self._reverse.get(file_path, [])
+        def _get():
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("SELECT * FROM dependency_edges WHERE project_id = ? AND target_file = ?", (str(project_id), file_path))
+                return [self._row_to_edge(row) for row in cursor.fetchall()]
+        return await asyncio.to_thread(_get)
+
+    def _row_to_edge(self, row) -> DependencyEdge:
+        return DependencyEdge(
+            source_file=row[1],
+            source_name=row[2],
+            target_file=row[3],
+            target_name=row[4],
+            dependency_type=DependencyType.IMPORT,  # Simplified parsing
+            line_number=row[6],
+        )
 
     async def get_transitive_imports(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
-        """Get all transitive imports (BFS)."""
-        visited: set[str] = set()
+        # Using iterative approach with db queries
+        visited = set()
         queue = [file_path]
-        result: list[DependencyEdge] = []
-
+        result = []
         while queue:
             current = queue.pop(0)
             if current in visited:
                 continue
             visited.add(current)
-
-            for edge in self._forward.get(current, []):
+            edges = await self.get_imports(project_id, current)
+            for edge in edges:
                 if edge.target_file not in visited:
                     result.append(edge)
                     queue.append(edge.target_file)
-
         return result
 
     async def get_reverse_transitive(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
-        """Get all reverse transitive dependents (BFS)."""
-        visited: set[str] = set()
+        visited = set()
         queue = [file_path]
-        result: list[DependencyEdge] = []
-
+        result = []
         while queue:
             current = queue.pop(0)
             if current in visited:
                 continue
             visited.add(current)
-
-            for edge in self._reverse.get(current, []):
+            edges = await self.get_dependents(project_id, current)
+            for edge in edges:
                 if edge.source_file not in visited:
                     result.append(edge)
                     queue.append(edge.source_file)
-
         return result
 
     async def detect_cycles(self, project_id: ProjectId) -> list[list[str]]:
-        """Detect circular dependencies using DFS."""
-        cycles: list[list[str]] = []
-        visited: set[str] = set()
-        rec_stack: set[str] = set()
-        path: list[str] = []
+        def _detect():
+            cycles = []
+            visited = set()
+            rec_stack = set()
+            path = []
+            
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("SELECT source_file, target_file FROM dependency_edges WHERE project_id = ?", (str(project_id),))
+                forward = defaultdict(list)
+                for src, tgt in cursor.fetchall():
+                    forward[src].append(tgt)
 
-        def dfs(node: str) -> None:
-            visited.add(node)
-            rec_stack.add(node)
-            path.append(node)
+            def dfs(node: str) -> None:
+                visited.add(node)
+                rec_stack.add(node)
+                path.append(node)
+                for tgt in forward.get(node, []):
+                    if tgt not in visited:
+                        dfs(tgt)
+                    elif tgt in rec_stack:
+                        cycle_start = path.index(tgt)
+                        cycles.append(path[cycle_start:] + [tgt])
+                path.pop()
+                rec_stack.discard(node)
 
-            for edge in self._forward.get(node, []):
-                if edge.target_file not in visited:
-                    dfs(edge.target_file)
-                elif edge.target_file in rec_stack:
-                    cycle_start = path.index(edge.target_file)
-                    cycles.append(path[cycle_start:] + [edge.target_file])
-
-            path.pop()
-            rec_stack.discard(node)
-
-        all_files = set(self._forward.keys()) | set(self._reverse.keys())
-        for file_path in all_files:
-            if file_path not in visited:
-                dfs(file_path)
-
-        return cycles
+            all_files = set(forward.keys()) | {tgt for tgts in forward.values() for tgt in tgts}
+            for f in all_files:
+                if f not in visited:
+                    dfs(f)
+            return cycles
+        return await asyncio.to_thread(_detect)
 
     async def get_statistics(self, project_id: ProjectId) -> dict[str, Any]:
-        """Get graph statistics."""
-        all_files = set(self._forward.keys()) | set(self._reverse.keys())
-        total_edges = sum(len(edges) for edges in self._forward.values())
-
-        return {
-            "total_files": len(all_files),
-            "total_dependencies": total_edges,
-            "files_with_imports": len(self._forward),
-            "files_imported": len(self._reverse),
-        }
+        def _stats():
+            with sqlite3.connect(self.db_path) as conn:
+                c1 = conn.execute("SELECT COUNT(*) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
+                c2 = conn.execute("SELECT COUNT(DISTINCT source_file) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
+                c3 = conn.execute("SELECT COUNT(DISTINCT target_file) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
+                return {
+                    "total_dependencies": c1,
+                    "files_with_imports": c2,
+                    "files_imported": c3,
+                }
+        return await asyncio.to_thread(_stats)

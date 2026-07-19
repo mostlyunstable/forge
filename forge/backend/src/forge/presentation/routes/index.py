@@ -11,7 +11,8 @@ from forge.infrastructure.indexing.extraction_candidate_repository import (
 from forge.infrastructure.git.git_diff_parser import GitDiffParser
 from forge.infrastructure.git.commit_parser import CommitParser
 from forge.infrastructure.search.embedding_service import EmbeddingService
-from forge.infrastructure.search.in_memory_vector_store import in_memory_vector_store
+from forge.infrastructure.search.qdrant_client import in_memory_vector_store
+from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 from forge.application.indexing.memory_extractor import MemoryExtractor
 from forge.application.indexing.git_history_ingester import GitHistoryIngester
 from forge.application.indexing.full_index_usecase import FullIndexUseCase
@@ -53,6 +54,7 @@ def _build_full_index_use_case(session: AsyncSession) -> FullIndexUseCase:
         commit_parser=commit_parser,
         vector_store=vector_store,
         embedding_service=embedding_service,
+        dep_graph=SQLiteDependencyGraph(),
     )
 
 

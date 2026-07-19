@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.search.graph_adapter import InMemoryDependencyGraph
+from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 from forge.infrastructure.analysis.git_diff_provider import GitDiffProvider
 from forge.infrastructure.analysis.memory_context_searcher import MemoryContextSearcher
 from forge.infrastructure.events.in_memory_event_bus import event_bus
@@ -37,7 +37,7 @@ async def analyze_pr(
     """Analyze a pull request for context and impact."""
     report_repo = get_analysis_report_repo(session)
     project_repo = get_project_repo(session)
-    dep_graph = InMemoryDependencyGraph()
+    dep_graph = SQLiteDependencyGraph()
     diff_provider = GitDiffProvider()
     context_searcher = MemoryContextSearcher(session)
 

@@ -126,6 +126,30 @@ class CommitParser:
         except Exception:
             return []
 
+    def get_file_metadata(self, repo_path: str, file_path: str) -> dict:
+        """Get latest git metadata for a specific file."""
+        try:
+            result = subprocess.run(
+                ["git", "log", "-1", "--format=%H|%an|%D", "--", file_path],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                parts = result.stdout.strip().split("|", 2)
+                branch = ""
+                if len(parts) >= 3 and parts[2]:
+                    branch = parts[2].split(",")[0].replace("HEAD ->", "").strip()
+                return {
+                    "git_commit": parts[0],
+                    "git_author": parts[1] if len(parts) >= 2 else "",
+                    "git_branch": branch
+                }
+            return {}
+        except Exception:
+            return {}
+
     def extract_from_message(
         self, commit: ParsedCommit
     ) -> list[ExtractionResult]:

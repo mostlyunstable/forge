@@ -15,6 +15,7 @@ from forge.domain.indexing.repository_contracts.file_index_repository import IFi
 from forge.domain.indexing.repository_contracts.extraction_candidate_repository import (
     IExtractionCandidateRepository,
 )
+from forge.domain.code.repository_contracts.dependency_graph import IDependencyGraph
 from forge.domain.indexing.ports.git_diff_provider import IGitDiffProvider
 from forge.domain.indexing.ports.git_commit_parser import IGitCommitParser
 from forge.application.indexing.memory_extractor import MemoryExtractor
@@ -49,6 +50,7 @@ class FullIndexUseCase:
         commit_parser: IGitCommitParser,
         vector_store=None,
         embedding_service=None,
+        dep_graph: IDependencyGraph | None = None,
     ) -> None:
         self._job_repo = job_repo
         self._file_index_repo = file_index_repo
@@ -59,6 +61,17 @@ class FullIndexUseCase:
         self._commit_parser = commit_parser
         self._vector_store = vector_store
         self._embedding_service = embedding_service
+        self._dep_graph = dep_graph
+        
+        # We can dynamically construct TreeSitterCodeIndexer since it uses Qdrant
+        if self._vector_store and self._embedding_service:
+            from forge.infrastructure.code_indexer.tree_sitter_code_indexer import TreeSitterCodeIndexer
+            self._code_indexer = TreeSitterCodeIndexer(self._vector_store)
+        else:
+            self._code_indexer = None # To be injected or instantiated if needed
+        
+    def set_code_indexer(self, indexer):
+        self._code_indexer = indexer
 
     async def execute(
         self,
@@ -98,13 +111,9 @@ class FullIndexUseCase:
             # Phase 2: Parse files, create file indices, and embed code
             file_indices = []
             candidates = []
-            embedded_count = 0
+            
             for i, (file_path, content_hash) in enumerate(all_files.items()):
-                job.update_progress("parse", i, file_count)
-                if i % 50 == 0:
-                    await self._job_repo.save(job)
-
-                # Create file index
+                # Create file index record
                 language = self._detect_language(file_path)
                 file_index = FileIndex.create(
                     project_id=project_id,
@@ -113,48 +122,52 @@ class FullIndexUseCase:
                     language=language,
                 )
                 file_indices.append(file_index)
-
-                # Parse and embed code (only parseable files)
+                
+                # We can still extract memory candidates here
                 ext = os.path.splitext(file_path)[1]
                 if ext in PARSEABLE_EXTENSIONS:
                     try:
                         full_path = os.path.join(repo_path, file_path)
                         with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                             content = f.read()
-
-                        # Extract code comments
                         code_candidates = self._memory_extractor.extract_from_code_comments(
                             job_id=job.id,
                             file_path=file_path,
                             content=content,
                         )
                         candidates.extend(code_candidates)
-
-                        # Embed and store in vector store
-                        if self._vector_store and self._embedding_service:
-                            try:
-                                # Embed file content (truncated to 2000 chars for embedding)
-                                embed_text = f"{file_path}\n{content[:2000]}"
-                                embedding = await self._embedding_service.get_embedding(embed_text)
-                                await self._vector_store.upsert_code(
-                                    project_id=str(project_id),
-                                    file_path=file_path,
-                                    entry_type="file",
-                                    name=os.path.basename(file_path),
-                                    content=content[:500],
-                                    embedding=embedding,
-                                    metadata={"language": language, "size": len(content)},
-                                )
-                                embedded_count += 1
-                            except Exception as e:
-                                logger.warning("embed_failed", file_path=file_path, error=str(e))
-
-                    except Exception as e:
-                        job.log_error(file_path, str(e), "parse")
-
+                    except Exception:
+                        pass
+                        
             # Save file indices
             await self._file_index_repo.save_many(file_indices)
-            logger.info("files_embedded", count=embedded_count)
+            
+            # Use the new robust CodeIndexer for chunking, embedding, and saving to VectorStore
+            if self._code_indexer:
+                logger.info("Starting robust AST extraction and vector embedding...")
+                extracted_entries = await self._code_indexer.index(project_id, repo_path, self._commit_parser)
+                logger.info("ast_extraction_complete", chunks=len(extracted_entries))
+            else:
+                logger.warning("No code_indexer provided, skipping semantic AST extraction.")
+
+            # Phase 3: Build dependency graph
+            if self._dep_graph:
+                logger.info("Building dependency graph...")
+                indexed_files_for_graph = []
+                for file_path in all_files.keys():
+                    try:
+                        full_path = os.path.realpath(os.path.join(repo_path, file_path))
+                        if not os.path.exists(full_path): continue
+                        with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                            content = f.read()
+                        indexed_files_for_graph.append({
+                            "file_path": file_path,
+                            "content": content
+                        })
+                    except Exception:
+                        pass
+                await self._dep_graph.build(project_id, indexed_files_for_graph)
+                logger.info("Dependency graph built.", files=len(indexed_files_for_graph))
 
             # Phase 3: Git history ingestion
             job.update_progress("git_history", 0, 0)
@@ -210,20 +223,70 @@ class FullIndexUseCase:
 
     def _enumerate_files(self, repo_path: str) -> dict[str, str]:
         """Enumerate all files and compute content hashes."""
+        import fnmatch
         files = {}
-        for root, dirs, filenames in os.walk(repo_path):
-            # Skip hidden and build directories
-            dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.startswith(".")]
+        real_repo_path = os.path.realpath(repo_path)
+        
+        ignore_patterns = set(SKIP_DIRS)
+        gitignore_path = os.path.join(real_repo_path, ".gitignore")
+        if os.path.exists(gitignore_path):
+            try:
+                with open(gitignore_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            ignore_patterns.add(line.rstrip('/'))
+            except Exception:
+                pass
+                
+        def is_ignored(path):
+            for pattern in ignore_patterns:
+                if fnmatch.fnmatch(path, pattern) or fnmatch.fnmatch(os.path.basename(path), pattern):
+                    return True
+            return False
+
+        for root, dirs, filenames in os.walk(real_repo_path):
+            real_root = os.path.realpath(root)
+            if not real_root.startswith(real_repo_path):
+                dirs[:] = []
+                continue
+                
+            dirs[:] = [d for d in dirs if not d.startswith(".") and not is_ignored(d)]
 
             for filename in filenames:
-                if filename.startswith("."):
+                if filename.startswith(".") or is_ignored(filename):
                     continue
                 file_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(file_path, repo_path)
+                real_file_path = os.path.realpath(file_path)
+                
+                if not real_file_path.startswith(real_repo_path):
+                    continue
+                    
+                relative_path = os.path.relpath(real_file_path, real_repo_path)
 
                 try:
-                    with open(file_path, "rb") as f:
-                        content_hash = hashlib.sha256(f.read()).hexdigest()[:16]
+                    # Check file size (>10MB)
+                    size = os.path.getsize(real_file_path)
+                    if size > 10 * 1024 * 1024:
+                        logger.warning("skipping_large_file", file=relative_path, size=size, reason="too_large")
+                        continue
+                        
+                    # Check for null bytes (binary heuristic)
+                    with open(real_file_path, "rb") as f:
+                        chunk = f.read(1024)
+                        if b'\x00' in chunk:
+                            logger.warning("skipping_binary_file", file=relative_path, reason="binary")
+                            continue
+                except Exception as e:
+                    logger.debug("file_check_failed", file=relative_path, error=str(e))
+                    continue
+
+                try:
+                    hasher = hashlib.sha256()
+                    with open(real_file_path, "rb") as f:
+                        for chunk in iter(lambda: f.read(8192), b""):
+                            hasher.update(chunk)
+                    content_hash = hasher.hexdigest()[:16]
                     files[relative_path] = content_hash
                 except Exception:
                     continue
