@@ -18,17 +18,8 @@ class FileIndexRepository(IFileIndexRepository):
         self._session = session
 
     async def save(self, file_index: FileIndex) -> FileIndex:
-        model = await self._session.get(FileIndexModel, str(file_index.id))
-        if model:
-            model.content_hash = file_index.content_hash
-            model.language = file_index.language
-            model.last_indexed_commit = file_index.last_indexed_commit
-            model.parsed_at = file_index.parsed_at
-            model.index_job_id = str(file_index.index_job_id) if file_index.index_job_id else None
-            await self._session.flush()
-            return self._to_domain(model)
         model = self._to_model(file_index)
-        self._session.add(model)
+        await self._session.merge(model)
         await self._session.flush()
         return self._to_domain(model)
 
@@ -37,7 +28,7 @@ class FileIndexRepository(IFileIndexRepository):
             existing = await self.get_by_project_and_path(fi.project_id, fi.file_path)
             if existing:
                 fi.id = existing.id
-            self._session.add(self._to_model(fi))
+            await self._session.merge(self._to_model(fi))
         await self._session.flush()
         return len(file_indices)
 

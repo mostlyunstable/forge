@@ -123,13 +123,17 @@ class TreeSitterParser:
         file_path: str,
         language: str,
         entries: list[ParsedEntry],
+        parent_name: str = "",
     ) -> None:
-        entry = self._try_extract(node, content, file_path, language)
+        entry = self._try_extract(node, content, file_path, language, parent_name)
         if entry:
             entries.append(entry)
+            # Update parent_name for children of this node
+            if entry.entry_type in (EntryType.CLASS, EntryType.INTERFACE):
+                parent_name = entry.name
 
         for child in node.children:
-            self._walk(child, content, file_path, language, entries)
+            self._walk(child, content, file_path, language, entries, parent_name)
 
     def _try_extract(
         self,
@@ -137,7 +141,9 @@ class TreeSitterParser:
         content: str,
         file_path: str,
         language: str,
+        parent_name: str = "",
     ) -> ParsedEntry | None:
+        content_bytes = content.encode("utf8")
         node_type = node.type
 
         # If this node is the inner definition of a decorated_definition, skip it 
@@ -149,52 +155,52 @@ class TreeSitterParser:
         if node_type == "decorated_definition":
             for child in node.children:
                 if child.type == "class_definition":
-                    entry = self._extract_class(child, content, file_path, language)
+                    entry = self._extract_class(child, content_bytes, file_path, language)
                     if entry:
-                        entry.content = content[node.start_byte:node.end_byte]
+                        entry.content = content_bytes[node.start_byte:node.end_byte].decode("utf8")
                         entry.start_line = node.start_point[0] + 1
                         entry.end_line = node.end_point[0] + 1
                         return entry
                 elif child.type in ("function_definition", "arrow_function", "function"):
-                    entry = self._extract_function(child, content, file_path, language)
+                    entry = self._extract_function(child, content_bytes, file_path, language, parent_name)
                     if entry:
-                        entry.content = content[node.start_byte:node.end_byte]
+                        entry.content = content_bytes[node.start_byte:node.end_byte].decode("utf8")
                         entry.start_line = node.start_point[0] + 1
                         entry.end_line = node.end_point[0] + 1
                         return entry
             return None
 
         if node_type == "class_definition":
-            return self._extract_class(node, content, file_path, language)
+            return self._extract_class(node, content_bytes, file_path, language)
         if node_type in ("function_definition", "arrow_function", "function"):
-            return self._extract_function(node, content, file_path, language)
+            return self._extract_function(node, content_bytes, file_path, language, parent_name)
         if node_type == "interface_declaration":
-            return self._extract_interface(node, content, file_path, language)
+            return self._extract_interface(node, content_bytes, file_path, language)
         if node_type == "enum_declaration":
-            return self._extract_enum(node, content, file_path, language)
+            return self._extract_enum(node, content_bytes, file_path, language)
         
         # New chunk types
         if node_type == "statement": # Typical for SQL
-            return self._extract_sql_statement(node, content, file_path, language)
+            return self._extract_sql_statement(node, content_bytes, file_path, language)
         if node_type in ("section", "atx_heading"): # Typical for Markdown
-            return self._extract_markdown_section(node, content, file_path, language)
+            return self._extract_markdown_section(node, content_bytes, file_path, language)
 
         return None
 
-    def _get_name(self, node: Any, content: str) -> str | None:
+    def _get_name(self, node: Any, content_bytes: bytes) -> str | None:
         name_node = node.child_by_field_name("name")
         if name_node:
-            return content[name_node.start_byte:name_node.end_byte]
+            return content_bytes[name_node.start_byte:name_node.end_byte].decode("utf8")
         return None
 
-    def _extract_class(self, node: Any, content: str, file_path: str, language: str) -> ParsedEntry | None:
-        name = self._get_name(node, content)
+    def _extract_class(self, node: Any, content_bytes: bytes, file_path: str, language: str) -> ParsedEntry | None:
+        name = self._get_name(node, content_bytes)
         if not name:
             name = f"<anonymous_class_{node.start_point[0] + 1}>"
         return ParsedEntry(
             entry_type=EntryType.CLASS,
             name=name,
-            content=content[node.start_byte:node.end_byte],
+            content=content_bytes[node.start_byte:node.end_byte].decode("utf8"),
             file_path=file_path,
             language=language,
             start_line=node.start_point[0] + 1,
@@ -202,14 +208,18 @@ class TreeSitterParser:
             metadata={},
         )
 
-    def _extract_function(self, node: Any, content: str, file_path: str, language: str) -> ParsedEntry | None:
-        name = self._get_name(node, content)
+    def _extract_function(self, node: Any, content_bytes: bytes, file_path: str, language: str, parent_name: str = "") -> ParsedEntry | None:
+        name = self._get_name(node, content_bytes)
         if not name:
             name = f"<anonymous_func_{node.start_point[0] + 1}>"
+            
+        if parent_name:
+            name = f"{parent_name}.{name}"
+            
         return ParsedEntry(
             entry_type=EntryType.FUNCTION,
             name=name,
-            content=content[node.start_byte:node.end_byte],
+            content=content_bytes[node.start_byte:node.end_byte].decode("utf8"),
             file_path=file_path,
             language=language,
             start_line=node.start_point[0] + 1,
@@ -217,14 +227,14 @@ class TreeSitterParser:
             metadata={"is_async": any(c.type == "async" for c in node.children)},
         )
 
-    def _extract_interface(self, node: Any, content: str, file_path: str, language: str) -> ParsedEntry | None:
-        name = self._get_name(node, content)
+    def _extract_interface(self, node: Any, content_bytes: bytes, file_path: str, language: str) -> ParsedEntry | None:
+        name = self._get_name(node, content_bytes)
         if not name:
             return None
         return ParsedEntry(
             entry_type=EntryType.INTERFACE,
             name=name,
-            content=content[node.start_byte:node.end_byte],
+            content=content_bytes[node.start_byte:node.end_byte].decode("utf8"),
             file_path=file_path,
             language=language,
             start_line=node.start_point[0] + 1,
@@ -232,14 +242,14 @@ class TreeSitterParser:
             metadata={},
         )
 
-    def _extract_enum(self, node: Any, content: str, file_path: str, language: str) -> ParsedEntry | None:
-        name = self._get_name(node, content)
+    def _extract_enum(self, node: Any, content_bytes: bytes, file_path: str, language: str) -> ParsedEntry | None:
+        name = self._get_name(node, content_bytes)
         if not name:
             return None
         return ParsedEntry(
             entry_type=EntryType.ENUM,
             name=name,
-            content=content[node.start_byte:node.end_byte],
+            content=content_bytes[node.start_byte:node.end_byte].decode("utf8"),
             file_path=file_path,
             language=language,
             start_line=node.start_point[0] + 1,
@@ -247,12 +257,12 @@ class TreeSitterParser:
             metadata={},
         )
 
-    def _extract_sql_statement(self, node: Any, content: str, file_path: str, language: str) -> ParsedEntry | None:
+    def _extract_sql_statement(self, node: Any, content_bytes: bytes, file_path: str, language: str) -> ParsedEntry | None:
         if language != "sql":
             return None
         
         # Limit SQL statement names
-        statement_content = content[node.start_byte:node.end_byte]
+        statement_content = content_bytes[node.start_byte:node.end_byte].decode("utf8")
         name = "SQL Statement"
         
         return ParsedEntry(
@@ -266,11 +276,11 @@ class TreeSitterParser:
             metadata={},
         )
 
-    def _extract_markdown_section(self, node: Any, content: str, file_path: str, language: str) -> ParsedEntry | None:
+    def _extract_markdown_section(self, node: Any, content_bytes: bytes, file_path: str, language: str) -> ParsedEntry | None:
         if language != "markdown":
             return None
             
-        section_content = content[node.start_byte:node.end_byte]
+        section_content = content_bytes[node.start_byte:node.end_byte].decode("utf8")
         name = "Markdown Section"
         
         # If it's a heading, we might try to extract the text
@@ -278,7 +288,7 @@ class TreeSitterParser:
             # Extract header text if possible
             for child in node.children:
                 if child.type == "inline":
-                    name = content[child.start_byte:child.end_byte].strip()
+                    name = content_bytes[child.start_byte:child.end_byte].decode("utf8").strip()
                     break
 
         return ParsedEntry(

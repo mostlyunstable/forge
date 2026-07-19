@@ -40,14 +40,19 @@ class ContextRetriever:
             project_uuid = project_id.value if hasattr(project_id, "value") else project_id
             
             # 1. Semantic Search
-            code_results = await self._vector_store.search_code(query_embedding, project_uuid, limit=30)
-            decisions = await self._vector_store.search_decisions(query_embedding, project_uuid, limit=5)
-            bugs = await self._vector_store.search_bugs(query_embedding, project_uuid, limit=3)
+            # We fetch up to 1500 candidates (the whole repo) so the local lexical 
+            # scorer can perform a true full-text search fallback.
+            code_results = await self._vector_store.search_code(query_embedding, project_uuid, limit=1500)
+            decisions = await self._vector_store.search_decisions(query_embedding, project_uuid, limit=1500)
+            bugs = await self._vector_store.search_bugs(query_embedding, project_uuid, limit=1500)
             
             # 1b. Hybrid Search (Local Lexical + RRF Fallback)
             from forge.infrastructure.search.lexical_scorer import LocalLexicalScorer
             scorer = LocalLexicalScorer()
-            docs = [r["payload"].get("content", "") for r in code_results if "payload" in r]
+            docs = [
+                f"{r['payload'].get('file_path', '')}\n{r['payload'].get('name', '')}\n{r['payload'].get('content', '')}" 
+                for r in code_results if "payload" in r
+            ]
             lex_scores = scorer.score(query, docs)
             
             k = 60
@@ -61,8 +66,19 @@ class ContextRetriever:
                 res["score"] = (1.0 / (k + r_sem)) + (1.0 / (k + r_lex))
                 
             code_results.sort(key=lambda x: x["score"], reverse=True)
-            code_results = code_results[:10]
             
+            # Deduplicate by file path at the chunk level to ensure we get chunks from up to 30 different files
+            unique_code_results = []
+            seen_files_for_top = set()
+            for res in code_results:
+                fpath = res["payload"].get("file_path", "") if "payload" in res else ""
+                if fpath not in seen_files_for_top:
+                    seen_files_for_top.add(fpath)
+                    unique_code_results.append(res)
+                    if len(unique_code_results) >= 30:
+                        break
+                        
+            code_results = unique_code_results
             # 2. Graph Traversal (expand context)
             expanded_code = list(code_results)
             seen_files = {res["payload"].get("file_path") for res in code_results if res.get("payload")}
@@ -99,7 +115,17 @@ class ContextRetriever:
             expanded_code.sort(key=lambda x: x["score"], reverse=True)
             
             # 4. Context Window Management
-            top_code = self._apply_token_budget(expanded_code, self.retrieval_budget)
+            # Deduplicate by file path to ensure diverse file results
+            unique_files = {}
+            for res in expanded_code:
+                fpath = res["payload"].get("file_path", "")
+                if fpath not in unique_files:
+                    unique_files[fpath] = res
+                    if len(unique_files) >= 30:
+                        break
+            
+            top_results = list(unique_files.values())
+            top_code = self._apply_token_budget(top_results, self.retrieval_budget)
             
             return {
                 "relevant_code": top_code,

@@ -11,7 +11,7 @@ from forge.infrastructure.indexing.extraction_candidate_repository import (
 from forge.infrastructure.git.git_diff_parser import GitDiffParser
 from forge.infrastructure.git.commit_parser import CommitParser
 from forge.infrastructure.search.embedding_service import EmbeddingService
-from forge.infrastructure.search.qdrant_client import in_memory_vector_store
+from forge.infrastructure.search.qdrant_client import QdrantClient
 from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 from forge.application.indexing.memory_extractor import MemoryExtractor
 from forge.application.indexing.git_history_ingester import GitHistoryIngester
@@ -41,8 +41,12 @@ def _build_full_index_use_case(session: AsyncSession) -> FullIndexUseCase:
     commit_parser = CommitParser()
     git_diff_parser = GitDiffParser()
     git_ingester = GitHistoryIngester(job_repo, commit_parser, memory_extractor)
+    # In real DI, these would be injected
+    from forge.infrastructure.database.connection import DatabaseManager
+    # SQLiteDatabase is legacy, use DatabaseManager
+    db = DatabaseManager()
+    vector_store = QdrantClient()
     embedding_service = EmbeddingService()
-    vector_store = in_memory_vector_store
 
     return FullIndexUseCase(
         job_repo=job_repo,

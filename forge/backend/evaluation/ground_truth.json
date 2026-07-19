@@ -1,75 +1,22 @@
 {
-  "q1": [
-    "infrastructure/search/qdrant_client.py",
-    "config/settings.py"
-  ],
-  "q2": [
-    "application/conversation/token_manager.py"
-  ],
-  "q3": [
-    "infrastructure/search/graph_adapter.py",
-    "domain/code/repository_contracts/dependency_graph.py"
-  ],
-  "q4": [
-    "infrastructure/search/embedding_service.py"
-  ],
-  "q5": [
-    "application/indexing/full_index_usecase.py",
-    "application/code/index_repository.py"
-  ],
-  "q6": [
-    "application/indexing/incremental_index_usecase.py",
-    "application/indexing/reindex_detector.py"
-  ],
-  "q7": [
-    "domain/indexing/entities/file_index.py",
-    "domain/indexing/repository_contracts/file_index_repository.py"
-  ],
-  "q8": [
-    "infrastructure/code_indexer/tree_sitter_code_indexer.py"
-  ],
-  "q9": [
-    "application/indexing/memory_extractor.py"
-  ],
-  "q10": [
-    "config/settings.py"
-  ],
-  "q11": [
-    "infrastructure/search/context_retriever.py",
-    "infrastructure/search/lexical_scorer.py"
-  ],
-  "q12": [
-    "infrastructure/search/lexical_scorer.py"
-  ],
-  "q13": [
-    "infrastructure/search/qdrant_client.py"
-  ],
-  "q14": [
-    "infrastructure/database/"
-  ],
-  "q15": [
-    "infrastructure/search/graph_adapter.py",
-    "application/indexing/incremental_index_usecase.py",
-    "application/indexing/reindex_detector.py"
-  ],
-  "q16": [
-    "presentation/routes/"
-  ],
-  "q17": [
-    "application/indexing/full_index_usecase.py"
-  ],
-  "q18": [
-    "config/metrics.py",
-    "infrastructure/search/qdrant_client.py",
-    "presentation/routes/metrics.py"
-  ],
-  "q19": [
-    "application/indexing/full_index_usecase.py",
-    "domain/indexing/services/file_discovery.py"
-  ],
-  "q20": [
-    "domain/memories/entities/decision.py",
-    "domain/memories/entities/bug.py",
-    "domain/shared/events.py"
-  ]
+  "q1": ["infrastructure/search/qdrant_client.py"],
+  "q2": ["application/conversation/token_manager.py", "infrastructure/search/context_retriever.py"],
+  "q3": ["infrastructure/search/graph_adapter.py"],
+  "q4": ["infrastructure/search/embedding_service.py", "infrastructure/search/sqlite_embedding_cache.py"],
+  "q5": ["application/indexing/full_index_usecase.py", "presentation/routes/code.py"],
+  "q6": ["application/indexing/incremental_index_usecase.py", "application/indexing/reindex_detector.py"],
+  "q7": ["domain/indexing/entities/file_index.py", "domain/indexing/repository_contracts/file_index_repository.py", "infrastructure/database/models.py", "infrastructure/database/core.py"],
+  "q8": ["infrastructure/code_indexer/tree_sitter_code_indexer.py", "infrastructure/code_indexer/tree_sitter_parser.py"],
+  "q9": ["application/indexing/memory_extractor.py"],
+  "q10": ["config/settings.py"],
+  "q11": ["infrastructure/search/context_retriever.py"],
+  "q12": ["infrastructure/search/lexical_scorer.py"],
+  "q13": ["infrastructure/search/qdrant_client.py", "infrastructure/search/in_memory_vector_store.py"],
+  "q14": ["infrastructure/database/migrations/", "infrastructure/database/core.py"],
+  "q15": ["application/indexing/incremental_index_usecase.py", "infrastructure/git/git_diff_parser.py"],
+  "q16": ["presentation/routes/code.py", "presentation/routes/chat.py", "presentation/routes/conversations.py"],
+  "q17": ["application/indexing/full_index_usecase.py"],
+  "q18": ["config/metrics.py", "presentation/routes/metrics.py"],
+  "q19": ["application/indexing/full_index_usecase.py", "infrastructure/code_indexer/tree_sitter_code_indexer.py"],
+  "q20": ["domain/memory/entities/decision.py", "domain/memory/entities/bug.py", "domain/analysis/entities/change_entry.py", "domain/analysis/entities/change_set.py", "domain/analysis/entities/historical_context.py"]
 }

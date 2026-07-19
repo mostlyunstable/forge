@@ -9,9 +9,14 @@ class LocalLexicalScorer:
         """Score a list of documents against a query."""
         if not documents:
             return []
-            
-        q_terms = set(query.lower().split())
-        doc_terms = [doc.lower().split() for doc in documents]
+        import re
+        def tokenize(text: str) -> list[str]:
+            text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
+            text = text.replace('_', ' ')
+            return re.findall(r'[a-zA-Z0-9]+', text.lower())
+
+        q_terms = set(tokenize(query))
+        doc_terms = [tokenize(doc) for doc in documents]
         
         # Calculate IDF
         N = len(documents)

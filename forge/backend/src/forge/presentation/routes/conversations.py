@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from forge.infrastructure.repositories.project_repository import ProjectRepository
 from forge.infrastructure.repositories.conversation_repository import ConversationRepository
 from forge.infrastructure.search.context_retriever import ContextRetriever
-from forge.infrastructure.search.in_memory_vector_store import in_memory_vector_store
+from forge.infrastructure.search.qdrant_client import QdrantClient
 from forge.infrastructure.llm.llm_service import LLMService
 from forge.infrastructure.events.in_memory_event_bus import event_bus
 from forge.application.conversation.create_conversation import (
@@ -127,7 +127,7 @@ async def send_message(
     _auth: dict = Depends(verify_token),
 ):
     conv_repo = ConversationRepository(session)
-    context_retriever = ContextRetriever(vector_store=in_memory_vector_store)
+    context_retriever = ContextRetriever(vector_store=QdrantClient())
     llm_service = LLMService()
     use_case = SendConversationMessageUseCase(
         conv_repo, context_retriever, llm_service, event_bus=event_bus

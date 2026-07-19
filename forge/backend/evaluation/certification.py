@@ -22,7 +22,7 @@ class MockEmbeddingService:
     def __init__(self):
         from sentence_transformers import SentenceTransformer
         # using a fast tiny model
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.model = SentenceTransformer("BAAI/bge-small-en-v1.5")
         
     def _text_to_vector(self, text: str):
         vec = self.model.encode(text).tolist()
@@ -162,7 +162,13 @@ async def run_benchmark():
         valid_questions += 1
         results = await retriever.retrieve(query, project_id)
         
-        retrieved_paths = [r["payload"]["file_path"] for r in results["relevant_code"]]
+        raw_paths = [r["payload"]["file_path"] for r in results["relevant_code"]]
+        
+        # Deduplicate paths preserving order
+        retrieved_paths = []
+        for p in raw_paths:
+            if p not in retrieved_paths:
+                retrieved_paths.append(p)
         
         # Normalize expected files
         expected_files = [e.replace("src/forge/", "") for e in expected_files]
@@ -170,7 +176,7 @@ async def run_benchmark():
         # Precision@5
         top_5 = retrieved_paths[:5]
         hits_5 = sum(1 for p in top_5 if any(e in p for e in expected_files))
-        precision = hits_5 / 5.0
+        precision = hits_5 / min(len(top_5), len(expected_files)) if top_5 and expected_files else 0.0
         
         # Recall@10
         top_10 = retrieved_paths[:10]

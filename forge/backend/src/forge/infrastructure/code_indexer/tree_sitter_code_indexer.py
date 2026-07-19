@@ -130,7 +130,7 @@ class TreeSitterCodeIndexer:
                             end_line=p.end_line,
                             metadata=metadata,
                         )
-                        embedding_text = f"{p.name} {p.entry_type.value} {p.content[:1500]}"
+                        embedding_text = f"File: {relative_path}\n{p.name} {p.entry_type.value}\n{p.content[:1500]}"
                         
                         batch_texts.append(embedding_text)
                         batch_payloads.append({
@@ -229,7 +229,7 @@ class TreeSitterCodeIndexer:
                         end_line=p.end_line,
                         metadata=metadata,
                     )
-                    embedding_text = f"{p.name} {p.entry_type.value} {p.content[:1500]}"
+                    embedding_text = f"File: {file_path}\n{p.name} {p.entry_type.value}\n{p.content[:1500]}"
                     
                     batch_texts.append(embedding_text)
                     batch_payloads.append({
