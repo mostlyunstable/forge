@@ -1,0 +1,14 @@
+Loading benchmark data...
+Running evaluation for 20 questions...
+
+========================================
+ Forge Phase 1 - Retrieval Benchmark 
+========================================
+Total Questions    : 20
+Precision@5        : 0.0000
+Recall@10          : 0.0000
+MRR                : 0.0000
+Citation Validity  : 66.67%
+Hallucination Rate : 33.33%
+Average Latency    : 0.00 ms
+========================================

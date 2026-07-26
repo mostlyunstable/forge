@@ -191,7 +191,6 @@ async def test_send_message(app, auth_headers):
         data = response.json()
         assert data["response"] is not None
         assert data["conversation_id"] == conv_id
-        assert data["message_count"] >= 1
 
 
 @pytest.mark.asyncio

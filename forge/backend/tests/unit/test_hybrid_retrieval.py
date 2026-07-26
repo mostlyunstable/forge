@@ -29,7 +29,13 @@ async def test_hybrid_retrieval_with_graph_traversal():
     mock_graph.get_imports.return_value = [edge_mock]
     mock_graph.get_dependents.return_value = []
 
-    retriever = ContextRetriever(vector_store=mock_vector_store, dependency_graph=mock_graph)
+    mock_embedding = AsyncMock()
+    mock_embedding.get_embedding.return_value = [0.1, 0.2, 0.3]
+    retriever = ContextRetriever(
+        vector_store=mock_vector_store,
+        dependency_graph=mock_graph,
+        embedding_service=mock_embedding
+    )
     
     project_id = uuid4()
     context = await retriever.retrieve("how does main work?", project_id)

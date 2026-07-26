@@ -56,8 +56,10 @@ class TokenManager:
         """
         available = self._max_tokens - memory_tokens
 
-        summary = conversation.summary
-        summary_tokens = conversation.summary_token_count or self.estimate_tokens(summary)
+        summary = conversation.summaries[-1].content if conversation.summaries else ""
+        summary_tokens = conversation.summaries[-1].token_count if conversation.summaries else 0
+        if not summary_tokens and summary:
+            summary_tokens = self.estimate_tokens(summary)
 
         # Budget for messages after reserving for summary
         message_budget = available - summary_tokens
@@ -90,4 +92,5 @@ class TokenManager:
 
     def should_summarize(self, conversation: Conversation) -> bool:
         """Check if conversation needs summarization."""
-        return conversation.needs_summarize()
+        from forge.domain.conversation.entities.conversation import AUTO_SUMMARIZE_THRESHOLD
+        return len(conversation.messages) > AUTO_SUMMARIZE_THRESHOLD

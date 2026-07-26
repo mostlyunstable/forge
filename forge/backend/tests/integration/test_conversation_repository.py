@@ -108,7 +108,9 @@ async def test_search(session_factory):
         project = await _create_project(session)
 
         conv = Conversation.create(project_id=project.id, title="Auth debugging")
-        conv.summary = "Authentication related discussion"
+        from forge.domain.conversation.entities.summary import ConversationSummary
+        summary = ConversationSummary.create(conversation_id=conv.id, content="Authentication related discussion", token_count=10)
+        conv.add_summary(summary)
         await conv_repo.save(conv)
         await session.commit()
 
@@ -151,7 +153,6 @@ async def test_update_messages(session_factory):
 
         fetched = await conv_repo.get_by_id(conv.id)
         assert len(fetched.messages) == 3
-        assert fetched.message_count == 3
 
 
 @pytest.mark.asyncio
@@ -161,7 +162,9 @@ async def test_search_by_summary(session_factory):
         project = await _create_project(session)
 
         conv = Conversation.create(project_id=project.id, title="General chat")
-        conv.summary = "Discussed database indexing strategy"
+        from forge.domain.conversation.entities.summary import ConversationSummary
+        summary = ConversationSummary.create(conversation_id=conv.id, content="Discussed database indexing strategy", token_count=10)
+        conv.add_summary(summary)
         await conv_repo.save(conv)
         await session.commit()
 

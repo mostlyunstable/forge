@@ -83,3 +83,34 @@ class LLMService:
             LLM_LATENCY.labels(model=self._settings.LLM_MODEL).observe(duration)
             logger.error("llm_call_failed", error=str(e), duration=duration)
             raise
+
+    async def chat_stream(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 4096,
+    ) -> Any:
+        """Send messages to the LLM and yield response chunks."""
+        start_time = time.perf_counter()
+        try:
+            client = self._ensure_client()
+            stream = await client.chat.completions.create(
+                model=self._settings.LLM_MODEL,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            async for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+                    
+            duration = time.perf_counter() - start_time
+            LLM_CALLS.labels(model=self._settings.LLM_MODEL, status="success").inc()
+            LLM_LATENCY.labels(model=self._settings.LLM_MODEL).observe(duration)
+        except Exception as e:
+            duration = time.perf_counter() - start_time
+            LLM_CALLS.labels(model=self._settings.LLM_MODEL, status="error").inc()
+            LLM_LATENCY.labels(model=self._settings.LLM_MODEL).observe(duration)
+            logger.error("llm_stream_failed", error=str(e), duration=duration)
+            raise

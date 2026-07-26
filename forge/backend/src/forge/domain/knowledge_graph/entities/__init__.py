@@ -1,0 +1,1 @@
+"""Entities for knowledge graph."""

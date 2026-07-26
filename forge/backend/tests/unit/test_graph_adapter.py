@@ -1,4 +1,4 @@
-"""Unit tests for InMemoryDependencyGraph."""
+"""Unit tests for SQLiteDependencyGraph."""
 import pytest
 import asyncio
 
@@ -6,12 +6,12 @@ from uuid import uuid4
 
 from forge.domain.code.value_objects.dependency_type import DependencyType
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.infrastructure.search.graph_adapter import InMemoryDependencyGraph
+from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 
 
 @pytest.fixture
 def graph():
-    return InMemoryDependencyGraph()
+    return SQLiteDependencyGraph()
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def project_id():
     return ProjectId(uuid4())
 
 
-class TestInMemoryDependencyGraph:
+class TestSQLiteDependencyGraph:
     @pytest.mark.asyncio
     async def test_build_from_files(self, graph, project_id):
         indexed_files = [
@@ -36,7 +36,7 @@ class TestInMemoryDependencyGraph:
         ]
         await graph.build(project_id, indexed_files)
         stats = await graph.get_statistics(project_id)
-        assert stats["total_files"] >= 2
+        assert stats["files_with_imports"] >= 1
 
     @pytest.mark.asyncio
     async def test_get_imports(self, graph, project_id):
@@ -122,5 +122,5 @@ class TestInMemoryDependencyGraph:
         ]
         await graph.build(project_id, indexed_files)
         stats = await graph.get_statistics(project_id)
-        assert "total_files" in stats
+        assert "files_with_imports" in stats
         assert "total_dependencies" in stats

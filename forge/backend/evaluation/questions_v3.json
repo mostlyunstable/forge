@@ -1,0 +1,59 @@
+[
+  {
+    "session_id": "session_1",
+    "description": "Understanding IntentRouter and its tests",
+    "turns": [
+      {
+        "turn_id": "t1",
+        "query": "How does the IntentRouter work?",
+        "expected_docs": ["doc_intent_router"],
+        "expected_citations": ["IntentRouter.py"],
+        "ground_truth_claims": ["parses user intents", "uses LLM for classification"],
+        "is_ambiguous": false,
+        "token_budget": 500
+      },
+      {
+        "turn_id": "t2",
+        "query": "Where are the tests for that?",
+        "expected_docs": ["test_intent_router"],
+        "expected_citations": ["test_intent_router.py"],
+        "ground_truth_claims": ["test directory", "backend router tests"],
+        "is_ambiguous": true,
+        "token_budget": 300
+      }
+    ]
+  },
+  {
+    "session_id": "session_2",
+    "description": "Debugging memory leak and finding responsible commit",
+    "turns": [
+      {
+        "turn_id": "t1",
+        "query": "What is causing the memory leak in the background worker?",
+        "expected_docs": ["bug_7711", "worker_memory_profile"],
+        "expected_citations": ["Bug-#7711", "Profile-Mem"],
+        "ground_truth_claims": ["caching issue", "unreleased objects"],
+        "is_ambiguous": false,
+        "token_budget": 800
+      },
+      {
+        "turn_id": "t2",
+        "query": "Who wrote the code for that caching module?",
+        "expected_docs": ["git_blame_caching", "commit_88f2a"],
+        "expected_citations": ["Commit-88f2a"],
+        "ground_truth_claims": ["Alice Smith", "implemented in 2024"],
+        "is_ambiguous": true,
+        "token_budget": 400
+      },
+      {
+        "turn_id": "t3",
+        "query": "Did they write any documentation for it?",
+        "expected_docs": ["doc_caching_module"],
+        "expected_citations": ["Caching.md"],
+        "ground_truth_claims": ["documented in Caching.md", "explains eviction policy"],
+        "is_ambiguous": true,
+        "token_budget": 300
+      }
+    ]
+  }
+]

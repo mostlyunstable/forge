@@ -6,15 +6,14 @@ from datetime import datetime, timezone
 
 from forge.domain.memory.value_objects.bug_id import BugId
 from forge.domain.projects.value_objects.project_id import ProjectId
+from forge.domain.memory.entities.memory import Memory
 
 
-@dataclass
-class Bug:
+@dataclass(kw_only=True)
+class Bug(Memory):
     """Records a bug with problem, root cause, and solution."""
 
     id: BugId
-    project_id: ProjectId
-    title: str
     problem: str
     root_cause: str
     solution: str
@@ -22,7 +21,6 @@ class Bug:
     severity: str = "medium"
     resolved: bool = False
     resolved_at: datetime | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def mark_unresolved(self) -> None:
         self.resolved = False
@@ -38,11 +36,20 @@ class Bug:
         solution: str,
         affected_files: list[str] | None = None,
         severity: str = "medium",
+        summary: str = "",
+        body: str = "",
+        source: str = "user",
+        author: str | None = None,
     ) -> Bug:
         return cls(
             id=BugId(),
             project_id=project_id,
+            memory_type="bug",
             title=title,
+            summary=summary,
+            body=body,
+            source=source,
+            author=author,
             problem=problem,
             root_cause=root_cause,
             solution=solution,

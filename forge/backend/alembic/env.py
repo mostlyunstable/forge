@@ -18,8 +18,7 @@ from forge.infrastructure.database.base import Base
 # Import every model so Base.metadata knows about all tables.
 # fmt: off
 from forge.infrastructure.database.models.project_model import ProjectModel          # noqa: F401
-from forge.infrastructure.database.models.decision_model import DecisionModel        # noqa: F401
-from forge.infrastructure.database.models.bug_model import BugModel                  # noqa: F401
+from forge.infrastructure.database.models.memory_model import MemoryModel        # noqa: F401
 from forge.infrastructure.database.models.code_entry_model import CodeEntryModel      # noqa: F401
 from forge.infrastructure.database.models.commit_model import CommitModel            # noqa: F401
 from forge.infrastructure.database.models.preference_model import PreferenceModel    # noqa: F401
@@ -28,7 +27,10 @@ from forge.infrastructure.database.models.extraction_candidate_model import Extr
 from forge.infrastructure.database.models.file_index_model import FileIndexModel      # noqa: F401
 from forge.infrastructure.database.models.index_job_model import IndexJobModel        # noqa: F401
 from forge.infrastructure.database.models.conversation_model import ConversationModel  # noqa: F401
+from forge.infrastructure.database.models.conversation_session_model import ConversationSessionModel # noqa: F401
+from forge.infrastructure.database.models.conversation_summary_model import ConversationSummaryModel # noqa: F401
 from forge.infrastructure.database.models.message_model import MessageModel            # noqa: F401
+from forge.infrastructure.database.models.conversation_citation_model import ConversationCitationModel # noqa: F401
 # fmt: on
 
 from forge.config.settings import get_settings

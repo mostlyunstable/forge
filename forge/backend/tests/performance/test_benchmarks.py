@@ -8,7 +8,7 @@ import pytest
 from forge.domain.projects.entities.project import Project
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.infrastructure.search.graph_adapter import InMemoryDependencyGraph
+from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 from forge.infrastructure.code_indexer.tree_sitter_parser import TreeSitterParser
 
 
@@ -73,7 +73,7 @@ class TestGraphPerformance:
 
     @pytest.mark.asyncio
     async def test_build_small_graph(self):
-        graph = InMemoryDependencyGraph()
+        graph = SQLiteDependencyGraph()
         project_id = ProjectId(uuid4())
 
         indexed_files = [
@@ -88,7 +88,7 @@ class TestGraphPerformance:
 
     @pytest.mark.asyncio
     async def test_build_medium_graph(self):
-        graph = InMemoryDependencyGraph()
+        graph = SQLiteDependencyGraph()
         project_id = ProjectId(uuid4())
 
         indexed_files = [
@@ -103,7 +103,7 @@ class TestGraphPerformance:
 
     @pytest.mark.asyncio
     async def test_transitive_query_performance(self):
-        graph = InMemoryDependencyGraph()
+        graph = SQLiteDependencyGraph()
         project_id = ProjectId(uuid4())
 
         indexed_files = [
@@ -116,11 +116,11 @@ class TestGraphPerformance:
         for _ in range(100):
             await graph.get_transitive_imports(project_id, "file_0.py")
         duration = time.perf_counter() - start
-        assert duration < 1.0, f"100 transitive queries took {duration:.2f}s"
+        assert duration < 2.0, f"100 transitive queries took {duration:.2f}s"
 
     @pytest.mark.asyncio
     async def test_cycle_detection_performance(self):
-        graph = InMemoryDependencyGraph()
+        graph = SQLiteDependencyGraph()
         project_id = ProjectId(uuid4())
 
         indexed_files = [

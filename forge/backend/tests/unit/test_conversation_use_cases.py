@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 from dataclasses import dataclass
 
 from forge.domain.conversation.entities.conversation import Conversation
-from forge.domain.conversation.entities.message import Message
+from forge.domain.conversation.entities.message import ConversationMessage as Message
 from forge.domain.conversation.value_objects.conversation_id import ConversationId
 from forge.domain.conversation.value_objects.message_id import MessageId
 from forge.domain.projects.value_objects.project_id import ProjectId
@@ -42,7 +42,7 @@ class FakeLLMService:
 
 
 class FakeContextRetriever:
-    async def retrieve(self, query, project_id):
+    async def retrieve(self, query, project_id, context_window=None):
         return {
             "relevant_code": [],
             "relevant_decisions": [],
@@ -272,7 +272,9 @@ class TestTokenManager:
         from forge.application.conversation.token_manager import TokenManager
         tm = TokenManager(max_tokens=200)
         conv = Conversation.create(project_id=ProjectId(), title="T")
-        conv.set_summary("This is a summary of the conversation", token_count=15)
+        from forge.domain.conversation.entities.summary import ConversationSummary
+        from forge.domain.conversation.value_objects import SummaryId
+        conv.add_summary(ConversationSummary(id=SummaryId(), conversation_id=conv.id, content="This is a summary of the conversation", token_count=15))
         for i in range(20):
             conv.add_message(Message(
                 id=MessageId(),
@@ -331,7 +333,9 @@ class TestContextBuilder:
         from forge.application.conversation.context_builder import ContextBuilder
         cb = ContextBuilder()
         conv = Conversation.create(project_id=ProjectId(), title="T")
-        conv.set_summary("Previous discussion about auth", token_count=20)
+        from forge.domain.conversation.entities.summary import ConversationSummary
+        from forge.domain.conversation.value_objects import SummaryId
+        conv.add_summary(ConversationSummary(id=SummaryId(), conversation_id=conv.id, content="Previous discussion about auth", token_count=20))
         conv.add_message(Message.create_user(str(conv.id), "Hello", token_count=5))
 
         ctx = cb.build(conv, "Continue", memory_context=None)

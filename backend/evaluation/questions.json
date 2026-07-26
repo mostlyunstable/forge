@@ -1,0 +1,82 @@
+[
+  {
+    "id": "q1",
+    "question": "Where is the Qdrant client connection configured?"
+  },
+  {
+    "id": "q2",
+    "question": "How does the ContextRetriever manage the token budget for LLM contexts?"
+  },
+  {
+    "id": "q3",
+    "question": "Where is the dependency graph stored and managed?"
+  },
+  {
+    "id": "q4",
+    "question": "How are OpenAI embeddings fetched and cached?"
+  },
+  {
+    "id": "q5",
+    "question": "What is the entry point for indexing a full repository?"
+  },
+  {
+    "id": "q6",
+    "question": "Where is the logic for incrementally syncing changes to the vector index?"
+  },
+  {
+    "id": "q7",
+    "question": "How is a file indexed and its metadata stored?"
+  },
+  {
+    "id": "q8",
+    "question": "Which component uses Tree-sitter for AST parsing?"
+  },
+  {
+    "id": "q9",
+    "question": "How are memories extracted from code comments?"
+  },
+  {
+    "id": "q10",
+    "question": "Where are the application settings and environment variables defined?"
+  },
+  {
+    "id": "q11",
+    "question": "How does the ContextRetriever perform hybrid search using RRF?"
+  },
+  {
+    "id": "q12",
+    "question": "Where is the local lexical scorer implemented for BM25 fallback?"
+  },
+  {
+    "id": "q13",
+    "question": "How does the vector store generate deterministic IDs for code points?"
+  },
+  {
+    "id": "q14",
+    "question": "Where does the system handle database migrations or schemas?"
+  },
+  {
+    "id": "q15",
+    "question": "How are repository graphs updated incrementally when a file is modified?"
+  },
+  {
+    "id": "q16",
+    "question": "Where is the FastAPI routing for the vector search?"
+  },
+  {
+    "id": "q17",
+    "question": "How does the full index usecase traverse the repository?"
+  },
+  {
+    "id": "q18",
+    "question": "Where are the Prometheus metrics defined for search latency?"
+  },
+  {
+    "id": "q19",
+    "question": "How does the system ignore files based on .gitignore?"
+  },
+  {
+    "id": "q20",
+    "question": "Where are the core domain entities for decisions and bugs?"
+  }
+]

@@ -19,7 +19,7 @@ from forge.domain.memory.repository_contracts.preference_repository import IPref
 from forge.domain.shared.events import IEventBus, DomainEvent
 from forge.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 from forge.domain.conversation.entities.conversation import Conversation
-from forge.domain.conversation.entities.message import Message
+from forge.domain.conversation.entities.message import ConversationMessage
 from forge.domain.conversation.value_objects.conversation_id import ConversationId
 from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
@@ -138,7 +138,7 @@ class FakeConversationRepo(IConversationRepository):
         return [
             c for c in self._conversations.values()
             if c.project_id == project_id
-            and (query.lower() in c.title.lower() or query.lower() in c.summary.lower())
+            and (query.lower() in c.title.lower() or any(query.lower() in s.content.lower() for s in c.summaries))
         ]
 
     async def count_by_project(self, project_id: ProjectId) -> int:

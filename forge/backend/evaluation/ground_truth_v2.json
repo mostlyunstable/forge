@@ -1,0 +1,22 @@
+{
+  "q1": {"relevant_docs": ["doc_adr_042", "doc_db_migration_plan"], "expected_citations": ["ADR-042", "Migration_Plan_v2"]},
+  "q2": {"relevant_docs": ["doc_bug_8423_report", "doc_bug_8423_fix"], "expected_citations": ["Bug-#8423", "PR-#8425"]},
+  "q3": {"relevant_docs": ["doc_pr_10245_review"], "expected_citations": ["PR-#10245"]},
+  "q4": {"relevant_docs": ["doc_arch_v1.2", "doc_arch_v2.0"], "expected_citations": ["Architecture_v1.2", "Architecture_v2.0"]},
+  "q5": {"relevant_docs": ["doc_session_mgmt_v1", "doc_session_mgmt_v2", "doc_session_mgmt_v3"], "expected_citations": ["Session_History"]},
+  "q6": {"relevant_docs": ["doc_adr_015"], "expected_citations": ["ADR-015"]},
+  "q7": {"relevant_docs": ["doc_bug_9912", "doc_commit_a1b2c3d"], "expected_citations": ["Bug-#9912", "Commit-a1b2c3d"]},
+  "q8": {"relevant_docs": ["doc_payment_deps"], "expected_citations": ["Dependency_Graph_v4"]},
+  "q9": {"relevant_docs": ["doc_q1_2025_arch", "doc_q3_2025_arch"], "expected_citations": ["Notification_Design_Doc"]},
+  "q10": {"relevant_docs": ["doc_bug_7711", "doc_bug_7745"], "expected_citations": ["Bug-#7711", "Bug-#7745"]},
+  "q11": {"relevant_docs": ["doc_order_processor_v1", "doc_order_processor_v2"], "expected_citations": ["OrderProcessor_History"]},
+  "q12": {"relevant_docs": ["doc_adr_038"], "expected_citations": ["ADR-038"]},
+  "q13": {"relevant_docs": ["doc_auth_validator_deps"], "expected_citations": ["Service_Topology"]},
+  "q14": {"relevant_docs": ["doc_db_pool_deadlock_timeline"], "expected_citations": ["Incident_Report_#445"]},
+  "q15": {"relevant_docs": ["doc_search_pipeline_commits"], "expected_citations": ["Git_Log_Search_Pipeline"]},
+  "q16": {"relevant_docs": ["doc_invoice_generator_history"], "expected_citations": ["Release_Notes_v3"]},
+  "q17": {"relevant_docs": ["doc_cloud_migration_bugs"], "expected_citations": ["Migration_Postmortem"]},
+  "q18": {"relevant_docs": ["doc_ui_to_db_path"], "expected_citations": ["Dependency_Graph_v5"]},
+  "q19": {"relevant_docs": ["doc_adr_020", "doc_adr_055"], "expected_citations": ["ADR-020", "ADR-055"]},
+  "q20": {"relevant_docs": ["doc_phase2_retrieval_commits"], "expected_citations": ["Git_Log_Unified_Retrieval"]}
+}

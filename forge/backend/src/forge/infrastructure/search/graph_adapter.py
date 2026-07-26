@@ -200,9 +200,17 @@ class SQLiteDependencyGraph(IDependencyGraph):
                 c1 = conn.execute("SELECT COUNT(*) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
                 c2 = conn.execute("SELECT COUNT(DISTINCT source_file) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
                 c3 = conn.execute("SELECT COUNT(DISTINCT target_file) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
+                c4 = conn.execute('''
+                    SELECT COUNT(DISTINCT file_path) FROM (
+                        SELECT source_file AS file_path FROM dependency_edges WHERE project_id = ?
+                        UNION
+                        SELECT target_file AS file_path FROM dependency_edges WHERE project_id = ?
+                    )
+                ''', (str(project_id), str(project_id))).fetchone()[0]
                 return {
                     "total_dependencies": c1,
                     "files_with_imports": c2,
                     "files_imported": c3,
+                    "total_files": c4,
                 }
         return await asyncio.to_thread(_stats)

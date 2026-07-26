@@ -50,15 +50,15 @@ class ContextBuilder:
         messages: list[dict[str, str]] = []
 
         # Add summary as system context
-        if conversation.summary:
+        if conversation.summaries:
             messages.append({
                 "role": "system",
-                "content": f"Previous conversation summary:\n{conversation.summary}",
+                "content": f"Previous discussion summary:\n{conversation.summaries[-1].content}",
             })
 
         # Add recent messages (respect token budget)
         token_budget = max_history_tokens
-        recent = conversation.recent_messages
+        recent = conversation.messages[-20:]
         for msg in reversed(recent):
             msg_tokens = msg.token_count or len(msg.content) // 4
             if msg_tokens > token_budget:

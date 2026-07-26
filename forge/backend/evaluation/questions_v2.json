@@ -1,0 +1,22 @@
+[
+  {"id": "q1", "text": "What was the reasoning behind dropping MongoDB in favor of PostgreSQL in ADR-042?", "category": "Memory retrieval (ADRs)"},
+  {"id": "q2", "text": "When was the critical bug #8423 reported and what was the root cause?", "category": "Memory retrieval (Bugs)"},
+  {"id": "q3", "text": "Who approved the pull request that introduced the Unified Retrieval engine?", "category": "Historical reasoning"},
+  {"id": "q4", "text": "List the dependencies of the Authentication service and how they changed from v1.2 to v2.0.", "category": "Graph traversal"},
+  {"id": "q5", "text": "What is the timeline of the changes made to the user session management module?", "category": "Version history"},
+  {"id": "q6", "text": "Which ADR discussed the choice of caching strategy, and what alternatives were considered?", "category": "Memory retrieval (ADRs)"},
+  {"id": "q7", "text": "Trace the bug #9912 back to the specific commit that introduced it.", "category": "Historical reasoning"},
+  {"id": "q8", "text": "What components depend on the legacy payment gateway module?", "category": "Graph traversal"},
+  {"id": "q9", "text": "How did the architecture of the notification system evolve between Q1 2025 and Q3 2025?", "category": "Historical reasoning"},
+  {"id": "q10", "text": "Find the bug reports related to memory leaks in the background worker process.", "category": "Memory retrieval (Bugs)"},
+  {"id": "q11", "text": "Show the version history of the `OrderProcessor` class.", "category": "Version history"},
+  {"id": "q12", "text": "What ADR justifies the adoption of GraphQL for the public API?", "category": "Memory retrieval (ADRs)"},
+  {"id": "q13", "text": "What are the downstream effects if the `AuthValidator` service goes down?", "category": "Graph traversal"},
+  {"id": "q14", "text": "Identify the timeline of fixes applied to resolve the deadlock issue in the database connection pool.", "category": "Timeline reasoning"},
+  {"id": "q15", "text": "Which developers contributed to the refactoring of the search indexing pipeline, and when did they make their changes?", "category": "Historical reasoning"},
+  {"id": "q16", "text": "How many times was the `InvoiceGenerator` module updated in the last major release cycle?", "category": "Version history"},
+  {"id": "q17", "text": "What bugs were associated with the migration to the new cloud provider?", "category": "Memory retrieval (Bugs)"},
+  {"id": "q18", "text": "Find the shortest path in the dependency graph from the UI frontend to the user profile database table.", "category": "Graph traversal"},
+  {"id": "q19", "text": "What was the initial design of the rate limiting feature before it was revised in ADR-055?", "category": "Historical reasoning"},
+  {"id": "q20", "text": "Show the timeline of commits that introduced the Phase 2 Unified Retrieval engine.", "category": "Timeline reasoning"}
+]

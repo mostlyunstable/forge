@@ -62,13 +62,7 @@ class FullIndexUseCase:
         self._vector_store = vector_store
         self._embedding_service = embedding_service
         self._dep_graph = dep_graph
-        
-        # We can dynamically construct TreeSitterCodeIndexer since it uses Qdrant
-        if self._vector_store and self._embedding_service:
-            from forge.infrastructure.code_indexer.tree_sitter_code_indexer import TreeSitterCodeIndexer
-            self._code_indexer = TreeSitterCodeIndexer(self._vector_store)
-        else:
-            self._code_indexer = None # To be injected or instantiated if needed
+        self._code_indexer = None
         
     def set_code_indexer(self, indexer):
         self._code_indexer = indexer

@@ -6,20 +6,18 @@ from datetime import datetime, timezone
 
 from forge.domain.memory.value_objects.decision_id import DecisionId
 from forge.domain.projects.value_objects.project_id import ProjectId
+from forge.domain.memory.entities.memory import Memory
 
 
-@dataclass
-class ArchitectureDecision:
+@dataclass(kw_only=True)
+class ArchitectureDecision(Memory):
     """Records an architectural decision with rationale and alternatives."""
 
     id: DecisionId
-    project_id: ProjectId
-    title: str
     decision: str
     reason: str
     alternatives: list[str] = field(default_factory=list)
     status: str = "accepted"
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def update_reason(self, reason: str) -> None:
         self.reason = reason
@@ -36,11 +34,20 @@ class ArchitectureDecision:
         decision: str,
         reason: str,
         alternatives: list[str] | None = None,
+        summary: str = "",
+        body: str = "",
+        source: str = "user",
+        author: str | None = None,
     ) -> ArchitectureDecision:
         return cls(
             id=DecisionId(),
             project_id=project_id,
+            memory_type="decision",
             title=title,
+            summary=summary,
+            body=body,
+            source=source,
+            author=author,
             decision=decision,
             reason=reason,
             alternatives=alternatives or [],

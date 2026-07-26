@@ -1,0 +1,68 @@
+{
+  "q1": [
+    "src/forge/infrastructure/search/qdrant_client.py",
+    "src/forge/config/settings.py"
+  ],
+  "q2": [
+    "src/forge/infrastructure/search/context_retriever.py"
+  ],
+  "q3": [
+    "src/forge/infrastructure/search/graph_adapter.py"
+  ],
+  "q4": [
+    "src/forge/infrastructure/search/embedding_service.py"
+  ],
+  "q5": [
+    "src/forge/application/indexing/full_index_usecase.py"
+  ],
+  "q6": [
+    "src/forge/application/indexing/incremental_index_usecase.py"
+  ],
+  "q7": [
+    "src/forge/domain/projects/entities/file_index.py"
+  ],
+  "q8": [
+    "src/forge/domain/indexing/services/ast_parser.py"
+  ],
+  "q9": [
+    "src/forge/domain/indexing/services/memory_extractor.py"
+  ],
+  "q10": [
+    "src/forge/config/settings.py"
+  ],
+  "q11": [
+    "src/forge/infrastructure/search/context_retriever.py"
+  ],
+  "q12": [
+    "src/forge/infrastructure/search/lexical_scorer.py"
+  ],
+  "q13": [
+    "src/forge/infrastructure/search/qdrant_client.py"
+  ],
+  "q14": [
+    "alembic/",
+    "src/forge/infrastructure/database/"
+  ],
+  "q15": [
+    "src/forge/infrastructure/search/graph_adapter.py",
+    "src/forge/application/indexing/incremental_index_usecase.py"
+  ],
+  "q16": [
+    "src/forge/interfaces/api/"
+  ],
+  "q17": [
+    "src/forge/application/indexing/full_index_usecase.py"
+  ],
+  "q18": [
+    "src/forge/config/metrics.py",
+    "src/forge/infrastructure/search/qdrant_client.py"
+  ],
+  "q19": [
+    "src/forge/application/indexing/full_index_usecase.py",
+    "src/forge/domain/indexing/services/file_discovery.py"
+  ],
+  "q20": [
+    "src/forge/domain/memories/entities/decision.py",
+    "src/forge/domain/memories/entities/bug.py"
+  ]
+}

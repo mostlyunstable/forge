@@ -3,14 +3,14 @@ import pytest
 from uuid import uuid4
 
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.infrastructure.search.graph_adapter import InMemoryDependencyGraph
+from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 from forge.application.code.build_dependency_graph import BuildDependencyGraphUseCase, BuildDependencyGraphRequest
 from forge.application.code.get_import_graph import GetImportGraphUseCase
 
 
 @pytest.fixture
 def graph():
-    return InMemoryDependencyGraph()
+    return SQLiteDependencyGraph()
 
 
 @pytest.fixture

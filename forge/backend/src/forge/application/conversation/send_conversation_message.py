@@ -87,10 +87,14 @@ class SendConversationMessageUseCase:
                 )
             )
 
-        # 2. Retrieve memory context
+        # 2. Retrieve memory context (with initial context window for intent routing)
+        initial_context_window = self._token_manager.build_context_window(
+            conversation, memory_tokens=0
+        )
         memory_context = await self._context_retriever.retrieve(
             query=request.message,
             project_id=conversation.project_id,
+            context_window=initial_context_window,
         )
 
         # 3. Build context within token budget
@@ -161,7 +165,7 @@ class SendConversationMessageUseCase:
             response=response_text,
             sources=sources,
             token_count=token_count,
-            message_count=conversation.message_count,
+            message_count=len(conversation.messages),
         )
 
     async def _maybe_summarize(self, conversation: Conversation) -> None:

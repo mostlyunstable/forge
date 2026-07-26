@@ -3,20 +3,11 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-
+from forge.domain.memory.value_objects.memory_id import MemoryId
 
 @dataclass(frozen=True)
-class DecisionId:
+class DecisionId(MemoryId):
     """Unique identifier for an ArchitectureDecision."""
 
-    value: uuid.UUID
-
     def __init__(self, value: uuid.UUID | None = None) -> None:
-        object.__setattr__(self, "value", value or uuid.uuid4())
-
-    @classmethod
-    def from_string(cls, raw: str) -> DecisionId:
-        return cls(uuid.UUID(raw))
-
-    def __str__(self) -> str:
-        return str(self.value)
+        super().__init__(value)

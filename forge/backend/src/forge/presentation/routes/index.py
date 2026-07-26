@@ -48,7 +48,10 @@ def _build_full_index_use_case(session: AsyncSession) -> FullIndexUseCase:
     vector_store = QdrantClient()
     embedding_service = EmbeddingService()
 
-    return FullIndexUseCase(
+    from forge.infrastructure.code_indexer.tree_sitter_code_indexer import TreeSitterCodeIndexer
+    code_indexer = TreeSitterCodeIndexer(vector_store)
+
+    use_case = FullIndexUseCase(
         job_repo=job_repo,
         file_index_repo=file_index_repo,
         candidate_repo=candidate_repo,
@@ -60,6 +63,8 @@ def _build_full_index_use_case(session: AsyncSession) -> FullIndexUseCase:
         embedding_service=embedding_service,
         dep_graph=SQLiteDependencyGraph(),
     )
+    use_case.set_code_indexer(code_indexer)
+    return use_case
 
 
 def _build_incremental_index_use_case(session: AsyncSession) -> IncrementalIndexUseCase:
