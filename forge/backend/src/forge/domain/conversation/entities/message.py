@@ -22,7 +22,7 @@ class ConversationMessage:
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self) -> None:
-        if self.role not in ("user", "assistant", "system"):
+        if self.role not in ("user", "assistant", "system", "tool"):
             raise ValueError(f"Invalid role: {self.role}")
 
     def add_citation(self, citation: ConversationCitation) -> None:
@@ -39,14 +39,18 @@ class ConversationMessage:
         )
 
     @classmethod
-    def create_assistant(cls, conversation_id: ConversationId, content: str, token_count: int = 0, metadata: dict | None = None) -> ConversationMessage:
+    def create_assistant(cls, conversation_id: ConversationId, content: str | None = None, tool_calls: list[dict] | None = None, token_count: int = 0, metadata: dict | None = None) -> ConversationMessage:
+        meta = metadata or {}
+        if tool_calls:
+            meta["tool_calls"] = tool_calls
+            
         return cls(
             id=MessageId(),
             conversation_id=conversation_id,
             role="assistant",
-            content=content,
+            content=content or "",
             token_count=token_count,
-            metadata=metadata or {},
+            metadata=meta,
         )
 
     @classmethod
@@ -57,6 +61,17 @@ class ConversationMessage:
             role="system",
             content=content,
             token_count=token_count,
+        )
+
+    @classmethod
+    def create_tool(cls, conversation_id: ConversationId, content: str, tool_call_id: str, name: str, token_count: int = 0) -> ConversationMessage:
+        return cls(
+            id=MessageId(),
+            conversation_id=conversation_id,
+            role="tool",
+            content=content,
+            token_count=token_count,
+            metadata={"tool_call_id": tool_call_id, "name": name},
         )
 
 # Alias for backward compatibility during refactor

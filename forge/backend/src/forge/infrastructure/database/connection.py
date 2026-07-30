@@ -25,10 +25,17 @@ class DatabaseManager:
 
     def _ensure_engine(self) -> AsyncEngine:
         if self._engine is None:
-            kwargs = {
+            is_sqlite = "sqlite" in self._settings.DATABASE_URL
+            kwargs: dict = {
                 "echo": self._settings.DEBUG,
             }
-            if "postgresql" in self._settings.DATABASE_URL:
+            if is_sqlite:
+                # Use NullPool for SQLite to avoid cross-thread/cross-coroutine
+                # connection reuse which causes "database is locked" errors.
+                from sqlalchemy.pool import NullPool
+                kwargs["poolclass"] = NullPool
+                kwargs["connect_args"] = {"check_same_thread": False}
+            elif "postgresql" in self._settings.DATABASE_URL:
                 kwargs["pool_size"] = 20
                 kwargs["max_overflow"] = 10
             self._engine = create_async_engine(

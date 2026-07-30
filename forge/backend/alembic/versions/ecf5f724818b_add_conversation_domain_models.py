@@ -62,10 +62,7 @@ def upgrade() -> None:
         batch_op.drop_column('message_count')
         batch_op.drop_column('summary_token_count')
 
-    with op.batch_alter_table('messages', schema=None) as batch_op:
-        batch_op.drop_constraint(None, type_='foreignkey')
-        batch_op.create_foreign_key(None, 'conversations', ['conversation_id'], ['id'], ondelete='CASCADE')
-
+    # (Skipping invalid drop_constraint on messages table)
     # ### end Alembic commands ###
 
 

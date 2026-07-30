@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 import typer
+from pathlib import Path
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.live import Live
@@ -12,212 +13,304 @@ from prompt_toolkit.styles import Style
 from forge.infrastructure.database.connection import database_manager
 from forge.infrastructure.repositories.conversation_repository import ConversationRepository
 from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.application.conversation.context_manager import ConversationContextManager, RetrievedContext
+from forge.application.conversation.context_manager import ConversationContextManager
 from forge.application.conversation.reasoning_engine import ReasoningEngine
-from forge.application.conversation.token_manager import TokenManager, ContextWindow
+from forge.application.conversation.token_manager import ContextWindow
 from forge.infrastructure.llm.llm_service import LLMService
+from forge.infrastructure.search.sqlite_retriever import SqliteRetriever
 from forge.domain.conversation.entities.message import Message
 from forge.domain.conversation.value_objects.conversation_id import ConversationId
 
 console = Console()
 
+# ── DB helpers (short-lived sessions each) ────────────────────────────────────
+
+async def _get_or_create_project():
+    async with database_manager.get_session() as db:
+        repo = ProjectRepository(db)
+        projects = await repo.get_all()
+        if projects:
+            return projects[0].id
+    from forge.domain.projects.value_objects.project_id import ProjectId
+    return ProjectId(uuid.uuid4())
+
+
+async def _create_conversation(project_id):
+    from forge.domain.conversation.entities.conversation import Conversation
+    async with database_manager.get_session() as db:
+        repo = ConversationRepository(db)
+        conv = Conversation.create(project_id=project_id, title="CLI Chat Session")
+        await repo.save(conv)
+        return conv.id
+
+
+async def _get_conversation(conversation_id):
+    async with database_manager.get_session() as db:
+        repo = ConversationRepository(db)
+        return await repo.get_by_id(conversation_id)
+
+
+async def _save_conversation(conversation):
+    async with database_manager.get_session() as db:
+        repo = ConversationRepository(db)
+        await repo.save(conversation)
+
+
+async def _build_context(conversation_id, retrieved):
+    async with database_manager.get_session() as db:
+        repo = ConversationRepository(db)
+        mgr = ConversationContextManager(repo)
+        return await mgr.build_context(conversation_id, retrieved)
+
+
+def _resolve_db_path() -> Path:
+    """Find forge.db from this file's location."""
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "forge.db"
+        if candidate.exists():
+            return candidate
+    # Default: relative to backend dir
+    return here.parent.parent.parent.parent.parent / "forge.db"
+
+
+# ── Main chat coroutine ───────────────────────────────────────────────────────
+
 async def run_chat():
     session_prompt = PromptSession(
         history=InMemoryHistory(),
         auto_suggest=AutoSuggestFromHistory(),
-        style=Style.from_dict({
-            'prompt': 'ansicyan bold',
-        })
+        style=Style.from_dict({'prompt': 'ansicyan bold'}),
     )
 
-    console.print("[bold green]Forge Chat Mode[/bold green]")
-    console.print("Type [bold yellow]/help[/bold yellow] for a list of commands.")
-    console.print("Use [bold yellow]Option-Enter[/bold yellow] or [bold yellow]Esc-Enter[/bold yellow] for multiline input. Press [bold yellow]Enter[/bold yellow] to submit.")
-    
-    current_conversation_id = None
-    project_id = None
-    recent_citations = []
-    
-    # Initialize Dependencies
-    async with database_manager.get_session() as db_session:
-        conv_repo = ConversationRepository(db_session)
-        project_repo = ProjectRepository(db_session)
-        context_manager = ConversationContextManager(conv_repo)
-        llm_service = LLMService()
-        reasoning_engine = ReasoningEngine(llm_service)
-        
-        # We need a project to attach to, fetch first available or use a dummy if not found
-        projects = await project_repo.list_all()
-        if projects:
-            project_id = projects[0].id
-        else:
-            project_id = str(uuid.uuid4())
-            # Would need to insert a project ideally
+    console.print("[bold cyan]╔══════════════════════════════════════╗[/bold cyan]")
+    console.print("[bold cyan]║        FORGE  —  AI Engineering      ║[/bold cyan]")
+    console.print("[bold cyan]╚══════════════════════════════════════╝[/bold cyan]")
+    console.print("Type [bold yellow]/help[/bold yellow] for commands • [bold yellow]/exit[/bold yellow] to quit\n")
 
-        while True:
-            try:
-                # Use multiline if needed, prompt_toolkit supports Esc+Enter for multiline naturally if configured
-                text = await session_prompt.prompt_async("forge> ")
-            except (EOFError, KeyboardInterrupt):
+    current_conversation_id = None
+    recent_citations: list[dict] = []
+
+    # Stateless services
+    llm_service = LLMService()
+    reasoning_engine = ReasoningEngine(llm_service)
+    retriever = SqliteRetriever()
+
+    db_path = _resolve_db_path()
+    indexed = db_path.exists()
+    if not indexed:
+        console.print(
+            "[bold yellow]⚠  Codebase not indexed yet.[/bold yellow] "
+            "Run [bold]python forge_index.py[/bold] from forge/backend/ to enable retrieval.\n"
+        )
+    else:
+        console.print(f"[dim]✓ Codebase index found at {db_path}[/dim]\n")
+
+    project_id = await _get_or_create_project()
+
+    while True:
+        try:
+            text = await session_prompt.prompt_async("forge> ")
+        except (EOFError, KeyboardInterrupt):
+            console.print("\n[bold green]Goodbye![/bold green]")
+            break
+
+        text = text.strip()
+        if not text:
+            continue
+
+        # ── Slash commands ────────────────────────────────────────────────────
+        if text.startswith("/"):
+            cmd = text.split()[0]
+
+            if cmd == "/exit":
+                console.print("[bold green]Goodbye![/bold green]")
                 break
 
-            text = text.strip()
-            if not text:
-                continue
+            elif cmd == "/help":
+                console.print(Markdown("""
+**Commands:**
+- `/new` — Start a fresh conversation
+- `/history` — Show this conversation's messages
+- `/context` — Show assembled LLM context
+- `/citations` — Show last retrieval sources
+- `/summary` — Show conversation summary
+- `/export` — Export conversation to markdown
+- `/index` — Re-index the codebase now
+- `/clear` — Clear the screen
+- `/exit` — Quit
+"""))
 
-            if text.startswith("/"):
-                # Handle slash commands
-                parts = text.split(" ")
-                cmd = parts[0]
-                if cmd == "/exit":
-                    console.print("[bold green]Goodbye![/bold green]")
-                    break
-                elif cmd == "/help":
-                    console.print(Markdown(
-"""
-**Slash Commands:**
-- `/clear`: Clear terminal screen
-- `/new`: Start a new conversation
-- `/history`: View conversation history
-- `/context`: View current conversation context
-- `/citations`: View recent citations
-- `/summary`: View current conversation summary
-- `/export`: Export conversation to markdown
-- `/help`: Show this help message
-- `/exit`: Exit chat
-"""
-                    ))
-                    continue
-                elif cmd == "/clear":
-                    console.clear()
-                    continue
-                elif cmd == "/new":
-                    current_conversation_id = None
-                    recent_citations = []
-                    console.print("[bold green]Started a new conversation.[/bold green]")
-                    continue
-                elif cmd == "/history":
-                    if not current_conversation_id:
-                        console.print("No active conversation.")
-                        continue
-                    conv = await conv_repo.get_by_id(current_conversation_id)
-                    if conv:
-                        for msg in conv.messages:
-                            console.print(f"**{msg.role}**: {msg.content}")
-                    continue
-                elif cmd == "/context":
-                    if not current_conversation_id:
-                        console.print("No active conversation.")
-                        continue
-                    assembled = await context_manager.build_context(current_conversation_id, [])
-                    console.print(assembled)
-                    continue
-                elif cmd == "/citations":
-                    if not recent_citations:
-                        console.print("No citations in the recent response.")
-                    else:
-                        for c in recent_citations:
-                            console.print(f"Source: {c['source']}\nScore: {c['score']}\nSnippet: {c['content'][:100]}...\n")
-                    continue
-                elif cmd == "/summary":
-                    if not current_conversation_id:
-                        console.print("No active conversation.")
-                        continue
-                    conv = await conv_repo.get_by_id(current_conversation_id)
-                    if conv and conv.summary:
-                        console.print(Markdown(conv.summary))
-                    else:
-                        console.print("No summary available yet.")
-                    continue
-                elif cmd == "/export":
-                    if not current_conversation_id:
-                        console.print("No active conversation.")
-                        continue
-                    conv = await conv_repo.get_by_id(current_conversation_id)
-                    export_content = ""
-                    if conv:
-                        for msg in conv.messages:
-                            export_content += f"### {msg.role.upper()}\n\n{msg.content}\n\n"
-                        filename = f"conversation_{current_conversation_id.value}.md"
-                        with open(filename, "w") as f:
-                            f.write(export_content)
-                        console.print(f"[bold green]Exported to {filename}[/bold green]")
-                    continue
+            elif cmd == "/clear":
+                console.clear()
+
+            elif cmd == "/new":
+                current_conversation_id = None
+                recent_citations = []
+                console.print("[bold green]✓ New conversation started.[/bold green]")
+
+            elif cmd == "/history":
+                if not current_conversation_id:
+                    console.print("[dim]No active conversation.[/dim]")
                 else:
-                    console.print(f"[bold red]Unknown command: {cmd}[/bold red]")
-                    continue
-            
-            # Normal message processing
-            if not current_conversation_id:
-                # Start new session
-                from forge.domain.conversation.entities.conversation import Conversation
-                conv = Conversation.create(project_id=project_id, title="CLI Chat Session")
-                await conv_repo.save(conv)
-                current_conversation_id = conv.id
-            
-            conversation = await conv_repo.get_by_id(current_conversation_id)
-            if not conversation:
-                console.print("[bold red]Error: Conversation missing![/bold red]")
-                continue
-            
-            user_msg = Message.create_user(
-                conversation_id=str(current_conversation_id.value),
-                content=text,
-                token_count=max(1, len(text) // 4)
-            )
-            conversation.add_message(user_msg)
-            await conv_repo.save(conversation)
-            
-            # Simple mock retrieval for CLI demonstration (this would use ContextRetriever in real scenario)
-            retrieved_contexts = []
-            
-            try:
-                assembled_context = await context_manager.build_context(current_conversation_id, retrieved_contexts)
-                recent_citations = assembled_context.get("retrieved", [])
-                
-                messages_for_llm = []
-                for m in assembled_context["messages"]:
-                    if m["role"] == "user":
-                        messages_for_llm.append(Message.create_user(conversation_id=str(current_conversation_id.value), content=m["content"], token_count=1))
-                    elif m["role"] == "assistant":
-                        messages_for_llm.append(Message.create_assistant(conversation_id=str(current_conversation_id.value), content=m["content"], token_count=1))
-                
-                context_window = ContextWindow(
-                    summary=assembled_context["summary"],
-                    summary_tokens=0,
-                    messages=messages_for_llm,
-                    message_tokens=0,
-                    total_tokens=assembled_context["total_tokens_estimated"]
-                )
-                
-                retrieved_context_str = "\n\n".join([
-                    f"Source: {ctx['source']}\n{ctx['content']}" for ctx in recent_citations
-                ])
-                
-                with Live(Markdown("Thinking..."), console=console, refresh_per_second=15) as live:
-                    current_text = ""
-                    async for chunk in reasoning_engine.generate_response_stream(
-                        context_window=context_window,
-                        retrieved_context=retrieved_context_str
-                    ):
-                        current_text += chunk
-                        live.update(Markdown(current_text))
-                
-                assistant_msg = Message.create_assistant(
-                    conversation_id=str(current_conversation_id.value),
-                    content=current_text,
-                    token_count=max(1, len(current_text) // 4)
-                )
-                conversation.add_message(assistant_msg)
-                await conv_repo.save(conversation)
-                
-                console.print()
-            except Exception as e:
-                console.print(f"[bold red]Error generating response: {str(e)}[/bold red]")
+                    conv = await _get_conversation(current_conversation_id)
+                    if conv:
+                        for msg in conv.messages:
+                            role_color = "cyan" if msg.role == "user" else "green"
+                            console.print(f"[bold {role_color}]{msg.role}:[/bold {role_color}] {msg.content}\n")
 
+            elif cmd == "/context":
+                if not current_conversation_id:
+                    console.print("[dim]No active conversation.[/dim]")
+                else:
+                    assembled = await _build_context(current_conversation_id, [])
+                    console.print(assembled)
+
+            elif cmd == "/citations":
+                if not recent_citations:
+                    console.print("[dim]No citations from last response.[/dim]")
+                else:
+                    for c in recent_citations:
+                        console.print(f"[bold cyan]{c['file_path']}[/bold cyan]\n[dim]{c['content'][:200]}[/dim]\n")
+
+            elif cmd == "/summary":
+                if not current_conversation_id:
+                    console.print("[dim]No active conversation.[/dim]")
+                else:
+                    conv = await _get_conversation(current_conversation_id)
+                    if conv and conv.summaries:
+                        console.print(Markdown(conv.summaries[-1].content))
+                    else:
+                        console.print("[dim]No summary yet.[/dim]")
+
+            elif cmd == "/export":
+                if not current_conversation_id:
+                    console.print("[dim]No active conversation.[/dim]")
+                else:
+                    conv = await _get_conversation(current_conversation_id)
+                    if conv:
+                        content = "\n\n".join(
+                            f"### {m.role.upper()}\n\n{m.content}" for m in conv.messages
+                        )
+                        fname = f"forge_chat_{current_conversation_id.value}.md"
+                        Path(fname).write_text(content)
+                        console.print(f"[bold green]✓ Exported to {fname}[/bold green]")
+
+            elif cmd == "/index":
+                console.print("[dim]Indexing codebase… this may take a moment.[/dim]")
+                import subprocess, sys
+                result = subprocess.run(
+                    [sys.executable, "forge_index.py"],
+                    capture_output=True, text=True
+                )
+                console.print(result.stdout or result.stderr)
+
+            else:
+                console.print(f"[bold red]Unknown command: {cmd}[/bold red]  — type /help")
+
+            continue
+
+        # ── Message processing ────────────────────────────────────────────────
+
+        # Create conversation on first message
+        if not current_conversation_id:
+            current_conversation_id = await _create_conversation(project_id)
+
+        # Persist user message
+        conversation = await _get_conversation(current_conversation_id)
+        if not conversation:
+            console.print("[bold red]Error: conversation lost.[/bold red]")
+            continue
+
+        user_msg = Message.create_user(
+            conversation_id=current_conversation_id,
+            content=text,
+            token_count=max(1, len(text) // 4),
+        )
+        conversation.add_message(user_msg)
+        await _save_conversation(conversation)
+
+        # ── Retrieval ─────────────────────────────────────────────────────────
+        retrieved_results = await retriever.retrieve(text)
+        recent_citations = retrieved_results
+        retrieved_context_str = retriever.format_for_llm(retrieved_results)
+
+        if retrieved_results:
+            console.print(
+                f"[dim]📚 Retrieved {len(retrieved_results)} relevant snippets[/dim]"
+            )
+
+        # ── Build context window ──────────────────────────────────────────────
+        try:
+            assembled = await _build_context(current_conversation_id, [])
+
+            messages_for_llm = []
+            for m in assembled["messages"]:
+                if m["role"] == "user":
+                    messages_for_llm.append(
+                        Message.create_user(
+                            conversation_id=current_conversation_id,
+                            content=m["content"], token_count=1
+                        )
+                    )
+                elif m["role"] == "assistant":
+                    messages_for_llm.append(
+                        Message.create_assistant(
+                            conversation_id=current_conversation_id,
+                            content=m["content"], token_count=1
+                        )
+                    )
+
+            context_window = ContextWindow(
+                summary=assembled["summary"],
+                summary_tokens=0,
+                messages=messages_for_llm,
+                message_tokens=0,
+                total_tokens=assembled["total_tokens_estimated"],
+            )
+
+            # ── Stream LLM response ───────────────────────────────────────────
+            with Live(Markdown("▋"), console=console, refresh_per_second=15) as live:
+                current_text = ""
+                async for chunk in reasoning_engine.generate_response_stream(
+                    context_window=context_window,
+                    retrieved_context=retrieved_context_str,
+                ):
+                    if isinstance(chunk, dict):
+                        if chunk["type"] == "status":
+                            live.stop()
+                            console.print(f"[dim italic]⚙️ {chunk['message']}[/dim italic]")
+                            live.start()
+                        elif chunk["type"] == "text":
+                            current_text += chunk["content"]
+                            live.update(Markdown(current_text + " ▋"))
+                    else:
+                        current_text += str(chunk)
+                        live.update(Markdown(current_text + " ▋"))
+                live.update(Markdown(current_text))
+
+            # Persist assistant reply
+            conversation = await _get_conversation(current_conversation_id)
+            assistant_msg = Message.create_assistant(
+                conversation_id=current_conversation_id,
+                content=current_text,
+                token_count=max(1, len(current_text) // 4),
+            )
+            conversation.add_message(assistant_msg)
+            await _save_conversation(conversation)
+
+            console.print()
+
+        except Exception as e:
+            console.print(f"[bold red]Error: {e}[/bold red]")
+            import traceback
+            console.print(f"[dim]{traceback.format_exc()}[/dim]")
+
+
+# ── Typer registration ────────────────────────────────────────────────────────
 
 def register(app: typer.Typer):
     @app.command("chat")
     def chat_cmd():
-        """Interactive chat interface."""
+        """Interactive chat with retrieval-augmented context."""
         asyncio.run(run_chat())

@@ -21,6 +21,7 @@ class LLMResponse:
     content: str
     model: str
     usage: dict[str, int]
+    tool_calls: list[dict[str, Any]] | None = None
 
 
 class LLMService:
@@ -37,7 +38,10 @@ class LLMService:
 
     def _ensure_client(self) -> AsyncOpenAI:
         if self._client is None:
-            kwargs = {"api_key": self._settings.LLM_API_KEY}
+            kwargs: dict = {
+                "api_key": self._settings.LLM_API_KEY,
+                "timeout": 60.0,  # 60s for cold-start models like NVIDIA NIM
+            }
             if self._settings.LLM_BASE_URL:
                 kwargs["base_url"] = self._settings.LLM_BASE_URL
             self._client = AsyncOpenAI(**kwargs)
@@ -45,7 +49,8 @@ class LLMService:
 
     async def chat(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> LLMResponse:
@@ -53,12 +58,16 @@ class LLMService:
         start_time = time.perf_counter()
         try:
             client = self._ensure_client()
-            response = await client.chat.completions.create(
-                model=self._settings.LLM_MODEL,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+            kwargs: dict[str, Any] = {
+                "model": self._settings.LLM_MODEL,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+            if tools:
+                kwargs["tools"] = tools
+
+            response = await client.chat.completions.create(**kwargs)
             duration = time.perf_counter() - start_time
             LLM_CALLS.labels(model=self._settings.LLM_MODEL, status="success").inc()
             LLM_LATENCY.labels(model=self._settings.LLM_MODEL).observe(duration)
@@ -68,14 +77,30 @@ class LLMService:
                 duration=duration,
                 tokens=response.usage.total_tokens if response.usage else 0,
             )
+            
+            message = response.choices[0].message
+            tool_calls = None
+            if message.tool_calls:
+                tool_calls = [
+                    {
+                        "id": tc.id,
+                        "type": tc.type,
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    } for tc in message.tool_calls
+                ]
+                
             return LLMResponse(
-                content=response.choices[0].message.content or "",
+                content=message.content or "",
                 model=response.model,
                 usage={
                     "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
                     "completion_tokens": response.usage.completion_tokens if response.usage else 0,
                     "total_tokens": response.usage.total_tokens if response.usage else 0,
                 },
+                tool_calls=tool_calls
             )
         except Exception as e:
             duration = time.perf_counter() - start_time
@@ -86,7 +111,8 @@ class LLMService:
 
     async def chat_stream(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> Any:
@@ -94,13 +120,17 @@ class LLMService:
         start_time = time.perf_counter()
         try:
             client = self._ensure_client()
-            stream = await client.chat.completions.create(
-                model=self._settings.LLM_MODEL,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                stream=True,
-            )
+            kwargs: dict[str, Any] = {
+                "model": self._settings.LLM_MODEL,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": True,
+            }
+            if tools:
+                kwargs["tools"] = tools
+                
+            stream = await client.chat.completions.create(**kwargs)
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content

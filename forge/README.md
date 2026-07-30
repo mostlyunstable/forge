@@ -5,9 +5,9 @@
 Forge indexes codebases, tracks architectural decisions, records bug fixes, accumulates developer preferences, and retrieves relevant context. The longer it is used, the more valuable it becomes.
 
 ```
-Desktop App (Tauri 2) ──> FastAPI Backend ──> PostgreSQL (structured)
-                   VS Code ──                  ──> Qdrant (vectors)
-                                                ──> NVIDIA NIM (embeddings + generation)
+Native CLI (Typer) ──> FastAPI Backend ──> PostgreSQL (structured)
+                 (Internal)          ──> Qdrant (vectors)
+                                      ──> NVIDIA NIM (embeddings + generation)
 ```
 
 ## Features
@@ -19,7 +19,7 @@ Desktop App (Tauri 2) ──> FastAPI Backend ──> PostgreSQL (structured)
 - **Git Intelligence** — Commit analysis, classification (feature/bugfix/refactor), project timelines
 - **Semantic Search** — Vector-powered search across all memories via Qdrant
 - **Knowledge Graph** — D3 force-directed graph showing relationships between decisions, bugs, and reports
-- **Native Desktop App** — Tauri 2 with macOS-native window chrome, deep-space design system
+- **Native Developer CLI** — Built with Typer, Rich, and Textual. An interactive terminal dashboard with Natural Language routing, streaming Markdown, and zero context switching.
 - **Full REST API** — 33 endpoints with JWT auth, rate limiting, structured error codes
 - **LLM-Optional** — Returns raw context when no LLM API key is configured
 
@@ -61,25 +61,35 @@ DATABASE_URL=sqlite+aiosqlite:///./forge.db USE_QDRANT=false \
 rm -f forge.db && PYTHONPATH=src poetry run pytest tests/ -v
 ```
 
-## VS Code Extension
+## Native Developer CLI
+
+Forge is interacted with primarily through its native terminal interface (`forge`).
 
 ```bash
-cd vscode-extension
-npm install
-npm run compile
-# Open in VS Code and press F5 to launch extension host
+# Global interactive dashboard with F1-F7 shortcuts
+forge
+
+# Or use specific subcommands
+forge chat "Explain the intent routing mechanism"
+forge search "ADR for PostgreSQL"
+forge explain src/forge/presentation/cli/main.py
+forge memory list
+forge graph
+forge index
 ```
 
 Commands:
 | Command | Description |
 |---------|-------------|
-| `Forge: Chat` | Ask questions about your codebase |
-| `Forge: Explain File` | Explain the current file with context |
-| `Forge: Explain Repo` | High-level repo walkthrough |
-| `Forge: Find Similar Bug` | Search bug memory for similar issues |
-| `Forge: Summarize Work` | Daily/weekly work summary from git history |
-| `Forge: Save Decision` | Record an architectural decision |
-| `Forge: Project Timeline` | Visual timeline of project activity |
+| `forge chat` | Interactive multiline chat with history and streaming responses |
+| `forge search` | Search codebase, ADRs, bugs, and history |
+| `forge explain` | Explain the architecture or file with full dependency context |
+| `forge memory` | Navigate Engineering Knowledge Base (ADRs, bugs, features) |
+| `forge graph` | Traverse dependency and memory graph |
+| `forge index` | Index local repository via Tree-sitter |
+| `forge doctor` | Diagnostics and connection health checks |
+
+*(Note: The `desktop/` and `vscode-extension/` directories contain experimental/legacy clients from earlier phases. The Native CLI is the first-class presentation layer for Forge.)*
 
 ## API Endpoints
 
@@ -176,9 +186,8 @@ PYTHONPATH=src python3 -m pytest tests/ -v
 | LLM | NVIDIA NIM (optional, Meta Llama 3.1) |
 | Embeddings | NVIDIA NV-EmbedQA-E5-V5 (1024 dimensions) |
 | Auth | JWT (PyJWT) |
-| Desktop App | Tauri 2, React 19, TypeScript, Zustand, React Query |
-| Design System | Deep-space palette, 4px grid, Geist typography |
-| VS Code Extension | TypeScript |
+| Presentation Layer | Typer, Rich, Textual, Prompt Toolkit (Native CLI) |
+| Legacy Clients | Tauri 2 (Desktop), VS Code Extension API |
 | Containerization | Docker, Docker Compose |
 | Testing | pytest, pytest-asyncio |
 | Linting | Ruff, mypy |

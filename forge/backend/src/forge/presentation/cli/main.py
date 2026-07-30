@@ -4,10 +4,12 @@ import os
 from typing import Optional, List
 from forge.presentation.cli.dashboard import Dashboard
 from forge.presentation.cli.renderer import OutputRenderer
+from forge.presentation.cli.plugin_loader import load_plugins
 
 app = typer.Typer(invoke_without_command=True)
 renderer = OutputRenderer()
 
+load_plugins(app, "forge.presentation.cli.plugins")
 def get_git_info():
     repo = "Unknown"
     branch = "Unknown"
@@ -43,14 +45,9 @@ class IntentRouter:
         return "Unknown Intent"
 
 @app.callback()
-def main(ctx: typer.Context, query: Optional[List[str]] = typer.Argument(None)):
-    if query:
-        query_str = " ".join(query)
-        intent = IntentRouter.route(query_str)
-        renderer.print_panel(f"Routed '{query_str}' to: [bold]{intent}[/bold]", title="Natural Language Mode")
-        return
-
+def main(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
+        import sys
         info = get_project_info()
         renderer.print_panel(
             f"Repo: {info['repo']} | Branch: {info['branch']} | Index: {info['index_status']} | Mem: {info['memory_count']} | Sessions: {info['active_sessions']}",

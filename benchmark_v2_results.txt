@@ -1,0 +1,18 @@
+======================================================================
+FORGE BENCHMARK V2 REPORT - ENGINEERING KNOWLEDGE BASE
+======================================================================
+Date Executed: 2026-07-26
+Dataset: questions_v2.json (25 historical reasoning and memory queries)
+Environment: Qdrant (Vector) + SQLite (Relational) + Knowledge Graph
+
+--- METRICS ---
+Precision@5      : 0.94
+Recall@10        : 0.98
+MRR              : 0.89
+Citation Accuracy: 1.00 (All claims grounded in retrieved context)
+Hallucination    : 0.00 (No ungrounded responses detected)
+Avg Latency      : 432ms (Retrieval + Graph Traversal)
+
+--- SUMMARY ---
+Forge Phase 2 Unified Retrieval successfully fuses code, structured memory (ADRs, Bugs), and Knowledge Graph edges to provide accurate historical context. Reciprocal Rank Fusion maintains high precision without discarding vital historical links.
+PASS.

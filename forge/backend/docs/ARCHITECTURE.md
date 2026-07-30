@@ -12,7 +12,7 @@ Forge follows Clean Architecture and Domain-Driven Design (DDD).
 - **Domain Layer:** Contains pure entities (`Memory`, `Bug`, `ArchitectureDecision`) and value objects (`MemoryId`). Does not depend on any infrastructure.
 - **Application Layer:** Contains Use Cases (`IngestADR`, `SearchKnowledge`) defining the business workflows and ports (`IMemoryRepository`).
 - **Infrastructure Layer:** Implements adapters (SQLAlchemy Repositories, Qdrant Vector Stores, SQLite Knowledge Graphs) for the application ports.
-- **Presentation Layer:** The external interface (CLI, API) interacting with Use Cases.
+- **Presentation Layer:** The external interface interacting with Use Cases. The primary client is the Native Developer CLI (built with Typer/Rich/Textual), alongside the REST API.
 
 ## Data Flow
 
