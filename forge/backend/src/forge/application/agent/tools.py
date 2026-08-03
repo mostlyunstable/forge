@@ -62,12 +62,30 @@ class ForgeTools:
                         "required": ["command"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "learn_rule",
+                    "description": "Appends a new permanent rule or preference to the .forge_rules.md file. Use this when the user corrects you or asks you to remember a specific convention or behavior for all future conversations.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "rule": {
+                                "type": "string",
+                                "description": "The rule or preference to remember. Should be clear and actionable."
+                            }
+                        },
+                        "required": ["rule"]
+                    }
+                }
             }
         ]
 
     @staticmethod
     def execute_tool(name: str, arguments: dict[str, Any]) -> str:
         """Executes a tool by name and returns its string result."""
+        from pathlib import Path
         try:
             if name == "read_file":
                 filepath = arguments["filepath"]
@@ -101,6 +119,20 @@ class ForgeTools:
                 if not output.strip():
                     return "Command executed successfully with no output."
                 return output
+
+            elif name == "learn_rule":
+                rule = arguments["rule"]
+                backend_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+                forge_dir = backend_dir.parent
+                rules_path = forge_dir / ".forge_rules.md"
+                
+                existing = ""
+                if rules_path.exists():
+                    existing = rules_path.read_text(encoding="utf-8")
+                
+                new_content = existing + f"\n- {rule}" if existing else f"- {rule}"
+                rules_path.write_text(new_content, encoding="utf-8")
+                return f"Successfully learned rule: {rule}"
                 
             else:
                 return f"Error: Unknown tool {name}"

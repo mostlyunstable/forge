@@ -128,26 +128,67 @@ async def run_chat():
                 break
 
             elif cmd == "/help":
-                console.print(Markdown("""
-**Commands:**
-- `/new` — Start a fresh conversation
-- `/history` — Show this conversation's messages
-- `/context` — Show assembled LLM context
-- `/citations` — Show last retrieval sources
-- `/summary` — Show conversation summary
-- `/export` — Export conversation to markdown
-- `/index` — Re-index the codebase now
-- `/clear` — Clear the screen
-- `/exit` — Quit
-"""))
+                help_text = """
+        Command /help      : Show this help message
+        Command /new       : Start a fresh conversation
+        Command /history   : View conversation history
+        Command /context   : Show assembled LLM context
+        Command /citations : Show last retrieval sources
+        Command /summary   : Show conversation summary
+        Command /export    : Export conversation to markdown
+        Command /index     : Run the Knowledge Ingester to index the codebase
+        Command /learn     : Manually add a permanent rule for Forge to remember
+        Command /clear     : Clear screen
+        Command /exit      : Exit the application
+        """
+                console.print(help_text)
+                continue
 
             elif cmd == "/clear":
                 console.clear()
+                continue
 
-            elif cmd == "/new":
+            elif cmd == "/index":
+                console.print("[dim italic]Indexing codebase...[/dim italic]")
+                import sys
+                from pathlib import Path
+                backend_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+                db_path = str(backend_dir / "forge.db")
+                
+                # Add to path if needed and import
+                from forge.application.training.knowledge_ingester import KnowledgeIngester
+                ingester = KnowledgeIngester(db_path=db_path)
+                # Use asyncio event loop since we are in async main
+                stats = await ingester.ingest()
+                console.print(f"[green]✅ Codebase indexed![/green] Processed {stats['files_processed']} files into {stats['entries_written']} chunks.")
+                continue
+
+            elif text.startswith("/learn"):
+                rule = text[6:].strip()
+                if not rule:
+                    console.print("[red]Usage: /learn <rule description>[/red]")
+                    continue
+                
+                from pathlib import Path
+                backend_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+                forge_dir = backend_dir.parent
+                rules_path = forge_dir / ".forge_rules.md"
+                
+                existing = ""
+                if rules_path.exists():
+                    existing = rules_path.read_text(encoding="utf-8")
+                
+                new_content = existing + f"\n- {rule}" if existing else f"- {rule}"
+                rules_path.write_text(new_content, encoding="utf-8")
+                
+                console.print(f"[green]✅ Learned new rule:[/green] {rule}")
+                continue
+
+            elif cmd == "/new" or cmd == "/delete":
                 current_conversation_id = None
                 recent_citations = []
                 console.print("[bold green]✓ New conversation started.[/bold green]")
+                continue
 
             elif cmd == "/history":
                 if not current_conversation_id:

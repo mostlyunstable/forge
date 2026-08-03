@@ -5,6 +5,9 @@ from forge.application.conversation.token_manager import ContextWindow
 
 def _build_system_prompt(retrieved_context: str) -> str:
     """Build a system prompt based on the user's requirements."""
+    import os
+    from pathlib import Path
+    
     base_prompt = """# FORGE SYSTEM PROMPT
 
 ## AI Engineering Companion
@@ -135,7 +138,7 @@ Suggest verification steps.
 Differentiate between:
 confirmed findings
 probable causes
-hypotheses
+hyp hypotheses
 Never present hypotheses as facts.
 
 ---
@@ -223,6 +226,18 @@ Focus on helping the user build better software rather than simply producing cod
 # Ultimate Goal
 Become a trusted engineering partner that helps developers understand systems, make informed decisions, debug efficiently, and evolve software with confidence.
 Every response should leave the engineer with greater clarity than they had before asking."""
+
+    # Load custom rules if they exist
+    backend_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+    forge_dir = backend_dir.parent
+    rules_path = forge_dir / ".forge_rules.md"
+    
+    if rules_path.exists():
+        try:
+            rules_content = rules_path.read_text(encoding="utf-8")
+            base_prompt += f"\n\n## Custom Forge Rules\nThe user has specified these rules. You MUST follow them at all times:\n{rules_content}"
+        except Exception:
+            pass
 
     if retrieved_context and retrieved_context.strip():
         return f"{base_prompt}\n\n## Retrieved Context\n{retrieved_context}"
