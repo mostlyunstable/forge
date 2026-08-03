@@ -1,0 +1,17 @@
+[
+    {
+        "id": "eval_1_architecture",
+        "prompt": "What design pattern does the ReasoningEngine use to handle context retrieval?",
+        "expected_concepts": ["system prompt injection", "context window", "agent loop", "OpenAI tool calling"]
+    },
+    {
+        "id": "eval_2_debugging",
+        "prompt": "If the /history command throws a KeyError, what is the most likely root cause in our database schema?",
+        "expected_concepts": ["conversation missing", "repository layer", "ContextManager failing to map roles"]
+    },
+    {
+        "id": "eval_3_tool_usage",
+        "prompt": "Use a shell command to list the files in the backend/src directory.",
+        "expected_concepts": ["run_shell_command", "ls", "backend/src"]
+    }
+]
