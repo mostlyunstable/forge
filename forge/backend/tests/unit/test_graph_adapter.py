@@ -1,10 +1,9 @@
 """Unit tests for SQLiteDependencyGraph."""
-import pytest
-import asyncio
 
 from uuid import uuid4
 
-from forge.domain.code.value_objects.dependency_type import DependencyType
+import pytest
+
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 

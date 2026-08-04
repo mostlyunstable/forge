@@ -1,22 +1,22 @@
 """Shared types for code parsing."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
-import tree_sitter_python as tspython
-import tree_sitter_typescript as ts_typescript
+import tree_sitter_dockerfile as tsdockerfile
 import tree_sitter_javascript as tsjs
 import tree_sitter_json as tsjson
-import tree_sitter_yaml as tsyaml
-import tree_sitter_dockerfile as tsdockerfile
-import tree_sitter_sql as tssql
 import tree_sitter_markdown as tsmarkdown
+import tree_sitter_python as tspython
+import tree_sitter_sql as tssql
+import tree_sitter_typescript as ts_typescript
+import tree_sitter_yaml as tsyaml
 from tree_sitter import Language
 
-from forge.domain.code.value_objects.entry_type import EntryType
 from forge.domain.code.value_objects.dependency_type import DependencyType
-
+from forge.domain.code.value_objects.entry_type import EntryType
 
 LANGUAGES = {
     ".py": ("python", Language(tspython.language())),

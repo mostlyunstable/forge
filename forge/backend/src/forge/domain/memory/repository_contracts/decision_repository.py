@@ -1,8 +1,8 @@
 """IDecisionRepository - contract for decision persistence."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from forge.domain.memory.entities.decision import ArchitectureDecision
 from forge.domain.memory.value_objects.decision_id import DecisionId
@@ -13,7 +13,7 @@ class IDecisionRepository(ABC):
     """Interface for architecture decision persistence."""
 
     @abstractmethod
-    async def get_by_id(self, decision_id: DecisionId) -> Optional[ArchitectureDecision]:
+    async def get_by_id(self, decision_id: DecisionId) -> ArchitectureDecision | None:
         """Retrieve a decision by its ID."""
 
     @abstractmethod

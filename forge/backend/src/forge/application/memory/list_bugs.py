@@ -1,12 +1,13 @@
 """ListBugsUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from forge.domain.memory.repository_contracts.bug_repository import IBugRepository
+from forge.domain.projects.exceptions import ProjectNotFoundError
 from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.projects.exceptions import ProjectNotFoundError
 
 
 @dataclass
@@ -47,7 +48,7 @@ class ListBugsUseCase:
 
         bugs = await self._bug_repo.get_by_project(ProjectId.from_string(project_id))
         total = len(bugs)
-        paginated = bugs[skip:skip + limit]
+        paginated = bugs[skip : skip + limit]
 
         return ListBugsResponse(
             bugs=[

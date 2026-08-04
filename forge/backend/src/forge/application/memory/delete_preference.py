@@ -1,11 +1,12 @@
 """DeletePreferenceUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from forge.domain.memory.events import PreferenceDeleted
 from forge.domain.memory.repository_contracts.preference_repository import IPreferenceRepository
 from forge.domain.memory.value_objects.preference_key import PreferenceKey
-from forge.domain.memory.events import PreferenceDeleted
 from forge.domain.shared.events import IEventBus
 
 
@@ -32,8 +33,6 @@ class DeletePreferenceUseCase:
         deleted = await self._preference_repo.delete(PreferenceKey(key))
 
         if self._event_bus and deleted:
-            await self._event_bus.publish(
-                PreferenceDeleted(preference_key=key)
-            )
+            await self._event_bus.publish(PreferenceDeleted(preference_key=key))
 
         return DeletePreferenceResponse(deleted=deleted, key=key)

@@ -1,9 +1,11 @@
 """Tests for domain events infrastructure."""
+
 import pytest
-from forge.domain.shared.events import DomainEvent
-from forge.domain.projects.events import ProjectCreated, ProjectUpdated, ProjectDeleted
-from forge.domain.memory.events import DecisionRecorded, BugRecorded, PreferenceRecorded
+
 from forge.domain.code.events import CodeEntriesBatchIndexed
+from forge.domain.memory.events import BugRecorded, DecisionRecorded
+from forge.domain.projects.events import ProjectCreated
+from forge.domain.shared.events import DomainEvent
 from forge.infrastructure.events.in_memory_event_bus import InMemoryEventBus
 
 
@@ -37,9 +39,7 @@ class TestDomainEvents:
         assert "occurred_at" in d
 
     def test_decision_recorded_event(self):
-        event = DecisionRecorded(
-            decision_id="d1", project_id="p1", title="Use FastAPI"
-        )
+        event = DecisionRecorded(decision_id="d1", project_id="p1", title="Use FastAPI")
         assert event.event_type == "decision.recorded"
         assert event.decision_id == "d1"
 
@@ -48,9 +48,7 @@ class TestDomainEvents:
         assert event.event_type == "bug.recorded"
 
     def test_code_batch_indexed_event(self):
-        event = CodeEntriesBatchIndexed(
-            project_id="p1", entry_count=42, repo_path="/src"
-        )
+        event = CodeEntriesBatchIndexed(project_id="p1", entry_count=42, repo_path="/src")
         assert event.event_type == "code.batch_indexed"
         assert event.entry_count == 42
 
@@ -89,6 +87,7 @@ class TestInMemoryEventBus:
         class WildcardHandler:
             event_type = "*"
             events = []
+
             async def handle(self, event):
                 self.events.append(event)
 
@@ -112,12 +111,14 @@ class TestInMemoryEventBus:
 
         class FailingHandler:
             event_type = "project.created"
+
             async def handle(self, event):
                 raise RuntimeError("boom")
 
         class GoodHandler:
             event_type = "project.created"
             events = []
+
             async def handle(self, event):
                 self.events.append(event)
 

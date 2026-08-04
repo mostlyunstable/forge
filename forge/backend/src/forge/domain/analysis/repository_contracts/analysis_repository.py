@@ -1,8 +1,8 @@
 """IAnalysisReportRepository — persistence contract for analysis reports."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from forge.domain.analysis.entities.analysis_report import AnalysisReport
 from forge.domain.analysis.value_objects.analysis_id import AnalysisId
@@ -13,7 +13,7 @@ class IAnalysisReportRepository(ABC):
     """Abstract repository for analysis report persistence."""
 
     @abstractmethod
-    async def get_by_id(self, report_id: AnalysisId) -> Optional[AnalysisReport]:
+    async def get_by_id(self, report_id: AnalysisId) -> AnalysisReport | None:
         """Retrieve a report by its ID."""
 
     @abstractmethod
@@ -23,9 +23,7 @@ class IAnalysisReportRepository(ABC):
         """List reports for a project, newest first."""
 
     @abstractmethod
-    async def get_by_pr(
-        self, project_id: ProjectId, pr_number: int
-    ) -> Optional[AnalysisReport]:
+    async def get_by_pr(self, project_id: ProjectId, pr_number: int) -> AnalysisReport | None:
         """Retrieve the report for a specific PR."""
 
     @abstractmethod

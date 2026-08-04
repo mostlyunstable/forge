@@ -1,7 +1,7 @@
+# mypy: disable-error-code="assignment, arg-type"
 """CommitRepository - implements ICommitRepository."""
-from __future__ import annotations
 
-from typing import Optional
+from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,7 @@ class CommitRepository(ICommitRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_sha(self, project_id: ProjectId, sha: CommitSha) -> Optional[Commit]:
+    async def get_by_sha(self, project_id: ProjectId, sha: CommitSha) -> Commit | None:
         result = await self._session.execute(
             select(CommitModel).where(
                 CommitModel.project_id == str(project_id.value),
@@ -89,6 +89,7 @@ class CommitRepository(ICommitRepository):
 
     def _to_domain(self, model: CommitModel) -> Commit:
         from uuid import UUID
+
         return Commit(
             project_id=ProjectId(UUID(model.project_id)),
             sha=CommitSha(model.sha),

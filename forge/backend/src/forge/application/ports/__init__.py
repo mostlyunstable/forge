@@ -1,11 +1,11 @@
 """Port interfaces for infrastructure adapters.
 These define the contracts that infrastructure must implement.
 Application layer depends on these, not on infrastructure."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any
-
 from uuid import UUID
 
 from forge.domain.code.entities.code_entry import CodeEntry
@@ -24,7 +24,9 @@ class IContextRetriever(ABC):
     """Port for context retrieval (vector search adapter)."""
 
     @abstractmethod
-    async def retrieve(self, query: str, project_id: ProjectId, context_window: Any = None) -> dict[str, Any]:
+    async def retrieve(
+        self, query: str, project_id: ProjectId, context_window: Any = None
+    ) -> dict[str, Any]:
         """Retrieve relevant context for a query."""
 
 
@@ -48,11 +50,11 @@ class ILLMService(ABC):
 
 class IEmbeddingService(ABC):
     """Port for generating embeddings."""
-    
+
     @abstractmethod
     async def get_embedding(self, text: str, input_type: str = "passage") -> list[float]:
         """Get embedding for a single text."""
-        
+
     @abstractmethod
     async def get_embeddings(self, texts: list[str]) -> list[list[float]]:
         """Get embeddings for multiple texts."""

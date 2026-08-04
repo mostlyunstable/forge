@@ -1,4 +1,5 @@
 """ChangeSet — the complete set of file changes in a PR."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -67,9 +68,7 @@ class ChangeSet:
 
     @property
     def has_api_changes(self) -> bool:
-        return any(
-            "routes" in e.file_path or "schemas" in e.file_path for e in self.entries
-        )
+        return any("routes" in e.file_path or "schemas" in e.file_path for e in self.entries)
 
     @property
     def has_migration_changes(self) -> bool:

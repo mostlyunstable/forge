@@ -1,11 +1,11 @@
 """ContextBuilder — assembles context for LLM from multiple sources."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 
 from forge.domain.conversation.entities.conversation import Conversation
-from forge.domain.projects.value_objects.project_id import ProjectId
 
 
 @dataclass
@@ -51,10 +51,12 @@ class ContextBuilder:
 
         # Add summary as system context
         if conversation.summaries:
-            messages.append({
-                "role": "system",
-                "content": f"Previous discussion summary:\n{conversation.summaries[-1].content}",
-            })
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"Previous discussion summary:\n{conversation.summaries[-1].content}",
+                }
+            )
 
         # Add recent messages (respect token budget)
         token_budget = max_history_tokens
@@ -67,7 +69,7 @@ class ContextBuilder:
             token_budget -= msg_tokens
 
         # Add memory-retrieved context
-        sources = []
+        sources: list[dict[str, Any]] = []
         if memory_context:
             messages.extend(self._build_memory_messages(memory_context, sources))
 
@@ -94,12 +96,14 @@ class ContextBuilder:
             )
             msgs.append({"role": "system", "content": f"Relevant code:\n{code_ctx}"})
             for r in context["relevant_code"][:3]:
-                sources.append({
-                    "type": "code",
-                    "name": r["payload"]["name"],
-                    "file": r["payload"]["file_path"],
-                    "score": r["score"],
-                })
+                sources.append(
+                    {
+                        "type": "code",
+                        "name": r["payload"]["name"],
+                        "file": r["payload"]["file_path"],
+                        "score": r["score"],
+                    }
+                )
 
         if context.get("relevant_decisions"):
             dec_ctx = "\n".join(
@@ -108,11 +112,13 @@ class ContextBuilder:
             )
             msgs.append({"role": "system", "content": f"Related decisions:\n{dec_ctx}"})
             for r in context["relevant_decisions"][:3]:
-                sources.append({
-                    "type": "decision",
-                    "name": r["payload"]["title"],
-                    "score": r["score"],
-                })
+                sources.append(
+                    {
+                        "type": "decision",
+                        "name": r["payload"]["title"],
+                        "score": r["score"],
+                    }
+                )
 
         if context.get("relevant_bugs"):
             bug_ctx = "\n".join(
@@ -121,10 +127,12 @@ class ContextBuilder:
             )
             msgs.append({"role": "system", "content": f"Similar bugs resolved:\n{bug_ctx}"})
             for r in context["relevant_bugs"][:2]:
-                sources.append({
-                    "type": "bug",
-                    "name": r["payload"]["title"],
-                    "score": r["score"],
-                })
+                sources.append(
+                    {
+                        "type": "bug",
+                        "name": r["payload"]["title"],
+                        "score": r["score"],
+                    }
+                )
 
         return msgs

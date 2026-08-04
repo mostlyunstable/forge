@@ -1,5 +1,5 @@
 """Tests for MemoryExtractor."""
-import pytest
+
 from uuid import uuid4
 
 from forge.application.indexing.memory_extractor import MemoryExtractor

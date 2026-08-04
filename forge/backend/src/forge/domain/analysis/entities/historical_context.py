@@ -1,4 +1,5 @@
 """HistoricalContext — related decisions, bugs, commits, and preferences."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

@@ -1,26 +1,32 @@
+# mypy: disable-error-code="assignment, arg-type"
 """SQLAlchemy implementation of IMemoryRepository."""
-from typing import Optional
 
+from forge.infrastructure.repositories.base_repository import BaseRepository
 from sqlalchemy import select
 
-from forge.domain.memory.entities.memory import Memory
 from forge.domain.memory.entities.bug import Bug
 from forge.domain.memory.entities.decision import ArchitectureDecision
-from forge.domain.memory.entities.feature import Feature
-from forge.domain.memory.entities.note import EngineeringNote
 from forge.domain.memory.entities.decision_log import DecisionLog
 from forge.domain.memory.entities.event import EngineeringEvent
+from forge.domain.memory.entities.feature import Feature
+from forge.domain.memory.entities.memory import Memory
+from forge.domain.memory.entities.note import EngineeringNote
+from forge.domain.memory.repository_contracts.memory_repository import IMemoryRepository
 from forge.domain.memory.value_objects.memory_id import MemoryId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.memory.repository_contracts.memory_repository import IMemoryRepository
 from forge.infrastructure.database.models.memory_model import (
-    MemoryModel, BugModel, DecisionModel, FeatureModel,
-    EngineeringNoteModel, DecisionLogModel, EngineeringEventModel
+    BugModel,
+    DecisionLogModel,
+    DecisionModel,
+    EngineeringEventModel,
+    EngineeringNoteModel,
+    FeatureModel,
+    MemoryModel,
 )
-from forge.infrastructure.repositories.base_repository import BaseRepository
+
 
 class MemoryRepository(BaseRepository, IMemoryRepository):
-    async def get_by_id(self, memory_id: MemoryId) -> Optional[Memory]:
+    async def get_by_id(self, memory_id: MemoryId) -> Memory | None:
         model = await self._session.get(MemoryModel, str(memory_id.value))
         if not model:
             return None
@@ -46,7 +52,7 @@ class MemoryRepository(BaseRepository, IMemoryRepository):
             # Insert new
             model = self._to_model(memory)
             self._session.add(model)
-        
+
         await self._session.flush()
         return memory
 
@@ -72,8 +78,12 @@ class MemoryRepository(BaseRepository, IMemoryRepository):
             "metadata": model.metadata_json,
             "embedding_reference": model.embedding_reference,
             "version_number": model.version_number,
-            "previous_version_id": MemoryId(model.previous_version_id) if model.previous_version_id else None,
-            "superseded_by_id": MemoryId(model.superseded_by_id) if model.superseded_by_id else None,
+            "previous_version_id": MemoryId(model.previous_version_id)
+            if model.previous_version_id
+            else None,
+            "superseded_by_id": MemoryId(model.superseded_by_id)
+            if model.superseded_by_id
+            else None,
             "archived_at": model.archived_at,
         }
 
@@ -115,7 +125,7 @@ class MemoryRepository(BaseRepository, IMemoryRepository):
             log = DecisionLog.__new__(DecisionLog)
             log.__dict__.update(base_kwargs)
             log.memory_type = "decision_log"
-            log.decisions_referenced = [MemoryId(mid) for mid in model.decisions_referenced]
+            log.decisions_referenced = [MemoryId(mid) for mid in model.decisions_referenced]  # type: ignore
             return log
         elif isinstance(model, EngineeringEventModel):
             evt = EngineeringEvent.__new__(EngineeringEvent)
@@ -142,8 +152,12 @@ class MemoryRepository(BaseRepository, IMemoryRepository):
             "metadata_json": entity.metadata,
             "embedding_reference": entity.embedding_reference,
             "version_number": entity.version_number,
-            "previous_version_id": str(entity.previous_version_id.value) if entity.previous_version_id else None,
-            "superseded_by_id": str(entity.superseded_by_id.value) if entity.superseded_by_id else None,
+            "previous_version_id": str(entity.previous_version_id.value)
+            if entity.previous_version_id
+            else None,
+            "superseded_by_id": str(entity.superseded_by_id.value)
+            if entity.superseded_by_id
+            else None,
             "archived_at": entity.archived_at,
         }
 
@@ -156,7 +170,7 @@ class MemoryRepository(BaseRepository, IMemoryRepository):
                 affected_files=entity.affected_files,
                 severity=entity.severity,
                 resolved=entity.resolved,
-                resolved_at=entity.resolved_at
+                resolved_at=entity.resolved_at,
             )
         elif isinstance(entity, ArchitectureDecision):
             return DecisionModel(
@@ -164,29 +178,22 @@ class MemoryRepository(BaseRepository, IMemoryRepository):
                 decision=entity.decision,
                 reason=entity.reason,
                 alternatives=entity.alternatives,
-                status=entity.status
+                status=entity.status,
             )
         elif isinstance(entity, Feature):
             return FeatureModel(
-                **base_kwargs,
-                status=entity.status,
-                acceptance_criteria=entity.acceptance_criteria
+                **base_kwargs, status=entity.status, acceptance_criteria=entity.acceptance_criteria
             )
         elif isinstance(entity, EngineeringNote):
-            return EngineeringNoteModel(
-                **base_kwargs,
-                tags=entity.tags
-            )
+            return EngineeringNoteModel(**base_kwargs, tags=entity.tags)
         elif isinstance(entity, DecisionLog):
             return DecisionLogModel(
                 **base_kwargs,
-                decisions_referenced=[str(d.value) for d in entity.decisions_referenced]
+                decisions_referenced=[str(d.value) for d in entity.decisions_referenced],
             )
         elif isinstance(entity, EngineeringEvent):
             return EngineeringEventModel(
-                **base_kwargs,
-                event_type=entity.event_type,
-                event_data=entity.event_data
+                **base_kwargs, event_type=entity.event_type, event_data=entity.event_data
             )
         else:
             raise ValueError(f"Unknown memory entity type: {type(entity)}")

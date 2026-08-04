@@ -1,8 +1,10 @@
 """Middleware tests."""
+
 import pytest
-from forge.presentation.middleware.auth import create_access_token, verify_token
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
+
+from forge.presentation.middleware.auth import create_access_token, verify_token
 
 
 class TestJWTAuth:
@@ -32,6 +34,7 @@ class TestJWTAuth:
 class TestErrorCodes:
     def test_error_code_constants(self):
         from forge.presentation.middleware.error_handler import ErrorCode
+
         assert ErrorCode.PROJECT_NOT_FOUND == "PROJECT_NOT_FOUND"
         assert ErrorCode.INTERNAL_ERROR == "INTERNAL_ERROR"
         assert ErrorCode.VALIDATION_ERROR == "VALIDATION_ERROR"
@@ -40,27 +43,32 @@ class TestErrorCodes:
 class TestRequestValidation:
     def test_severity_validator_valid(self):
         from forge.presentation.schemas.validators import validate_severity
+
         assert validate_severity("low") == "low"
         assert validate_severity("HIGH") == "high"
         assert validate_severity("Critical") == "critical"
 
     def test_severity_validator_invalid(self):
         from forge.presentation.schemas.validators import validate_severity
+
         with pytest.raises(ValueError):
             validate_severity("invalid")
 
     def test_uuid_validator_valid(self):
         from forge.presentation.schemas.validators import validate_uuid
+
         result = validate_uuid("12345678-1234-1234-1234-123456789012")
         assert result == "12345678-1234-1234-1234-123456789012"
 
     def test_uuid_validator_invalid(self):
         from forge.presentation.schemas.validators import validate_uuid
+
         with pytest.raises(ValueError):
             validate_uuid("not-a-uuid")
 
     def test_project_status_validator(self):
         from forge.presentation.schemas.validators import validate_project_status
+
         assert validate_project_status("active") == "active"
         assert validate_project_status("ARCHIVED") == "archived"
         with pytest.raises(ValueError):

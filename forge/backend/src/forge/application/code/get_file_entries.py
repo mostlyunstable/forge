@@ -1,4 +1,5 @@
 """GetFileEntriesUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -40,7 +41,9 @@ class GetFileEntriesUseCase:
         project_id: str,
         file_path: str,
     ) -> GetFileEntriesResponse:
-        entries = await self._code_repo.get_by_file_path(ProjectId.from_string(project_id), file_path)
+        entries = await self._code_repo.get_by_file_path(
+            ProjectId.from_string(project_id), file_path
+        )
 
         details = [
             FileEntryDetail(
@@ -50,7 +53,7 @@ class GetFileEntriesUseCase:
                 language=e.language,
                 start_line=e.lines.start,
                 end_line=e.lines.end,
-                metadata=e.metadata,
+                metadata=e.metadata,  # type: ignore
             )
             for e in entries
         ]

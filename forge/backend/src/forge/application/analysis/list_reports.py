@@ -1,4 +1,5 @@
 """ListAnalysisReportsUseCase — lists analysis reports for a project."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +7,6 @@ from dataclasses import dataclass
 from forge.domain.analysis.repository_contracts.analysis_repository import (
     IAnalysisReportRepository,
 )
-from forge.domain.analysis.value_objects.analysis_id import AnalysisId
 from forge.domain.projects.value_objects.project_id import ProjectId
 
 
@@ -31,7 +31,7 @@ class ListAnalysisReportsUseCase:
         reports = await self._report_repo.get_by_project(
             pid, skip=request.skip, limit=request.limit
         )
-        total = await self._report_repo.count_by_project(pid)
+        await self._report_repo.count_by_project(pid)
 
         return [
             {

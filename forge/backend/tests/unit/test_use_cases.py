@@ -1,16 +1,17 @@
 """Unit tests for application use cases."""
-import pytest
+
 from uuid import uuid4
 
+import pytest
+
+from forge.application.memory.save_decision import SaveDecisionRequest, SaveDecisionUseCase
+from forge.application.projects.create_project import CreateProjectRequest, CreateProjectUseCase
+from forge.application.projects.list_projects import ListProjectsUseCase
+from forge.domain.memory.repository_contracts.decision_repository import IDecisionRepository
 from forge.domain.projects.entities.project import Project
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
-from forge.application.projects.create_project import CreateProjectUseCase, CreateProjectRequest
-from forge.application.projects.get_project import GetProjectUseCase
-from forge.application.projects.list_projects import ListProjectsUseCase
-from forge.application.memory.save_decision import SaveDecisionUseCase, SaveDecisionRequest
-from forge.domain.memory.repository_contracts.decision_repository import IDecisionRepository
 
 
 class FakeProjectRepo(IProjectRepository):
@@ -32,7 +33,7 @@ class FakeProjectRepo(IProjectRepository):
 
     async def get_all(self, skip=0, limit=100):
         projects = list(self._projects.values())
-        return projects[skip:skip+limit]
+        return projects[skip : skip + limit]
 
     async def delete(self, project_id):
         if project_id in self._projects:
@@ -72,12 +73,14 @@ class FakeDecisionRepo(IDecisionRepository):
 async def test_create_project_use_case():
     repo = FakeProjectRepo()
     use_case = CreateProjectUseCase(repo)
-    result = await use_case.execute(CreateProjectRequest(
-        name="Test",
-        description="Test desc",
-        stack=TechStack.from_list(["python"]),
-        goals=["Goal"],
-    ))
+    result = await use_case.execute(
+        CreateProjectRequest(
+            name="Test",
+            description="Test desc",
+            stack=TechStack.from_list(["python"]),
+            goals=["Goal"],
+        )
+    )
     assert result.name == "Test"
     assert result.description == "Test desc"
 
@@ -105,11 +108,13 @@ async def test_save_decision_use_case():
     )
     project._id = project_id
     project_repo._projects[project_id] = project
-    result = await use_case.execute(SaveDecisionRequest(
-        project_id=str(project_id.value),
-        title="Test Decision",
-        decision="Do X",
-        reason="Because",
-        alternatives=["Y", "Z"],
-    ))
+    result = await use_case.execute(
+        SaveDecisionRequest(
+            project_id=str(project_id.value),
+            title="Test Decision",
+            decision="Do X",
+            reason="Because",
+            alternatives=["Y", "Z"],
+        )
+    )
     assert result.title == "Test Decision"

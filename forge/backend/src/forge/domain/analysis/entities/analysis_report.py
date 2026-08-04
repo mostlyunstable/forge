@@ -1,15 +1,16 @@
 """AnalysisReport — aggregate root for PR analysis."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from forge.domain.analysis.value_objects.analysis_id import AnalysisId
-from forge.domain.analysis.value_objects.risk_level import RiskLevel
 from forge.domain.analysis.entities.change_set import ChangeSet
 from forge.domain.analysis.entities.dependency_impact import DependencyImpact
 from forge.domain.analysis.entities.historical_context import HistoricalContext
 from forge.domain.analysis.entities.risk_assessment import RiskAssessment
+from forge.domain.analysis.value_objects.analysis_id import AnalysisId
+from forge.domain.analysis.value_objects.risk_level import RiskLevel
 
 
 @dataclass
@@ -44,7 +45,7 @@ class AnalysisReport:
     historical_context: HistoricalContext = field(default_factory=HistoricalContext)
     risk_assessment: RiskAssessment = field(default_factory=RiskAssessment)
     recommendations: list[ReviewRecommendation] = field(default_factory=list)
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def risk_level(self) -> RiskLevel:

@@ -1,10 +1,10 @@
 """Shared Pydantic validators."""
-from pydantic import field_validator
 
 
 def validate_uuid(value: str) -> str:
     """Validate that a string is a valid UUID."""
     import uuid
+
     try:
         uuid.UUID(value)
     except ValueError:

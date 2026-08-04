@@ -1,4 +1,5 @@
 """InMemoryVectorStore - lightweight vector store for dev mode."""
+
 from __future__ import annotations
 
 import math
@@ -19,9 +20,7 @@ class InMemoryVectorStore:
     """Simple in-memory vector store for development/testing."""
 
     def __init__(self) -> None:
-        self._store: dict[str, dict[int, dict[str, Any]]] = {
-            col: {} for col in COLLECTIONS
-        }
+        self._store: dict[str, dict[Any, dict[str, Any]]] = {col: {} for col in COLLECTIONS}
 
     async def init_collections(self) -> None:
         logger.info("in_memory_vector_store.init_collections")
@@ -118,8 +117,7 @@ class InMemoryVectorStore:
         pid = str(project_id)
         for col in COLLECTIONS:
             self._store[col] = {
-                k: v for k, v in self._store[col].items()
-                if v["payload"].get("project_id") != pid
+                k: v for k, v in self._store[col].items() if v["payload"].get("project_id") != pid
             }
 
     async def _search(

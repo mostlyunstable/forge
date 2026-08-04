@@ -1,10 +1,11 @@
 """RiskLevel — severity classification for analysis risk."""
+
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     """Risk severity level."""
 
     LOW = "low"

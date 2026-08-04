@@ -1,9 +1,10 @@
 """Database connection and session management."""
+
 from __future__ import annotations
 
 import warnings
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -33,6 +34,7 @@ class DatabaseManager:
                 # Use NullPool for SQLite to avoid cross-thread/cross-coroutine
                 # connection reuse which causes "database is locked" errors.
                 from sqlalchemy.pool import NullPool
+
                 kwargs["poolclass"] = NullPool
                 kwargs["connect_args"] = {"check_same_thread": False}
             elif "postgresql" in self._settings.DATABASE_URL:
@@ -60,6 +62,7 @@ class DatabaseManager:
         It runs ``alembic upgrade head`` programmatically.
         """
         from alembic.config import Config
+
         from alembic import command
 
         alembic_cfg = Config("alembic.ini")
@@ -68,6 +71,7 @@ class DatabaseManager:
 
         # Run migrations in a thread since alembic.command is synchronous.
         import asyncio
+
         await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
 
     async def init_db(self) -> None:

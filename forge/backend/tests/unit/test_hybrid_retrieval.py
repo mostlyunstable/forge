@@ -1,8 +1,10 @@
-import pytest
-from uuid import uuid4
 from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
+import pytest
 
 from forge.infrastructure.search.context_retriever import ContextRetriever
+
 
 @pytest.mark.asyncio
 async def test_hybrid_retrieval_with_graph_traversal():
@@ -11,11 +13,7 @@ async def test_hybrid_retrieval_with_graph_traversal():
         {
             "id": "1",
             "score": 0.8,
-            "payload": {
-                "file_path": "src/main.py",
-                "name": "main",
-                "content": "def main(): pass"
-            }
+            "payload": {"file_path": "src/main.py", "name": "main", "content": "def main(): pass"},
         }
     ]
     mock_vector_store.search_decisions.return_value = []
@@ -34,15 +32,15 @@ async def test_hybrid_retrieval_with_graph_traversal():
     retriever = ContextRetriever(
         vector_store=mock_vector_store,
         dependency_graph=mock_graph,
-        embedding_service=mock_embedding
+        embedding_service=mock_embedding,
     )
-    
+
     project_id = uuid4()
     context = await retriever.retrieve("how does main work?", project_id)
-    
+
     code_results = context["relevant_code"]
-    assert len(code_results) == 2 # 1 semantic + 1 graph neighbor
-    
+    assert len(code_results) == 2  # 1 semantic + 1 graph neighbor
+
     files_in_results = {res["payload"]["file_path"] for res in code_results}
     assert "src/main.py" in files_in_results
     assert "src/utils.py" in files_in_results

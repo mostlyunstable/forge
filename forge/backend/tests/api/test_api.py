@@ -1,24 +1,25 @@
 """API integration tests using TestClient."""
+
 import os
+
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from forge.infrastructure.database.base import Base
+from forge.infrastructure.database.connection import database_manager
 from forge.presentation.app import create_app
 from forge.presentation.middleware.auth import create_access_token
-from forge.infrastructure.database.connection import database_manager
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
-    os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing"
+    os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-32-bytes"
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    from forge.infrastructure.database.connection import DatabaseManager
     database_manager._engine = engine
     database_manager._session_factory = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False

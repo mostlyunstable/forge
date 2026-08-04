@@ -1,22 +1,27 @@
 """Project routes."""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.infrastructure.events.in_memory_event_bus import event_bus
-from forge.application.projects.create_project import CreateProjectUseCase, CreateProjectRequest
+from forge.application.projects.create_project import CreateProjectRequest, CreateProjectUseCase
+from forge.application.projects.delete_project import DeleteProjectUseCase
 from forge.application.projects.get_project import GetProjectUseCase
 from forge.application.projects.list_projects import ListProjectsUseCase
-from forge.application.projects.update_project import UpdateProjectUseCase, UpdateProjectRequest
-from forge.application.projects.delete_project import DeleteProjectUseCase
+from forge.application.projects.update_project import UpdateProjectRequest, UpdateProjectUseCase
+from forge.infrastructure.events.in_memory_event_bus import event_bus
+from forge.infrastructure.repositories.project_repository import ProjectRepository
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.project_schemas import (
     CreateProjectRequest as CreateProjectSchema,
-    UpdateProjectRequest as UpdateProjectSchema,
-    ProjectResponse,
-    ListProjectsResponse,
+)
+from forge.presentation.schemas.project_schemas import (
     DeleteResponse,
+    ListProjectsResponse,
+    ProjectResponse,
+)
+from forge.presentation.schemas.project_schemas import (
+    UpdateProjectRequest as UpdateProjectSchema,
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])

@@ -1,30 +1,52 @@
 """CommitParser — parses git commit messages to extract knowledge."""
+
 from __future__ import annotations
 
 import re
 import subprocess
-import structlog
 from dataclasses import dataclass
+
+import structlog
 
 logger = structlog.get_logger()
 
 # Keyword patterns for extraction
 DECISION_KEYWORDS = [
-    r"\bdecided?\b", r"\bchose?\b", r"\badopted?\b", r"\bswitched?\s+to\b",
-    r"\binstead\s+of\b", r"\bprefer(?:red|ence)?\b", r"\bRFC\b",
-    r"\barchitecture\b", r"\bdesign\s+choice\b", r"\btrade-?off\b",
-    r"\bfor\s+now\b", r"\btemporary\b", r"\bworkaround\b",
+    r"\bdecided?\b",
+    r"\bchose?\b",
+    r"\badopted?\b",
+    r"\bswitched?\s+to\b",
+    r"\binstead\s+of\b",
+    r"\bprefer(?:red|ence)?\b",
+    r"\bRFC\b",
+    r"\barchitecture\b",
+    r"\bdesign\s+choice\b",
+    r"\btrade-?off\b",
+    r"\bfor\s+now\b",
+    r"\btemporary\b",
+    r"\bworkaround\b",
 ]
 
 BUG_FIX_KEYWORDS = [
-    r"\bfix(?:ed|es)?\b", r"\bbug\b", r"\bresolve[ds]?\b",
-    r"\bpatch\b", r"\bcrash(?:ed)?\b", r"\berror\b",
-    r"\bfail(?:ed|ure)?\b", r"\bregression\b", r"\bhack\b",
+    r"\bfix(?:ed|es)?\b",
+    r"\bbug\b",
+    r"\bresolve[ds]?\b",
+    r"\bpatch\b",
+    r"\bcrash(?:ed)?\b",
+    r"\berror\b",
+    r"\bfail(?:ed|ure)?\b",
+    r"\bregression\b",
+    r"\bhack\b",
 ]
 
 PREFERENCE_KEYWORDS = [
-    r"\bprefer(?:red|ence)?\b", r"\bconvention\b", r"\bstandard\b",
-    r"\bstyle\b", r"\bformat\b", r"\blint\b", r"\bcodestyle\b",
+    r"\bprefer(?:red|ence)?\b",
+    r"\bconvention\b",
+    r"\bstandard\b",
+    r"\bstyle\b",
+    r"\bformat\b",
+    r"\blint\b",
+    r"\bcodestyle\b",
 ]
 
 
@@ -60,7 +82,8 @@ class CommitParser:
         """Get commit history from a git repository."""
         try:
             cmd = [
-                "git", "log",
+                "git",
+                "log",
                 "--pretty=format:%H|%s|%an|%ae|%aI|%P",
                 f"-{limit}",
             ]
@@ -94,15 +117,17 @@ class CommitParser:
                     # Get files changed
                     files = self._get_commit_files(repo_path, sha)
 
-                    commits.append(ParsedCommit(
-                        sha=sha,
-                        message=message,
-                        author_name=author_name,
-                        author_email=author_email,
-                        timestamp=timestamp,
-                        parent_shas=parent_shas,
-                        files_changed=files,
-                    ))
+                    commits.append(
+                        ParsedCommit(
+                            sha=sha,
+                            message=message,
+                            author_name=author_name,
+                            author_email=author_email,
+                            timestamp=timestamp,
+                            parent_shas=parent_shas,
+                            files_changed=files,
+                        )
+                    )
 
             return commits
 
@@ -144,15 +169,13 @@ class CommitParser:
                 return {
                     "git_commit": parts[0],
                     "git_author": parts[1] if len(parts) >= 2 else "",
-                    "git_branch": branch
+                    "git_branch": branch,
                 }
             return {}
         except Exception:
             return {}
 
-    def extract_from_message(
-        self, commit: ParsedCommit
-    ) -> list[ExtractionResult]:
+    def extract_from_message(self, commit: ParsedCommit) -> list[ExtractionResult]:
         """Extract decisions, bugs, and preferences from a commit message."""
         results = []
         message_lower = commit.message.lower()
@@ -161,48 +184,56 @@ class CommitParser:
         decision_confidence = self._check_keywords(message_lower, DECISION_KEYWORDS)
         if decision_confidence > 0:
             # Boost confidence if it's an ADR file
-            has_adr = any("adr" in f.lower() or "decision" in f.lower() for f in commit.files_changed)
+            has_adr = any(
+                "adr" in f.lower() or "decision" in f.lower() for f in commit.files_changed
+            )
             if has_adr:
                 decision_confidence = min(decision_confidence + 0.2, 1.0)
 
-            results.append(ExtractionResult(
-                kind="decision",
-                confidence=decision_confidence,
-                data={
-                    "title": commit.message.split("\n")[0][:200],
-                    "rationale": commit.message,
-                    "author": commit.author_name,
-                },
-                dedup_key=self._make_dedup_key("decision", commit.sha),
-            ))
+            results.append(
+                ExtractionResult(
+                    kind="decision",
+                    confidence=decision_confidence,
+                    data={
+                        "title": commit.message.split("\n")[0][:200],
+                        "rationale": commit.message,
+                        "author": commit.author_name,
+                    },
+                    dedup_key=self._make_dedup_key("decision", commit.sha),
+                )
+            )
 
         # Extract bug fixes
         bug_confidence = self._check_keywords(message_lower, BUG_FIX_KEYWORDS)
         if bug_confidence > 0:
-            results.append(ExtractionResult(
-                kind="bug",
-                confidence=bug_confidence,
-                data={
-                    "title": commit.message.split("\n")[0][:200],
-                    "fix_commit": commit.sha,
-                    "author": commit.author_name,
-                },
-                dedup_key=self._make_dedup_key("bug", commit.sha),
-            ))
+            results.append(
+                ExtractionResult(
+                    kind="bug",
+                    confidence=bug_confidence,
+                    data={
+                        "title": commit.message.split("\n")[0][:200],
+                        "fix_commit": commit.sha,
+                        "author": commit.author_name,
+                    },
+                    dedup_key=self._make_dedup_key("bug", commit.sha),
+                )
+            )
 
         # Extract preferences
         pref_confidence = self._check_keywords(message_lower, PREFERENCE_KEYWORDS)
         if pref_confidence > 0:
-            results.append(ExtractionResult(
-                kind="preference",
-                confidence=pref_confidence,
-                data={
-                    "key": commit.message.split("\n")[0][:100],
-                    "value": commit.message,
-                    "author": commit.author_name,
-                },
-                dedup_key=self._make_dedup_key("preference", commit.sha),
-            ))
+            results.append(
+                ExtractionResult(
+                    kind="preference",
+                    confidence=pref_confidence,
+                    data={
+                        "key": commit.message.split("\n")[0][:100],
+                        "value": commit.message,
+                        "author": commit.author_name,
+                    },
+                    dedup_key=self._make_dedup_key("preference", commit.sha),
+                )
+            )
 
         return results
 
@@ -225,4 +256,5 @@ class CommitParser:
     def _make_dedup_key(self, kind: str, commit_sha: str) -> str:
         """Create a deduplication key."""
         import hashlib
+
         return hashlib.sha256(f"{kind}:{commit_sha}".encode()).hexdigest()[:16]

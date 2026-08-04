@@ -1,4 +1,5 @@
 """Ports for PR analysis — interfaces the application layer depends on."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -11,9 +12,7 @@ class IDiffProvider(ABC):
     """Provides git diff data for a PR or commit range."""
 
     @abstractmethod
-    async def get_pr_diff(
-        self, project_id: ProjectId, pr_number: int
-    ) -> dict[str, Any]:
+    async def get_pr_diff(self, project_id: ProjectId, pr_number: int) -> dict[str, Any]:
         """Get the diff for a pull request.
 
         Returns:
@@ -39,15 +38,11 @@ class IContextSearcher(ABC):
     """Searches historical context related to changes."""
 
     @abstractmethod
-    async def search_related_decisions(
-        self, project_id: str, query: str
-    ) -> list[dict[str, Any]]:
+    async def search_related_decisions(self, project_id: str, query: str) -> list[dict[str, Any]]:
         """Find decisions relevant to the given query."""
 
     @abstractmethod
-    async def search_related_bugs(
-        self, project_id: str, query: str
-    ) -> list[dict[str, Any]]:
+    async def search_related_bugs(self, project_id: str, query: str) -> list[dict[str, Any]]:
         """Find bugs relevant to the given query."""
 
     @abstractmethod

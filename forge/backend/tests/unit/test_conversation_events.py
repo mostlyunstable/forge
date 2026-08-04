@@ -1,10 +1,11 @@
 """Unit tests for Conversation domain events."""
+
 from forge.domain.conversation.events import (
     ConversationCreated,
-    MessageAdded,
-    ConversationRenamed,
     ConversationDeleted,
+    ConversationRenamed,
     ConversationSummarized,
+    MessageAdded,
 )
 
 

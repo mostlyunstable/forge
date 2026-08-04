@@ -1,6 +1,6 @@
 """PreferenceModel ORM mapping."""
-from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Float, Integer
+
+from sqlalchemy import Column, DateTime, Float, Integer, String
 
 from forge.infrastructure.database.base import Base
 

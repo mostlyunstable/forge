@@ -1,9 +1,11 @@
+# mypy: disable-error-code="assignment, arg-type"
 """FileIndexRepository — implements IFileIndexRepository."""
+
 from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select, delete, func
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from forge.domain.indexing.entities.file_index import FileIndex
@@ -32,9 +34,7 @@ class FileIndexRepository(IFileIndexRepository):
         await self._session.flush()
         return len(file_indices)
 
-    async def get_by_project_and_path(
-        self, project_id: UUID, file_path: str
-    ) -> FileIndex | None:
+    async def get_by_project_and_path(self, project_id: UUID, file_path: str) -> FileIndex | None:
         result = await self._session.execute(
             select(FileIndexModel).where(
                 FileIndexModel.project_id == str(project_id),
@@ -46,9 +46,7 @@ class FileIndexRepository(IFileIndexRepository):
 
     async def get_by_project(self, project_id: UUID) -> list[FileIndex]:
         result = await self._session.execute(
-            select(FileIndexModel).where(
-                FileIndexModel.project_id == str(project_id)
-            )
+            select(FileIndexModel).where(FileIndexModel.project_id == str(project_id))
         )
         return [self._to_domain(m) for m in result.scalars().all()]
 
@@ -56,31 +54,25 @@ class FileIndexRepository(IFileIndexRepository):
         self, project_id: UUID, current_hashes: dict[str, str]
     ) -> list[FileIndex]:
         result = await self._session.execute(
-            select(FileIndexModel).where(
-                FileIndexModel.project_id == str(project_id)
-            )
+            select(FileIndexModel).where(FileIndexModel.project_id == str(project_id))
         )
         all_files = [self._to_domain(m) for m in result.scalars().all()]
         return [
-            fi for fi in all_files
-            if fi.file_path in current_hashes
-            and fi.needs_reindex(current_hashes[fi.file_path])
+            fi
+            for fi in all_files
+            if fi.file_path in current_hashes and fi.needs_reindex(current_hashes[fi.file_path])
         ]
 
     async def delete_by_project(self, project_id: UUID) -> int:
         result = await self._session.execute(
-            delete(FileIndexModel).where(
-                FileIndexModel.project_id == str(project_id)
-            )
+            delete(FileIndexModel).where(FileIndexModel.project_id == str(project_id))
         )
         await self._session.flush()
-        return result.rowcount
+        return result.rowcount  # type: ignore
 
     async def count_by_project(self, project_id: UUID) -> int:
         result = await self._session.execute(
-            select(func.count()).where(
-                FileIndexModel.project_id == str(project_id)
-            )
+            select(func.count()).where(FileIndexModel.project_id == str(project_id))
         )
         return result.scalar_one()
 

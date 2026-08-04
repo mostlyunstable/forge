@@ -1,12 +1,15 @@
 """DeleteConversationUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
-from forge.domain.conversation.exceptions import ConversationNotFoundError
-from forge.domain.conversation.value_objects.conversation_id import ConversationId
 from forge.domain.conversation.events import ConversationDeleted
+from forge.domain.conversation.exceptions import ConversationNotFoundError
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
+from forge.domain.conversation.value_objects.conversation_id import ConversationId
 from forge.domain.shared.events import IEventBus
 
 
@@ -36,9 +39,7 @@ class DeleteConversationUseCase:
         deleted = await self._conversation_repo.delete(conv_id)
 
         if deleted and self._event_bus:
-            await self._event_bus.publish(
-                ConversationDeleted(conversation_id=conversation_id)
-            )
+            await self._event_bus.publish(ConversationDeleted(conversation_id=conversation_id))
 
         return DeleteConversationResponse(
             deleted=deleted,

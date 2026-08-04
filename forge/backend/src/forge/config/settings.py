@@ -1,4 +1,5 @@
 """Application settings loaded from environment."""
+
 from __future__ import annotations
 
 import warnings
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = 6333
     USE_QDRANT: bool = False
 
-    JWT_SECRET_KEY: str = "change-me-in-production"
+    JWT_SECRET_KEY: str = "change-me-in-production-must-be-32-bytes"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_MINUTES: int = 30
 
@@ -38,13 +39,22 @@ class Settings(BaseSettings):
         Raises:
             RuntimeError: If critical production settings are missing.
         """
-        if self.JWT_SECRET_KEY == "change-me-in-production":
+        # Always enforce minimum key length, even in debug mode
+        if len(self.JWT_SECRET_KEY) < 32:
+            raise RuntimeError(
+                "JWT_SECRET_KEY must be at least 32 bytes. "
+                "Set the JWT_SECRET_KEY environment variable."
+            )
+        # In production, also reject the default placeholder key
+        if not self.DEBUG and self.JWT_SECRET_KEY == "change-me-in-production-must-be-32-bytes":
             raise RuntimeError(
                 "JWT_SECRET_KEY must be set to a secure value in production. "
                 "Set the JWT_SECRET_KEY environment variable."
             )
         if not self.LLM_API_KEY:
-            warnings.warn("LLM_API_KEY is empty - LLM features will fail.", UserWarning, stacklevel=2)
+            warnings.warn(
+                "LLM_API_KEY is empty - LLM features will fail.", UserWarning, stacklevel=2
+            )
 
 
 @lru_cache

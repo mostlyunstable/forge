@@ -1,12 +1,12 @@
 """ArchitectureDecision entity."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 
+from forge.domain.memory.entities.memory import Memory
 from forge.domain.memory.value_objects.decision_id import DecisionId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.memory.entities.memory import Memory
 
 
 @dataclass(kw_only=True)

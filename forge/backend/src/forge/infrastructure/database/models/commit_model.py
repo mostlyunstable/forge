@@ -1,5 +1,6 @@
 """CommitModel ORM mapping."""
-from sqlalchemy import Column, String, Text, DateTime, JSON, ForeignKey
+
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String, Text
 
 from forge.infrastructure.database.base import Base
 

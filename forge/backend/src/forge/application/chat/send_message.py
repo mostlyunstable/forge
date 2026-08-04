@@ -1,10 +1,11 @@
 """SendMessageUseCase."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.exceptions import ProjectNotFoundError
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
 
 
@@ -61,18 +62,22 @@ class SendMessageUseCase:
         # Build sources from context
         sources = []
         for r in context.get("relevant_code", [])[:3]:
-            sources.append({
-                "type": "code",
-                "name": r["payload"]["name"],
-                "file": r["payload"]["file_path"],
-                "score": r["score"],
-            })
+            sources.append(
+                {
+                    "type": "code",
+                    "name": r["payload"]["name"],
+                    "file": r["payload"]["file_path"],
+                    "score": r["score"],
+                }
+            )
         for r in context.get("relevant_decisions", [])[:3]:
-            sources.append({
-                "type": "decision",
-                "name": r["payload"]["title"],
-                "score": r["score"],
-            })
+            sources.append(
+                {
+                    "type": "decision",
+                    "name": r["payload"]["title"],
+                    "score": r["score"],
+                }
+            )
 
         # If LLM is not configured, return raw context
         if not self._llm_service.is_configured:
@@ -102,35 +107,41 @@ class SendMessageUseCase:
         if context.get("relevant_code"):
             code_ctx = ""
             for i, r in enumerate(context["relevant_code"][:8]):
-                name = r['payload'].get('name', 'unknown')
-                path = r['payload'].get('file_path', 'unknown')
-                content = r['payload'].get('content', '')
+                name = r["payload"].get("name", "unknown")
+                path = r["payload"].get("file_path", "unknown")
+                content = r["payload"].get("content", "")
                 code_ctx += f"\n--- File: {path} | Symbol: {name} ---\n{content}\n"
-            
-            messages.append({
-                "role": "system",
-                "content": f"Relevant codebase context:\n{code_ctx}",
-            })
+
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"Relevant codebase context:\n{code_ctx}",
+                }
+            )
 
         if context.get("relevant_decisions"):
             dec_ctx = "\n".join(
                 f"- {r['payload']['title']}: {r['payload']['decision']}"
                 for r in context["relevant_decisions"][:5]
             )
-            messages.append({
-                "role": "system",
-                "content": f"Related architectural decisions:\n{dec_ctx}",
-            })
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"Related architectural decisions:\n{dec_ctx}",
+                }
+            )
 
         if context.get("relevant_bugs"):
             bug_ctx = "\n".join(
                 f"- {r['payload']['title']}: {r['payload']['solution']}"
                 for r in context["relevant_bugs"][:3]
             )
-            messages.append({
-                "role": "system",
-                "content": f"Similar bugs resolved:\n{bug_ctx}",
-            })
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"Similar bugs resolved:\n{bug_ctx}",
+                }
+            )
 
         messages.append({"role": "user", "content": request.message})
 

@@ -1,5 +1,6 @@
 """CodeEntryModel ORM mapping."""
-from sqlalchemy import Column, String, Text, DateTime, JSON, Integer, ForeignKey
+
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
 
 from forge.infrastructure.database.base import Base
 

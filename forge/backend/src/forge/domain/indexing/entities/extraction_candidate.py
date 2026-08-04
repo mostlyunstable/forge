@@ -1,8 +1,9 @@
 """ExtractionCandidate — a piece of knowledge extracted from code or commits."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 
@@ -25,12 +26,12 @@ class ExtractionCandidate:
     kind: str  # "decision" | "bug" | "preference"
     confidence: float
     status: str = "suggested"  # suggested | accepted | rejected | duplicate
-    data: dict = None
+    data: dict = None  # type: ignore
     source_commit: str = ""
     source_file: str = ""
     dedup_key: str = ""
     reviewed_at: datetime | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __post_init__(self):
         if self.data is None:
@@ -54,17 +55,17 @@ class ExtractionCandidate:
     def accept(self) -> None:
         """Accept this candidate into the knowledge base."""
         self.status = "accepted"
-        self.reviewed_at = datetime.now(timezone.utc)
+        self.reviewed_at = datetime.now(UTC)
 
     def reject(self) -> None:
         """Reject this candidate."""
         self.status = "rejected"
-        self.reviewed_at = datetime.now(timezone.utc)
+        self.reviewed_at = datetime.now(UTC)
 
     def mark_duplicate(self) -> None:
         """Mark as duplicate of existing knowledge."""
         self.status = "duplicate"
-        self.reviewed_at = datetime.now(timezone.utc)
+        self.reviewed_at = datetime.now(UTC)
 
     @classmethod
     def create(

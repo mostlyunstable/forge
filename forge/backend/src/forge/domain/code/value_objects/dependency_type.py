@@ -1,8 +1,9 @@
 """DependencyType value object."""
-from enum import Enum
+
+from enum import StrEnum
 
 
-class DependencyType(str, Enum):
+class DependencyType(StrEnum):
     """Classification of code dependencies."""
 
     IMPORT = "import"

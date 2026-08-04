@@ -1,4 +1,5 @@
 """AnalysisId — unique identifier for an analysis report."""
+
 from __future__ import annotations
 
 import uuid

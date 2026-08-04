@@ -1,15 +1,15 @@
 """TechStack value object."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import FrozenSet
 
 
 @dataclass(frozen=True)
 class TechStack:
     """Immutable collection of technologies used in a project."""
 
-    technologies: FrozenSet[str] = field(default_factory=frozenset)
+    technologies: frozenset[str] = field(default_factory=frozenset)
 
     @classmethod
     def from_list(cls, items: list[str]) -> TechStack:

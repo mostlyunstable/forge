@@ -1,11 +1,12 @@
 """AnalyzeCommitsUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from forge.domain.git.repository_contracts.commit_repository import ICommitRepository
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.exceptions import ProjectNotFoundError
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
 
 

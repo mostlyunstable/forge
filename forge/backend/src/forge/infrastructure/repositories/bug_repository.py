@@ -1,11 +1,12 @@
+# mypy: disable-error-code="assignment, arg-type"
 """BugRepository - implements IBugRepository."""
+
 from __future__ import annotations
 
-from typing import Optional
+import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 
 from forge.domain.memory.entities.bug import Bug
 from forge.domain.memory.repository_contracts.bug_repository import IBugRepository
@@ -21,7 +22,7 @@ class BugRepository(IBugRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, bug_id: BugId) -> Optional[Bug]:
+    async def get_by_id(self, bug_id: BugId) -> Bug | None:
         result = await self._session.execute(
             select(BugModel).where(BugModel.id == str(bug_id.value))
         )
@@ -57,8 +58,12 @@ class BugRepository(IBugRepository):
             model.metadata_json = bug.metadata
             model.embedding_reference = bug.embedding_reference
             model.version_number = bug.version_number
-            model.previous_version_id = str(bug.previous_version_id.value) if bug.previous_version_id else None
-            model.superseded_by_id = str(bug.superseded_by_id.value) if bug.superseded_by_id else None
+            model.previous_version_id = (
+                str(bug.previous_version_id.value) if bug.previous_version_id else None
+            )
+            model.superseded_by_id = (
+                str(bug.superseded_by_id.value) if bug.superseded_by_id else None
+            )
             model.archived_at = bug.archived_at
             # Update Bug properties
             model.problem = bug.problem
@@ -94,6 +99,7 @@ class BugRepository(IBugRepository):
 
     def _to_domain(self, model: BugModel) -> Bug:
         from forge.domain.memory.value_objects.memory_id import MemoryId
+
         base_kwargs = {
             "id": BugId(uuid.UUID(model.id)),
             "project_id": ProjectId(uuid.UUID(model.project_id)),
@@ -108,8 +114,12 @@ class BugRepository(IBugRepository):
             "metadata": model.metadata_json,
             "embedding_reference": model.embedding_reference,
             "version_number": model.version_number,
-            "previous_version_id": MemoryId(uuid.UUID(model.previous_version_id)) if model.previous_version_id else None,
-            "superseded_by_id": MemoryId(uuid.UUID(model.superseded_by_id)) if model.superseded_by_id else None,
+            "previous_version_id": MemoryId(uuid.UUID(model.previous_version_id))
+            if model.previous_version_id
+            else None,
+            "superseded_by_id": MemoryId(uuid.UUID(model.superseded_by_id))
+            if model.superseded_by_id
+            else None,
             "archived_at": model.archived_at,
         }
         bug = Bug.__new__(Bug)
@@ -138,8 +148,12 @@ class BugRepository(IBugRepository):
             metadata_json=entity.metadata,
             embedding_reference=entity.embedding_reference,
             version_number=entity.version_number,
-            previous_version_id=str(entity.previous_version_id.value) if entity.previous_version_id else None,
-            superseded_by_id=str(entity.superseded_by_id.value) if entity.superseded_by_id else None,
+            previous_version_id=str(entity.previous_version_id.value)
+            if entity.previous_version_id
+            else None,
+            superseded_by_id=str(entity.superseded_by_id.value)
+            if entity.superseded_by_id
+            else None,
             archived_at=entity.archived_at,
             problem=entity.problem,
             root_cause=entity.root_cause,

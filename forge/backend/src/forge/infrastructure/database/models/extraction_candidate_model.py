@@ -1,5 +1,6 @@
 """ExtractionCandidateModel ORM mapping."""
-from sqlalchemy import Column, String, DateTime, JSON, Float, Text
+
+from sqlalchemy import JSON, Column, DateTime, Float, String, Text
 
 from forge.infrastructure.database.base import Base
 

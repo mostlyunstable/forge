@@ -1,11 +1,9 @@
 """SQLite Embedding Cache."""
-import sqlite3
-import json
-import hashlib
-from typing import Optional
-from contextlib import contextmanager
 
-from forge.config.settings import get_settings
+import hashlib
+import json
+import sqlite3
+from contextlib import contextmanager
 
 
 class SQLiteEmbeddingCache:
@@ -36,19 +34,23 @@ class SQLiteEmbeddingCache:
             """)
             conn.commit()
 
-    def get(self, content: str, model_name: str, model_version: str) -> Optional[list[float]]:
+    def get(self, content: str, model_name: str, model_version: str) -> list[float] | None:
         content_hash = hashlib.sha256(content.encode()).hexdigest()
         with self._get_connection() as conn:
             cursor = conn.execute(
                 "SELECT embedding FROM embeddings WHERE hash = ? AND model_name = ? AND model_version = ?",
-                (content_hash, model_name, model_version)
+                (content_hash, model_name, model_version),
             )
             row = cursor.fetchone()
             if row:
-                return json.loads(row[0])
+                result = json.loads(row[0])
+                if isinstance(result, list):
+                    return [float(x) for x in result]
         return None
 
-    def set(self, content: str, model_name: str, model_version: str, embedding: list[float]) -> None:
+    def set(
+        self, content: str, model_name: str, model_version: str, embedding: list[float]
+    ) -> None:
         content_hash = hashlib.sha256(content.encode()).hexdigest()
         with self._get_connection() as conn:
             conn.execute(
@@ -56,7 +58,7 @@ class SQLiteEmbeddingCache:
                 INSERT OR REPLACE INTO embeddings (hash, model_name, model_version, embedding)
                 VALUES (?, ?, ?, ?)
                 """,
-                (content_hash, model_name, model_version, json.dumps(embedding))
+                (content_hash, model_name, model_version, json.dumps(embedding)),
             )
             conn.commit()
 

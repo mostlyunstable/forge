@@ -1,4 +1,5 @@
 """Rate limiting middleware."""
+
 from __future__ import annotations
 
 import time
@@ -23,8 +24,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Clean old entries
         self._requests[client_ip] = [
-            t for t in self._requests[client_ip]
-            if now - t < self._window_seconds
+            t for t in self._requests[client_ip] if now - t < self._window_seconds
         ]
 
         if len(self._requests[client_ip]) >= self._max_requests:
@@ -35,4 +35,4 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
         self._requests[client_ip].append(now)
-        return await call_next(request)
+        return await call_next(request)  # type: ignore

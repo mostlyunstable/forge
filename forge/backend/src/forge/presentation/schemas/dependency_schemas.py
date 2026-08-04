@@ -1,4 +1,5 @@
 """Dependency schemas."""
+
 from pydantic import BaseModel, Field
 
 

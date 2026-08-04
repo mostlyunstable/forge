@@ -1,8 +1,9 @@
 """Unit tests for dependency domain value objects."""
+
 import pytest
 
-from forge.domain.code.value_objects.dependency_type import DependencyType
 from forge.domain.code.value_objects.dependency_edge import DependencyEdge
+from forge.domain.code.value_objects.dependency_type import DependencyType
 
 
 def test_dependency_type_enum():

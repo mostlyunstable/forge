@@ -1,46 +1,53 @@
 """Conversation routes — CRUD, multi-turn messaging, search."""
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.infrastructure.repositories.conversation_repository import ConversationRepository
-from forge.infrastructure.search.context_retriever import ContextRetriever
-from forge.infrastructure.search.qdrant_client import QdrantClient
-from forge.infrastructure.llm.llm_service import LLMService
-from forge.infrastructure.events.in_memory_event_bus import event_bus
 from forge.application.conversation.create_conversation import (
-    CreateConversationUseCase,
     CreateConversationRequest,
+    CreateConversationUseCase,
 )
+from forge.application.conversation.delete_conversation import DeleteConversationUseCase
+from forge.application.conversation.get_conversation_history import GetConversationHistoryUseCase
+from forge.application.conversation.list_conversations import ListConversationsUseCase
+from forge.application.conversation.rename_conversation import (
+    RenameConversationRequest,
+    RenameConversationUseCase,
+)
+from forge.application.conversation.search_conversations import SearchConversationsUseCase
 from forge.application.conversation.send_conversation_message import (
     SendConversationMessageUseCase,
     SendMessageRequest,
 )
-from forge.application.conversation.get_conversation_history import GetConversationHistoryUseCase
-from forge.application.conversation.list_conversations import ListConversationsUseCase
-from forge.application.conversation.rename_conversation import (
-    RenameConversationUseCase,
-    RenameConversationRequest,
-)
-from forge.application.conversation.delete_conversation import DeleteConversationUseCase
-from forge.application.conversation.search_conversations import SearchConversationsUseCase
 from forge.application.conversation.summarize_conversation import SummarizeConversationUseCase
+from forge.infrastructure.events.in_memory_event_bus import event_bus
+from forge.infrastructure.llm.llm_service import LLMService
+from forge.infrastructure.repositories.conversation_repository import ConversationRepository
+from forge.infrastructure.repositories.project_repository import ProjectRepository
+from forge.infrastructure.search.context_retriever import ContextRetriever
+from forge.infrastructure.search.qdrant_client import QdrantClient
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.conversation_schemas import (
-    CreateConversationRequest as CreateSchema,
-    SendMessageRequest as SendSchema,
-    RenameConversationRequest as RenameSchema,
-    ConversationSummaryResponse,
-    ListConversationsResponse,
-    ConversationHistoryResponse,
-    MessageResponse,
-    SendMessageResponse,
     ChatSourceResponse,
-    RenameConversationResponse,
+    ConversationHistoryResponse,
+    ConversationSummaryResponse,
     DeleteConversationResponse,
+    ListConversationsResponse,
+    MessageResponse,
+    RenameConversationResponse,
     SearchConversationsResponse,
+    SendMessageResponse,
     SummarizeConversationResponse,
+)
+from forge.presentation.schemas.conversation_schemas import (
+    CreateConversationRequest as CreateSchema,
+)
+from forge.presentation.schemas.conversation_schemas import (
+    RenameConversationRequest as RenameSchema,
+)
+from forge.presentation.schemas.conversation_schemas import (
+    SendMessageRequest as SendSchema,
 )
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
@@ -73,9 +80,7 @@ async def list_conversations(
     conv_repo = ConversationRepository(session)
     use_case = ListConversationsUseCase(conv_repo, project_repo)
     result = await use_case.execute(project_id=project_id, skip=skip, limit=limit)
-    items = [
-        ConversationSummaryResponse(**c.__dict__) for c in result.conversations
-    ]
+    items = [ConversationSummaryResponse(**c.__dict__) for c in result.conversations]
     return ListConversationsResponse(conversations=items, total=result.total)
 
 
@@ -90,9 +95,7 @@ async def search_conversations(
     conv_repo = ConversationRepository(session)
     use_case = SearchConversationsUseCase(conv_repo, project_repo)
     result = await use_case.execute(project_id=project_id, query=q)
-    items = [
-        ConversationSummaryResponse(**c.__dict__) for c in result.conversations
-    ]
+    items = [ConversationSummaryResponse(**c.__dict__) for c in result.conversations]
     return SearchConversationsResponse(conversations=items, total=result.total, query=result.query)
 
 

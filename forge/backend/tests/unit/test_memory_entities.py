@@ -1,16 +1,17 @@
-import pytest
-from datetime import datetime, timezone
 from dataclasses import FrozenInstanceError
 
-from forge.domain.memory.value_objects.memory_id import MemoryId
-from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.memory.entities.memory import Memory
+import pytest
+
 from forge.domain.memory.entities.bug import Bug
 from forge.domain.memory.entities.decision import ArchitectureDecision
-from forge.domain.memory.entities.feature import Feature
-from forge.domain.memory.entities.note import EngineeringNote
 from forge.domain.memory.entities.decision_log import DecisionLog
 from forge.domain.memory.entities.event import EngineeringEvent
+from forge.domain.memory.entities.feature import Feature
+from forge.domain.memory.entities.memory import Memory
+from forge.domain.memory.entities.note import EngineeringNote
+from forge.domain.memory.value_objects.memory_id import MemoryId
+from forge.domain.projects.value_objects.project_id import ProjectId
+
 
 def test_bug_creation_and_inheritance():
     pid = ProjectId()
@@ -37,6 +38,7 @@ def test_bug_creation_and_inheritance():
     bug.archive()
     assert bug.archived_at is not None
 
+
 def test_architecture_decision_creation():
     pid = ProjectId()
     decision = ArchitectureDecision.create(
@@ -44,12 +46,13 @@ def test_architecture_decision_creation():
         title="Use PostgreSQL",
         decision="Use PG",
         reason="Good",
-        alternatives=["MySQL"]
+        alternatives=["MySQL"],
     )
     assert isinstance(decision, Memory)
     assert decision.memory_type == "decision"
     decision.add_alternative("SQLite")
     assert "SQLite" in decision.alternatives
+
 
 def test_feature_creation():
     pid = ProjectId()
@@ -57,34 +60,31 @@ def test_feature_creation():
         project_id=pid,
         title="Login system",
         status="in_progress",
-        acceptance_criteria=["User can login"]
+        acceptance_criteria=["User can login"],
     )
     assert isinstance(feature, Memory)
     assert feature.memory_type == "feature"
     assert feature.status == "in_progress"
 
+
 def test_engineering_note_creation():
     pid = ProjectId()
     note = EngineeringNote.create(
-        project_id=pid,
-        title="Meeting notes",
-        tags=["meeting", "architecture"]
+        project_id=pid, title="Meeting notes", tags=["meeting", "architecture"]
     )
     assert isinstance(note, Memory)
     assert note.memory_type == "note"
     assert note.tags == ["meeting", "architecture"]
 
+
 def test_decision_log_creation():
     pid = ProjectId()
     mid = MemoryId()
-    log = DecisionLog.create(
-        project_id=pid,
-        title="Q3 Decisions",
-        decisions_referenced=[mid]
-    )
+    log = DecisionLog.create(project_id=pid, title="Q3 Decisions", decisions_referenced=[mid])
     assert isinstance(log, Memory)
     assert log.memory_type == "decision_log"
     assert mid in log.decisions_referenced
+
 
 def test_engineering_event_is_immutable():
     pid = ProjectId()
@@ -92,7 +92,7 @@ def test_engineering_event_is_immutable():
         project_id=pid,
         title="System Deployment",
         event_type="deployment",
-        event_data={"version": "1.0.0"}
+        event_data={"version": "1.0.0"},
     )
     assert isinstance(event, Memory)
     assert event.memory_type == "event"

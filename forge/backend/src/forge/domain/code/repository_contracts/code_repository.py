@@ -1,8 +1,8 @@
 """ICodeRepository - contract for code entry persistence."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 from uuid import UUID
 
 from forge.domain.code.entities.code_entry import CodeEntry
@@ -14,7 +14,7 @@ class ICodeRepository(ABC):
     """Interface for code entry persistence."""
 
     @abstractmethod
-    async def get_by_id(self, entry_id: UUID) -> Optional[CodeEntry]:
+    async def get_by_id(self, entry_id: UUID) -> CodeEntry | None:
         """Retrieve a code entry by its UUID."""
 
     @abstractmethod

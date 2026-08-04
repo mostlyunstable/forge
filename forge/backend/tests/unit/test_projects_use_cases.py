@@ -1,26 +1,29 @@
 """Unit tests for Projects use cases."""
+
 import pytest
-from forge.domain.projects.entities.project import Project
-from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain.projects.exceptions import ProjectNotFoundError, ProjectAlreadyExistsError
-from forge.application.projects.create_project import CreateProjectUseCase, CreateProjectRequest
+
+from forge.application.projects.create_project import CreateProjectRequest, CreateProjectUseCase
+from forge.application.projects.delete_project import DeleteProjectUseCase
 from forge.application.projects.get_project import GetProjectUseCase
 from forge.application.projects.list_projects import ListProjectsUseCase
-from forge.application.projects.update_project import UpdateProjectUseCase, UpdateProjectRequest
-from forge.application.projects.delete_project import DeleteProjectUseCase
+from forge.application.projects.update_project import UpdateProjectRequest, UpdateProjectUseCase
+from forge.domain.projects.entities.project import Project
+from forge.domain.projects.exceptions import ProjectAlreadyExistsError, ProjectNotFoundError
+from forge.domain.projects.value_objects.tech_stack import TechStack
 
 
 class TestCreateProjectUseCase:
     @pytest.mark.asyncio
     async def test_create_project(self, project_repo):
         use_case = CreateProjectUseCase(project_repo)
-        result = await use_case.execute(CreateProjectRequest(
-            name="My Project",
-            description="Test",
-            stack=["python"],
-            goals=["Goal 1"],
-        ))
+        result = await use_case.execute(
+            CreateProjectRequest(
+                name="My Project",
+                description="Test",
+                stack=["python"],
+                goals=["Goal 1"],
+            )
+        )
         assert result.name == "My Project"
         assert result.description == "Test"
         assert result.stack == ["python"]
@@ -30,20 +33,24 @@ class TestCreateProjectUseCase:
     async def test_create_project_duplicate_name(self, project_repo, sample_project):
         use_case = CreateProjectUseCase(project_repo)
         with pytest.raises(ProjectAlreadyExistsError):
-            await use_case.execute(CreateProjectRequest(
-                name="Test Project",
-                description="Duplicate",
-                stack=[],
-            ))
+            await use_case.execute(
+                CreateProjectRequest(
+                    name="Test Project",
+                    description="Duplicate",
+                    stack=[],
+                )
+            )
 
     @pytest.mark.asyncio
     async def test_create_project_publishes_event(self, project_repo, event_bus):
         use_case = CreateProjectUseCase(project_repo, event_bus=event_bus)
-        await use_case.execute(CreateProjectRequest(
-            name="Event Test",
-            description="",
-            stack=[],
-        ))
+        await use_case.execute(
+            CreateProjectRequest(
+                name="Event Test",
+                description="",
+                stack=[],
+            )
+        )
         events = event_bus.get_published()
         assert len(events) == 1
         assert events[0].event_type == "project.created"
@@ -97,37 +104,45 @@ class TestUpdateProjectUseCase:
     @pytest.mark.asyncio
     async def test_update_description(self, project_repo, sample_project):
         use_case = UpdateProjectUseCase(project_repo)
-        result = await use_case.execute(UpdateProjectRequest(
-            project_id=str(sample_project.id.value),
-            description="Updated description",
-        ))
+        result = await use_case.execute(
+            UpdateProjectRequest(
+                project_id=str(sample_project.id.value),
+                description="Updated description",
+            )
+        )
         assert result.description == "Updated description"
 
     @pytest.mark.asyncio
     async def test_update_stack(self, project_repo, sample_project):
         use_case = UpdateProjectUseCase(project_repo)
-        result = await use_case.execute(UpdateProjectRequest(
-            project_id=str(sample_project.id.value),
-            stack=["rust", "go"],
-        ))
+        result = await use_case.execute(
+            UpdateProjectRequest(
+                project_id=str(sample_project.id.value),
+                stack=["rust", "go"],
+            )
+        )
         assert set(result.stack) == {"rust", "go"}
 
     @pytest.mark.asyncio
     async def test_update_not_found(self, project_repo):
         use_case = UpdateProjectUseCase(project_repo)
         with pytest.raises(ProjectNotFoundError):
-            await use_case.execute(UpdateProjectRequest(
-                project_id="00000000-0000-0000-0000-000000000000",
-                description="test",
-            ))
+            await use_case.execute(
+                UpdateProjectRequest(
+                    project_id="00000000-0000-0000-0000-000000000000",
+                    description="test",
+                )
+            )
 
     @pytest.mark.asyncio
     async def test_update_publishes_event(self, project_repo, sample_project, event_bus):
         use_case = UpdateProjectUseCase(project_repo, event_bus=event_bus)
-        await use_case.execute(UpdateProjectRequest(
-            project_id=str(sample_project.id.value),
-            description="Updated",
-        ))
+        await use_case.execute(
+            UpdateProjectRequest(
+                project_id=str(sample_project.id.value),
+                description="Updated",
+            )
+        )
         events = event_bus.get_published()
         assert len(events) == 1
         assert events[0].event_type == "project.updated"

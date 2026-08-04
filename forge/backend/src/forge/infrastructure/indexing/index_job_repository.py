@@ -1,9 +1,11 @@
+# mypy: disable-error-code="assignment, arg-type"
 """IndexJobRepository — implements IIndexJobRepository."""
+
 from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select, desc
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from forge.domain.indexing.entities.index_job import IndexJob

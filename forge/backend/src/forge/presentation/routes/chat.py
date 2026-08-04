@@ -1,16 +1,19 @@
 """Chat routes."""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from forge.application.chat.send_message import SendMessageRequest, SendMessageUseCase
+from forge.infrastructure.llm.llm_service import LLMService
 from forge.infrastructure.repositories.project_repository import ProjectRepository
 from forge.infrastructure.search.context_retriever import ContextRetriever
 from forge.infrastructure.search.qdrant_client import QdrantClient
-from forge.infrastructure.llm.llm_service import LLMService
-from forge.application.chat.send_message import SendMessageUseCase, SendMessageRequest
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.chat_schemas import (
     SendMessageRequest as ChatSchema,
+)
+from forge.presentation.schemas.chat_schemas import (
     SendMessageResponse,
 )
 

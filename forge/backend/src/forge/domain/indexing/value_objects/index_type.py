@@ -1,8 +1,9 @@
 """IndexType — type of indexing job."""
-from enum import Enum
+
+from enum import StrEnum
 
 
-class IndexType(str, Enum):
+class IndexType(StrEnum):
     """Type of indexing operation."""
 
     FULL = "full"

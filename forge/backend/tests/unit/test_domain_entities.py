@@ -1,16 +1,17 @@
 """Unit tests for domain entities."""
+
 from uuid import uuid4
 
+from forge.domain.code.entities.code_entry import CodeEntry
+from forge.domain.code.value_objects.code_location import LineRange
+from forge.domain.code.value_objects.entry_type import EntryType
+from forge.domain.memory.entities.bug import Bug
+from forge.domain.memory.entities.decision import ArchitectureDecision
+from forge.domain.memory.value_objects.bug_id import BugId
+from forge.domain.memory.value_objects.decision_id import DecisionId
 from forge.domain.projects.entities.project import Project
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain.memory.entities.decision import ArchitectureDecision
-from forge.domain.memory.entities.bug import Bug
-from forge.domain.memory.value_objects.decision_id import DecisionId
-from forge.domain.memory.value_objects.bug_id import BugId
-from forge.domain.code.entities.code_entry import CodeEntry
-from forge.domain.code.value_objects.entry_type import EntryType
-from forge.domain.code.value_objects.code_location import FilePath, LineRange
 
 
 def test_project_create():

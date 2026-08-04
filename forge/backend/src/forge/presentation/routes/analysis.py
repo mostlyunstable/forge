@@ -1,28 +1,29 @@
 """Analysis routes — PR Context & Impact Analysis API."""
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
+from forge.application.analysis.analyze_pr import AnalyzePRRequest, AnalyzePRUseCase
+from forge.application.analysis.get_report import GetAnalysisReportUseCase
+from forge.application.analysis.list_reports import (
+    ListAnalysisReportsRequest,
+    ListAnalysisReportsUseCase,
+)
 from forge.infrastructure.analysis.git_diff_provider import GitDiffProvider
 from forge.infrastructure.analysis.memory_context_searcher import MemoryContextSearcher
 from forge.infrastructure.events.in_memory_event_bus import event_bus
-from forge.application.analysis.analyze_pr import AnalyzePRUseCase, AnalyzePRRequest
-from forge.application.analysis.get_report import GetAnalysisReportUseCase
-from forge.application.analysis.list_reports import (
-    ListAnalysisReportsUseCase,
-    ListAnalysisReportsRequest,
-)
-from forge.domain.analysis.exceptions import AnalysisReportNotFoundError, AnalysisError
-from forge.domain.projects.exceptions import ProjectNotFoundError
-from forge.presentation.deps import get_session, get_project_repo, get_analysis_report_repo
+from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
+from forge.presentation.deps import get_analysis_report_repo, get_project_repo, get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.analysis_schemas import (
-    AnalyzePRRequest as AnalyzePRSchema,
-    AnalyzePRResponse,
-    AnalysisReportSummary,
-    ListAnalysisReportsResponse,
     AnalysisReportDetail,
+    AnalysisReportSummary,
+    AnalyzePRResponse,
+    ListAnalysisReportsResponse,
     RecommendationResponse,
+)
+from forge.presentation.schemas.analysis_schemas import (
+    AnalyzePRRequest as AnalyzePRSchema,
 )
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -76,9 +77,7 @@ async def analyze_pr(
         related_decisions=result.related_decisions,
         related_bugs=result.related_bugs,
         related_commits=result.related_commits,
-        recommendations=[
-            RecommendationResponse(**r) for r in result.recommendations
-        ],
+        recommendations=[RecommendationResponse(**r) for r in result.recommendations],
     )
 
 
@@ -103,8 +102,10 @@ async def list_reports(
     )
 
     try:
-        from forge.domain.projects.value_objects.project_id import ProjectId
         from uuid import UUID
+
+        from forge.domain.projects.value_objects.project_id import ProjectId
+
         total = await report_repo.count_by_project(ProjectId(UUID(project_id)))
     except ValueError:
         total = 0
@@ -144,8 +145,6 @@ async def get_report(
         related_decisions=result.related_decisions,
         related_bugs=result.related_bugs,
         related_commits=result.related_commits,
-        recommendations=[
-            RecommendationResponse(**r) for r in result.recommendations
-        ],
+        recommendations=[RecommendationResponse(**r) for r in result.recommendations],
         created_at=result.created_at,
     )

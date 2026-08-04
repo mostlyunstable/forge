@@ -1,10 +1,10 @@
 """QdrantVectorStore - vector search adapter."""
+
 from __future__ import annotations
 
 import asyncio
 import hashlib
 import time
-from functools import partial
 from typing import Any
 from uuid import UUID
 
@@ -12,15 +12,15 @@ import structlog
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
-    VectorParams,
-    PointStruct,
-    Filter,
     FieldCondition,
+    Filter,
     MatchValue,
+    PointStruct,
+    VectorParams,
 )
 
-from forge.config.settings import get_settings
 from forge.config.metrics import VECTOR_SEARCH_CALLS, VECTOR_SEARCH_LATENCY
+from forge.config.settings import get_settings
 
 logger = structlog.get_logger()
 
@@ -77,10 +77,13 @@ class QdrantVectorStore:
         semantic_hash = metadata.get("semantic_hash", "")
         if not semantic_hash:
             import re
-            norm = re.sub(r'#.*|//.*', '', content)
-            semantic_hash = hashlib.sha256(re.sub(r'\s+', '', norm).encode()).hexdigest()
-            
-        deterministic_id = hashlib.sha256(f"{project_id}:{file_path}:{name}:{semantic_hash}".encode()).hexdigest()
+
+            norm = re.sub(r"#.*|//.*", "", content)
+            semantic_hash = hashlib.sha256(re.sub(r"\s+", "", norm).encode()).hexdigest()
+
+        deterministic_id = hashlib.sha256(
+            f"{project_id}:{file_path}:{name}:{semantic_hash}".encode()
+        ).hexdigest()
         point_id = int(deterministic_id[:16], 16) % (2**63)
         client = self._ensure_client()
         await asyncio.to_thread(
@@ -252,13 +255,13 @@ class QdrantVectorStore:
                 collection_name=collection_name,
                 points_selector=project_filter,
             )
-            
+
     async def delete_by_file(self, project_id: UUID, file_path: str) -> None:
         client = self._ensure_client()
         file_filter = Filter(
             must=[
                 FieldCondition(key="project_id", match=MatchValue(value=str(project_id))),
-                FieldCondition(key="file_path", match=MatchValue(value=file_path))
+                FieldCondition(key="file_path", match=MatchValue(value=file_path)),
             ]
         )
         await asyncio.to_thread(
@@ -267,19 +270,23 @@ class QdrantVectorStore:
             points_selector=file_filter,
         )
 
-    def _build_filter(self, project_id: UUID | None, additional_filters: dict[str, str] | None = None) -> Filter | None:
+    def _build_filter(
+        self, project_id: UUID | None, additional_filters: dict[str, str] | None = None
+    ) -> Filter | None:
         must_conditions = []
         if project_id is not None:
-            must_conditions.append(FieldCondition(key="project_id", match=MatchValue(value=str(project_id))))
-        
+            must_conditions.append(
+                FieldCondition(key="project_id", match=MatchValue(value=str(project_id)))
+            )
+
         if additional_filters:
             for key, value in additional_filters.items():
                 must_conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
 
         if not must_conditions:
             return None
-            
-        return Filter(must=must_conditions)
+
+        return Filter(must=must_conditions)  # type: ignore
 
     def _build_project_filter(self, project_id: UUID | None) -> Filter | None:
         if project_id is None:

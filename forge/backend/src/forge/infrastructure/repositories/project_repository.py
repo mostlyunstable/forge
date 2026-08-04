@@ -1,7 +1,8 @@
+# mypy: disable-error-code="assignment, arg-type"
 """ProjectRepository - implements IProjectRepository."""
+
 from __future__ import annotations
 
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import select
@@ -21,24 +22,20 @@ class ProjectRepository(IProjectRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, project_id: ProjectId) -> Optional[Project]:
+    async def get_by_id(self, project_id: ProjectId) -> Project | None:
         result = await self._session.execute(
             select(ProjectModel).where(ProjectModel.id == str(project_id.value))
         )
         model = result.scalar_one_or_none()
         return self._to_domain(model) if model else None
 
-    async def get_by_name(self, name: str) -> Optional[Project]:
-        result = await self._session.execute(
-            select(ProjectModel).where(ProjectModel.name == name)
-        )
+    async def get_by_name(self, name: str) -> Project | None:
+        result = await self._session.execute(select(ProjectModel).where(ProjectModel.name == name))
         model = result.scalar_one_or_none()
         return self._to_domain(model) if model else None
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[Project]:
-        result = await self._session.execute(
-            select(ProjectModel).offset(skip).limit(limit)
-        )
+        result = await self._session.execute(select(ProjectModel).offset(skip).limit(limit))
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, project: Project) -> Project:

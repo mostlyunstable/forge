@@ -1,8 +1,8 @@
 """IBugRepository - contract for bug persistence."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from forge.domain.memory.entities.bug import Bug
 from forge.domain.memory.value_objects.bug_id import BugId
@@ -13,7 +13,7 @@ class IBugRepository(ABC):
     """Interface for bug persistence."""
 
     @abstractmethod
-    async def get_by_id(self, bug_id: BugId) -> Optional[Bug]:
+    async def get_by_id(self, bug_id: BugId) -> Bug | None:
         """Retrieve a bug by its ID."""
 
     @abstractmethod

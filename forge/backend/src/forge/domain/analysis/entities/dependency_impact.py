@@ -1,4 +1,5 @@
 """DependencyImpact — which modules are affected by changes."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -18,7 +19,11 @@ class DependencyImpact:
     @property
     def total_affected_modules(self) -> int:
         """Count of unique affected modules across all categories."""
-        all_modules = set(self.directly_affected) | set(self.transitively_affected) | set(self.reverse_affected)
+        all_modules = (
+            set(self.directly_affected)
+            | set(self.transitively_affected)
+            | set(self.reverse_affected)
+        )
         return len(all_modules)
 
     @property

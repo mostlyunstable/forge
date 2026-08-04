@@ -4,6 +4,7 @@ This file runs migrations against the database defined by DATABASE_URL.
 It imports all ORM models so ``alembic revision --autogenerate`` can diff
 the model metadata against the live schema.
 """
+
 import asyncio
 from logging.config import fileConfig
 
@@ -13,27 +14,36 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+# fmt: on
+from forge.config.settings import get_settings
 from forge.infrastructure.database.base import Base
+from forge.infrastructure.database.models.analysis_report_model import (
+    AnalysisReportModel,  # noqa: F401
+)
+from forge.infrastructure.database.models.code_entry_model import CodeEntryModel  # noqa: F401
+from forge.infrastructure.database.models.commit_model import CommitModel  # noqa: F401
+from forge.infrastructure.database.models.conversation_citation_model import (
+    ConversationCitationModel,  # noqa: F401
+)
+from forge.infrastructure.database.models.conversation_model import ConversationModel  # noqa: F401
+from forge.infrastructure.database.models.conversation_session_model import (
+    ConversationSessionModel,  # noqa: F401
+)
+from forge.infrastructure.database.models.conversation_summary_model import (
+    ConversationSummaryModel,  # noqa: F401
+)
+from forge.infrastructure.database.models.extraction_candidate_model import (
+    ExtractionCandidateModel,  # noqa: F401
+)
+from forge.infrastructure.database.models.file_index_model import FileIndexModel  # noqa: F401
+from forge.infrastructure.database.models.index_job_model import IndexJobModel  # noqa: F401
+from forge.infrastructure.database.models.memory_model import MemoryModel  # noqa: F401
+from forge.infrastructure.database.models.message_model import MessageModel  # noqa: F401
+from forge.infrastructure.database.models.preference_model import PreferenceModel  # noqa: F401
 
 # Import every model so Base.metadata knows about all tables.
 # fmt: off
-from forge.infrastructure.database.models.project_model import ProjectModel          # noqa: F401
-from forge.infrastructure.database.models.memory_model import MemoryModel        # noqa: F401
-from forge.infrastructure.database.models.code_entry_model import CodeEntryModel      # noqa: F401
-from forge.infrastructure.database.models.commit_model import CommitModel            # noqa: F401
-from forge.infrastructure.database.models.preference_model import PreferenceModel    # noqa: F401
-from forge.infrastructure.database.models.analysis_report_model import AnalysisReportModel  # noqa: F401
-from forge.infrastructure.database.models.extraction_candidate_model import ExtractionCandidateModel  # noqa: F401
-from forge.infrastructure.database.models.file_index_model import FileIndexModel      # noqa: F401
-from forge.infrastructure.database.models.index_job_model import IndexJobModel        # noqa: F401
-from forge.infrastructure.database.models.conversation_model import ConversationModel  # noqa: F401
-from forge.infrastructure.database.models.conversation_session_model import ConversationSessionModel # noqa: F401
-from forge.infrastructure.database.models.conversation_summary_model import ConversationSummaryModel # noqa: F401
-from forge.infrastructure.database.models.message_model import MessageModel            # noqa: F401
-from forge.infrastructure.database.models.conversation_citation_model import ConversationCitationModel # noqa: F401
-# fmt: on
-
-from forge.config.settings import get_settings
+from forge.infrastructure.database.models.project_model import ProjectModel  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:

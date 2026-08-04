@@ -1,21 +1,21 @@
 """Unit tests for Conversation application use cases."""
-import pytest
-from unittest.mock import AsyncMock, MagicMock
+
 from dataclasses import dataclass
+
+import pytest
 
 from forge.domain.conversation.entities.conversation import Conversation
 from forge.domain.conversation.entities.message import ConversationMessage as Message
+from forge.domain.conversation.exceptions import ConversationNotFoundError
 from forge.domain.conversation.value_objects.conversation_id import ConversationId
 from forge.domain.conversation.value_objects.message_id import MessageId
-from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.entities.project import Project
+from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain.conversation.exceptions import ConversationNotFoundError
-
-from tests.conftest import FakeProjectRepo, FakeConversationRepo
-
+from tests.conftest import FakeConversationRepo, FakeProjectRepo
 
 # --- Fake LLM ---
+
 
 @dataclass
 class FakeLLMResponse:
@@ -52,13 +52,15 @@ class FakeContextRetriever:
 
 # --- Tests ---
 
+
 class TestCreateConversationUseCase:
     @pytest.mark.asyncio
     async def test_create_conversation(self):
         from forge.application.conversation.create_conversation import (
-            CreateConversationUseCase,
             CreateConversationRequest,
+            CreateConversationUseCase,
         )
+
         project_repo = FakeProjectRepo()
         conv_repo = FakeConversationRepo()
 
@@ -83,9 +85,10 @@ class TestCreateConversationUseCase:
     @pytest.mark.asyncio
     async def test_create_conversation_project_not_found(self):
         from forge.application.conversation.create_conversation import (
-            CreateConversationUseCase,
             CreateConversationRequest,
+            CreateConversationUseCase,
         )
+
         project_repo = FakeProjectRepo()
         conv_repo = FakeConversationRepo()
 
@@ -105,6 +108,7 @@ class TestGetConversationHistoryUseCase:
         from forge.application.conversation.get_conversation_history import (
             GetConversationHistoryUseCase,
         )
+
         conv_repo = FakeConversationRepo()
 
         project = Project.create(
@@ -129,6 +133,7 @@ class TestGetConversationHistoryUseCase:
         from forge.application.conversation.get_conversation_history import (
             GetConversationHistoryUseCase,
         )
+
         conv_repo = FakeConversationRepo()
         use_case = GetConversationHistoryUseCase(conv_repo)
         with pytest.raises(ConversationNotFoundError):
@@ -139,9 +144,10 @@ class TestRenameConversationUseCase:
     @pytest.mark.asyncio
     async def test_rename(self):
         from forge.application.conversation.rename_conversation import (
-            RenameConversationUseCase,
             RenameConversationRequest,
+            RenameConversationUseCase,
         )
+
         conv_repo = FakeConversationRepo()
         project = Project.create(
             name="Test",
@@ -167,6 +173,7 @@ class TestDeleteConversationUseCase:
         from forge.application.conversation.delete_conversation import (
             DeleteConversationUseCase,
         )
+
         conv_repo = FakeConversationRepo()
         project = Project.create(
             name="Test",
@@ -189,6 +196,7 @@ class TestDeleteConversationUseCase:
         from forge.application.conversation.delete_conversation import (
             DeleteConversationUseCase,
         )
+
         conv_repo = FakeConversationRepo()
         use_case = DeleteConversationUseCase(conv_repo)
         with pytest.raises(ConversationNotFoundError):
@@ -201,6 +209,7 @@ class TestListConversationsUseCase:
         from forge.application.conversation.list_conversations import (
             ListConversationsUseCase,
         )
+
         project_repo = FakeProjectRepo()
         conv_repo = FakeConversationRepo()
 
@@ -227,6 +236,7 @@ class TestSearchConversationsUseCase:
         from forge.application.conversation.search_conversations import (
             SearchConversationsUseCase,
         )
+
         project_repo = FakeProjectRepo()
         conv_repo = FakeConversationRepo()
 
@@ -249,40 +259,55 @@ class TestSearchConversationsUseCase:
 class TestTokenManager:
     def test_estimate_tokens(self):
         from forge.application.conversation.token_manager import TokenManager
+
         tm = TokenManager()
         assert tm.estimate_tokens("hello") >= 1
 
     def test_build_context_window_small(self):
         from forge.application.conversation.token_manager import TokenManager
+
         tm = TokenManager(max_tokens=10000)
         conv = Conversation.create(project_id=ProjectId(), title="T")
         for i in range(5):
-            conv.add_message(Message(
-                id=MessageId(),
-                conversation_id=str(conv.id),
-                role="user" if i % 2 == 0 else "assistant",
-                content=f"Message {i}",
-                token_count=20,
-            ))
+            conv.add_message(
+                Message(
+                    id=MessageId(),
+                    conversation_id=str(conv.id),
+                    role="user" if i % 2 == 0 else "assistant",
+                    content=f"Message {i}",
+                    token_count=20,
+                )
+            )
         window = tm.build_context_window(conv)
         assert len(window.messages) == 5
         assert window.total_tokens > 0
 
     def test_build_context_window_with_summary(self):
         from forge.application.conversation.token_manager import TokenManager
+
         tm = TokenManager(max_tokens=200)
         conv = Conversation.create(project_id=ProjectId(), title="T")
         from forge.domain.conversation.entities.summary import ConversationSummary
         from forge.domain.conversation.value_objects import SummaryId
-        conv.add_summary(ConversationSummary(id=SummaryId(), conversation_id=conv.id, content="This is a summary of the conversation", token_count=15))
+
+        conv.add_summary(
+            ConversationSummary(
+                id=SummaryId(),
+                conversation_id=conv.id,
+                content="This is a summary of the conversation",
+                token_count=15,
+            )
+        )
         for i in range(20):
-            conv.add_message(Message(
-                id=MessageId(),
-                conversation_id=str(conv.id),
-                role="user",
-                content=f"Message {i} with some content to make it longer",
-                token_count=50,
-            ))
+            conv.add_message(
+                Message(
+                    id=MessageId(),
+                    conversation_id=str(conv.id),
+                    role="user",
+                    content=f"Message {i} with some content to make it longer",
+                    token_count=50,
+                )
+            )
         window = tm.build_context_window(conv)
         # Should prune old messages to fit budget
         assert window.summary_tokens == 15
@@ -290,22 +315,26 @@ class TestTokenManager:
 
     def test_should_summarize(self):
         from forge.application.conversation.token_manager import TokenManager
+
         tm = TokenManager()
         conv = Conversation.create(project_id=ProjectId(), title="T")
         assert not tm.should_summarize(conv)
         for i in range(25):
-            conv.add_message(Message(
-                id=MessageId(),
-                conversation_id=str(conv.id),
-                role="user",
-                content=f"msg {i}",
-            ))
+            conv.add_message(
+                Message(
+                    id=MessageId(),
+                    conversation_id=str(conv.id),
+                    role="user",
+                    content=f"msg {i}",
+                )
+            )
         assert tm.should_summarize(conv)
 
 
 class TestContextBuilder:
     def test_build_basic(self):
         from forge.application.conversation.context_builder import ContextBuilder
+
         cb = ContextBuilder()
         conv = Conversation.create(project_id=ProjectId(), title="T")
         conv.add_message(Message.create_user(str(conv.id), "Hello", token_count=5))
@@ -316,6 +345,7 @@ class TestContextBuilder:
 
     def test_build_with_memory(self):
         from forge.application.conversation.context_builder import ContextBuilder
+
         cb = ContextBuilder()
         conv = Conversation.create(project_id=ProjectId(), title="T")
         memory = {
@@ -331,11 +361,20 @@ class TestContextBuilder:
 
     def test_build_with_summary(self):
         from forge.application.conversation.context_builder import ContextBuilder
+
         cb = ContextBuilder()
         conv = Conversation.create(project_id=ProjectId(), title="T")
         from forge.domain.conversation.entities.summary import ConversationSummary
         from forge.domain.conversation.value_objects import SummaryId
-        conv.add_summary(ConversationSummary(id=SummaryId(), conversation_id=conv.id, content="Previous discussion about auth", token_count=20))
+
+        conv.add_summary(
+            ConversationSummary(
+                id=SummaryId(),
+                conversation_id=conv.id,
+                content="Previous discussion about auth",
+                token_count=20,
+            )
+        )
         conv.add_message(Message.create_user(str(conv.id), "Hello", token_count=5))
 
         ctx = cb.build(conv, "Continue", memory_context=None)

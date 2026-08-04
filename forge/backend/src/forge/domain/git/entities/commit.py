@@ -1,8 +1,9 @@
 """Commit entity."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from forge.domain.git.value_objects.commit_classification import CommitClassification
 from forge.domain.git.value_objects.commit_sha import CommitSha
@@ -21,7 +22,7 @@ class Commit:
     files_changed: list[str] = field(default_factory=list)
     classification: CommitClassification = CommitClassification.OTHER
     summary: str = ""
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @classmethod
     def create(

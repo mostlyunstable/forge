@@ -1,4 +1,5 @@
 """Shared utilities for safe SQL pattern matching."""
+
 from __future__ import annotations
 
 

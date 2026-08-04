@@ -1,9 +1,8 @@
 """In-memory event bus for development and testing."""
+
 from __future__ import annotations
 
-import asyncio
 from collections import defaultdict
-from typing import Callable, Awaitable
 
 import structlog
 
@@ -25,7 +24,11 @@ class InMemoryEventBus:
     def register(self, handler: IEventHandler) -> None:
         """Register an event handler."""
         self._handlers[handler.event_type].append(handler)
-        logger.debug("event_handler_registered", event_type=handler.event_type, handler=type(handler).__name__)
+        logger.debug(
+            "event_handler_registered",
+            event_type=handler.event_type,
+            handler=type(handler).__name__,
+        )
 
     async def publish(self, event: DomainEvent) -> None:
         """Publish a single event to all registered handlers."""

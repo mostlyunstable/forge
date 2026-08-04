@@ -1,31 +1,29 @@
 """Shared test fixtures and fakes."""
-import pytest
-from uuid import uuid4
-from datetime import datetime, timezone
 
+import pytest
+
+from forge.domain.conversation.entities.conversation import Conversation
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
+from forge.domain.conversation.value_objects.conversation_id import ConversationId
+from forge.domain.memory.entities.bug import Bug
+from forge.domain.memory.entities.decision import ArchitectureDecision
+from forge.domain.memory.entities.preference import DeveloperPreference
+from forge.domain.memory.repository_contracts.bug_repository import IBugRepository
+from forge.domain.memory.repository_contracts.decision_repository import IDecisionRepository
+from forge.domain.memory.repository_contracts.preference_repository import IPreferenceRepository
+from forge.domain.memory.value_objects.bug_id import BugId
+from forge.domain.memory.value_objects.decision_id import DecisionId
+from forge.domain.memory.value_objects.preference_key import PreferenceKey
 from forge.domain.projects.entities.project import Project
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
-from forge.domain.memory.entities.decision import ArchitectureDecision
-from forge.domain.memory.value_objects.decision_id import DecisionId
-from forge.domain.memory.repository_contracts.decision_repository import IDecisionRepository
-from forge.domain.memory.entities.bug import Bug
-from forge.domain.memory.value_objects.bug_id import BugId
-from forge.domain.memory.repository_contracts.bug_repository import IBugRepository
-from forge.domain.memory.entities.preference import DeveloperPreference
-from forge.domain.memory.value_objects.preference_key import PreferenceKey
-from forge.domain.memory.repository_contracts.preference_repository import IPreferenceRepository
-from forge.domain.shared.events import IEventBus, DomainEvent
 from forge.infrastructure.events.in_memory_event_bus import InMemoryEventBus
-from forge.domain.conversation.entities.conversation import Conversation
-from forge.domain.conversation.entities.message import ConversationMessage
-from forge.domain.conversation.value_objects.conversation_id import ConversationId
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
-from forge.domain.projects.value_objects.project_id import ProjectId
-
 
 # --- Fake Repositories ---
+
 
 class FakeProjectRepo(IProjectRepository):
     def __init__(self):
@@ -46,7 +44,7 @@ class FakeProjectRepo(IProjectRepository):
 
     async def get_all(self, skip: int = 0, limit: int = 100):
         projects = list(self._projects.values())
-        return projects[skip:skip + limit]
+        return projects[skip : skip + limit]
 
     async def delete(self, project_id: ProjectId) -> bool:
         if project_id in self._projects:
@@ -121,12 +119,9 @@ class FakeConversationRepo(IConversationRepository):
         return self._conversations.get(conversation_id)
 
     async def get_by_project(self, project_id: ProjectId, skip: int = 0, limit: int = 50):
-        convs = [
-            c for c in self._conversations.values()
-            if c.project_id == project_id
-        ]
+        convs = [c for c in self._conversations.values() if c.project_id == project_id]
         convs.sort(key=lambda c: c.updated_at, reverse=True)
-        return convs[skip:skip + limit]
+        return convs[skip : skip + limit]
 
     async def delete(self, conversation_id: ConversationId) -> bool:
         if conversation_id in self._conversations:
@@ -136,16 +131,17 @@ class FakeConversationRepo(IConversationRepository):
 
     async def search(self, project_id: ProjectId, query: str):
         return [
-            c for c in self._conversations.values()
+            c
+            for c in self._conversations.values()
             if c.project_id == project_id
-            and (query.lower() in c.title.lower() or any(query.lower() in s.content.lower() for s in c.summaries))
+            and (
+                query.lower() in c.title.lower()
+                or any(query.lower() in s.content.lower() for s in c.summaries)
+            )
         ]
 
     async def count_by_project(self, project_id: ProjectId) -> int:
-        return sum(
-            1 for c in self._conversations.values()
-            if c.project_id == project_id
-        )
+        return sum(1 for c in self._conversations.values() if c.project_id == project_id)
 
 
 class FakePreferenceRepo(IPreferenceRepository):
@@ -161,7 +157,7 @@ class FakePreferenceRepo(IPreferenceRepository):
 
     async def get_all(self, skip: int = 0, limit: int = 100):
         prefs = list(self._prefs.values())
-        return prefs[skip:skip + limit]
+        return prefs[skip : skip + limit]
 
     async def delete(self, key: PreferenceKey) -> bool:
         if key in self._prefs:
@@ -172,12 +168,15 @@ class FakePreferenceRepo(IPreferenceRepository):
 
 # --- Fake Event Bus ---
 
+
 class FakeEventBus(InMemoryEventBus):
     """Event bus for testing that records all events."""
+
     pass
 
 
 # --- Fixtures ---
+
 
 @pytest.fixture
 def project_repo():

@@ -1,14 +1,14 @@
 """IndexRepositoryUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from forge.domain.code.entities.code_entry import CodeEntry
-from forge.domain.code.repository_contracts.code_repository import ICodeRepository
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
-from forge.domain.projects.exceptions import ProjectNotFoundError
-from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.code.events import CodeEntriesBatchIndexed, CodeIndexCleared
+from forge.domain.code.repository_contracts.code_repository import ICodeRepository
+from forge.domain.projects.exceptions import ProjectNotFoundError
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
+from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.shared.events import IEventBus
 
 
@@ -54,9 +54,7 @@ class IndexRepositoryUseCase:
         await self._code_repo.delete_by_project(project.id)
 
         if self._event_bus:
-            await self._event_bus.publish(
-                CodeIndexCleared(project_id=str(project.id))
-            )
+            await self._event_bus.publish(CodeIndexCleared(project_id=str(project.id)))
 
         entries = await self._code_indexer.index(project.id, request.repo_path)
 

@@ -1,42 +1,53 @@
 """Memory routes."""
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.repositories.decision_repository import DecisionRepository
+from forge.application.memory.delete_bug import DeleteBugUseCase
+from forge.application.memory.delete_decision import DeleteDecisionUseCase
+from forge.application.memory.delete_preference import DeletePreferenceUseCase
+from forge.application.memory.get_bug import GetBugUseCase
+from forge.application.memory.get_decision import GetDecisionUseCase
+from forge.application.memory.get_preferences import GetPreferencesUseCase
+from forge.application.memory.list_bugs import ListBugsUseCase
+from forge.application.memory.list_decisions import ListDecisionsUseCase
+from forge.application.memory.save_bug import SaveBugRequest, SaveBugUseCase
+from forge.application.memory.save_decision import SaveDecisionRequest, SaveDecisionUseCase
+from forge.application.memory.save_preference import SavePreferenceRequest, SavePreferenceUseCase
+from forge.application.memory.search_memories import SearchMemoriesUseCase
+from forge.application.memory.update_bug import UpdateBugRequest, UpdateBugUseCase
+from forge.application.memory.update_decision import UpdateDecisionRequest, UpdateDecisionUseCase
+from forge.infrastructure.events.in_memory_event_bus import event_bus
 from forge.infrastructure.repositories.bug_repository import BugRepository
+from forge.infrastructure.repositories.decision_repository import DecisionRepository
 from forge.infrastructure.repositories.preference_repository import PreferenceRepository
 from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.infrastructure.events.in_memory_event_bus import event_bus
-from forge.application.memory.save_decision import SaveDecisionUseCase, SaveDecisionRequest
-from forge.application.memory.save_bug import SaveBugUseCase, SaveBugRequest
-from forge.application.memory.save_preference import SavePreferenceUseCase, SavePreferenceRequest
-from forge.application.memory.get_decision import GetDecisionUseCase
-from forge.application.memory.get_bug import GetBugUseCase
-from forge.application.memory.list_decisions import ListDecisionsUseCase
-from forge.application.memory.list_bugs import ListBugsUseCase
-from forge.application.memory.update_decision import UpdateDecisionUseCase, UpdateDecisionRequest
-from forge.application.memory.update_bug import UpdateBugUseCase, UpdateBugRequest
-from forge.application.memory.delete_decision import DeleteDecisionUseCase
-from forge.application.memory.delete_bug import DeleteBugUseCase
-from forge.application.memory.delete_preference import DeletePreferenceUseCase
-from forge.application.memory.search_memories import SearchMemoriesUseCase
-from forge.application.memory.get_preferences import GetPreferencesUseCase
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.memory_schemas import (
-    SaveDecisionRequest as DecisionSchema,
-    SaveBugRequest as BugSchema,
-    SavePreferenceRequest as PreferenceSchema,
-    UpdateDecisionRequest as UpdateDecisionSchema,
-    UpdateBugRequest as UpdateBugSchema,
-    DecisionResponse,
     BugResponse,
+    DecisionResponse,
+    DeleteResponse,
+    GetPreferencesResponse,
+    ListBugsResponse,
+    ListDecisionsResponse,
     PreferenceResponse,
     SearchMemoriesResponse,
-    GetPreferencesResponse,
-    ListDecisionsResponse,
-    ListBugsResponse,
-    DeleteResponse,
+)
+from forge.presentation.schemas.memory_schemas import (
+    SaveBugRequest as BugSchema,
+)
+from forge.presentation.schemas.memory_schemas import (
+    SaveDecisionRequest as DecisionSchema,
+)
+from forge.presentation.schemas.memory_schemas import (
+    SavePreferenceRequest as PreferenceSchema,
+)
+from forge.presentation.schemas.memory_schemas import (
+    UpdateBugRequest as UpdateBugSchema,
+)
+from forge.presentation.schemas.memory_schemas import (
+    UpdateDecisionRequest as UpdateDecisionSchema,
 )
 
 router = APIRouter(prefix="/memory", tags=["memory"])

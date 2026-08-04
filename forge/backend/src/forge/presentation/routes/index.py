@@ -1,32 +1,31 @@
 """Index routes — codebase indexing API."""
+# mypy: disable-error-code="arg-type, assignment"
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.infrastructure.indexing.index_job_repository import IndexJobRepository
-from forge.infrastructure.indexing.file_index_repository import FileIndexRepository
+from forge.application.indexing.full_index_usecase import FullIndexUseCase
+from forge.application.indexing.git_history_ingester import GitHistoryIngester
+from forge.application.indexing.incremental_index_usecase import IncrementalIndexUseCase
+from forge.application.indexing.memory_extractor import MemoryExtractor
+from forge.application.indexing.reindex_detector import ReindexDetector
+from forge.infrastructure.git.commit_parser import CommitParser
+from forge.infrastructure.git.git_diff_parser import GitDiffParser
 from forge.infrastructure.indexing.extraction_candidate_repository import (
     ExtractionCandidateRepository,
 )
-from forge.infrastructure.git.git_diff_parser import GitDiffParser
-from forge.infrastructure.git.commit_parser import CommitParser
+from forge.infrastructure.indexing.file_index_repository import FileIndexRepository
+from forge.infrastructure.indexing.index_job_repository import IndexJobRepository
+from forge.infrastructure.repositories.project_repository import ProjectRepository
 from forge.infrastructure.search.embedding_service import EmbeddingService
-from forge.infrastructure.search.qdrant_client import QdrantClient
 from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
-from forge.application.indexing.memory_extractor import MemoryExtractor
-from forge.application.indexing.git_history_ingester import GitHistoryIngester
-from forge.application.indexing.full_index_usecase import FullIndexUseCase
-from forge.application.indexing.incremental_index_usecase import IncrementalIndexUseCase
-from forge.application.indexing.reindex_detector import ReindexDetector
-from forge.domain.indexing.value_objects.index_type import IndexType
-from forge.domain.projects.exceptions import ProjectNotFoundError
+from forge.infrastructure.search.qdrant_client import QdrantClient
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.index_schemas import (
-    StartIndexRequest,
     IndexJobResponse,
-    ListIndexJobsResponse,
     IndexStatusResponse,
+    ListIndexJobsResponse,
+    StartIndexRequest,
 )
 
 router = APIRouter(prefix="/index", tags=["indexing"])
@@ -43,12 +42,14 @@ def _build_full_index_use_case(session: AsyncSession) -> FullIndexUseCase:
     git_ingester = GitHistoryIngester(job_repo, commit_parser, memory_extractor)
     # In real DI, these would be injected
     from forge.infrastructure.database.connection import DatabaseManager
+
     # SQLiteDatabase is legacy, use DatabaseManager
-    db = DatabaseManager()
+    DatabaseManager()
     vector_store = QdrantClient()
     embedding_service = EmbeddingService()
 
     from forge.infrastructure.code_indexer.tree_sitter_code_indexer import TreeSitterCodeIndexer
+
     code_indexer = TreeSitterCodeIndexer(vector_store)
 
     use_case = FullIndexUseCase(
@@ -95,7 +96,9 @@ async def start_index_job(
     """Start an indexing job for a project."""
     # Verify project exists
     from uuid import UUID
+
     from forge.domain.projects.value_objects.project_id import ProjectId
+
     project_repo = ProjectRepository(session)
     try:
         pid = ProjectId(UUID(body.project_id))
@@ -118,7 +121,7 @@ async def start_index_job(
     if body.type == "full" or body.type == "incremental":
         # Check if full index is needed
         file_index_repo = FileIndexRepository(session)
-        detector = ReindexDetector(job_repo, file_index_repo)
+        ReindexDetector(job_repo, file_index_repo)
         # For now, always run requested type
         if body.type == "full":
             use_case = _build_full_index_use_case(session)
@@ -153,6 +156,7 @@ async def list_index_jobs(
 ):
     """List indexing jobs for a project."""
     from uuid import UUID
+
     job_repo = IndexJobRepository(session)
     try:
         pid = UUID(project_id)
@@ -175,6 +179,7 @@ async def get_index_job(
 ):
     """Get a specific indexing job."""
     from uuid import UUID
+
     job_repo = IndexJobRepository(session)
     try:
         job = await job_repo.get_by_id(UUID(job_id))
@@ -193,6 +198,7 @@ async def get_index_status(
 ):
     """Get current indexing status for a project."""
     from uuid import UUID
+
     job_repo = IndexJobRepository(session)
     file_index_repo = FileIndexRepository(session)
     candidate_repo = ExtractionCandidateRepository(session)

@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from forge.domain.conversation.value_objects import SessionId, ConversationId
+from datetime import UTC, datetime
+
+from forge.domain.conversation.value_objects import ConversationId, SessionId
+
 
 @dataclass
 class ConversationSession:
     id: SessionId
     conversation_id: ConversationId
-    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     ended_at: datetime | None = None
     metadata: dict | None = field(default_factory=dict)
 
     def end_session(self) -> None:
-        self.ended_at = datetime.now(timezone.utc)
+        self.ended_at = datetime.now(UTC)
 
     @property
     def is_active(self) -> bool:
@@ -21,7 +23,4 @@ class ConversationSession:
 
     @classmethod
     def start(cls, conversation_id: ConversationId) -> ConversationSession:
-        return cls(
-            id=SessionId(),
-            conversation_id=conversation_id
-        )
+        return cls(id=SessionId(), conversation_id=conversation_id)

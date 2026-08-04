@@ -1,8 +1,9 @@
 """JobStatus — lifecycle state of an indexing job."""
-from enum import Enum
+
+from enum import StrEnum
 
 
-class JobStatus(str, Enum):
+class JobStatus(StrEnum):
     """Lifecycle states for an IndexJob."""
 
     PENDING = "pending"

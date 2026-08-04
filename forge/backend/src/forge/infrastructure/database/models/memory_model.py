@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, Text, DateTime, JSON, ForeignKey, Integer, Boolean
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+
 from forge.infrastructure.database.base import Base
+
 
 class MemoryModel(Base):
     __tablename__ = "memories"

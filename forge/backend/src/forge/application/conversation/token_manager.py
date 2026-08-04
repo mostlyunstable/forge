@@ -1,4 +1,5 @@
 """TokenManager — budget-aware context window management."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -93,4 +94,5 @@ class TokenManager:
     def should_summarize(self, conversation: Conversation) -> bool:
         """Check if conversation needs summarization."""
         from forge.domain.conversation.entities.conversation import AUTO_SUMMARIZE_THRESHOLD
+
         return len(conversation.messages) > AUTO_SUMMARIZE_THRESHOLD

@@ -1,12 +1,13 @@
 """Bug entity."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from forge.domain.memory.entities.memory import Memory
 from forge.domain.memory.value_objects.bug_id import BugId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.memory.entities.memory import Memory
 
 
 @dataclass(kw_only=True)
@@ -56,5 +57,5 @@ class Bug(Memory):
             affected_files=affected_files or [],
             severity=severity,
             resolved=True,
-            resolved_at=datetime.now(timezone.utc),
+            resolved_at=datetime.now(UTC),
         )

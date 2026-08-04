@@ -1,7 +1,9 @@
 """GitDiffParser — parses git diffs to extract changed files."""
+
 from __future__ import annotations
 
 import subprocess
+
 import structlog
 
 logger = structlog.get_logger()
@@ -32,7 +34,7 @@ class GitDiffParser:
                 return []
 
             files = []
-            lines = result.stdout.strip().split("\n")
+            result.stdout.strip().split("\n")
 
             # Parse --name-status output
             status_result = subprocess.run(
@@ -80,12 +82,14 @@ class GitDiffParser:
                     else:
                         change_type = "modified"
 
-                    files.append({
-                        "file_path": file_path,
-                        "change_type": change_type,
-                        "additions": additions,
-                        "deletions": deletions,
-                    })
+                    files.append(
+                        {
+                            "file_path": file_path,
+                            "change_type": change_type,
+                            "additions": additions,
+                            "deletions": deletions,
+                        }
+                    )
 
             return files
 
@@ -100,7 +104,15 @@ class GitDiffParser:
         """Get files changed in a specific commit."""
         try:
             result = subprocess.run(
-                ["git", "diff-tree", "--no-commit-id", "-r", "--name-status", "--numstat", commit_sha],
+                [
+                    "git",
+                    "diff-tree",
+                    "--no-commit-id",
+                    "-r",
+                    "--name-status",
+                    "--numstat",
+                    commit_sha,
+                ],
                 cwd=repo_path,
                 capture_output=True,
                 text=True,
@@ -127,10 +139,12 @@ class GitDiffParser:
                     else:
                         change_type = "modified"
 
-                    files.append({
-                        "file_path": file_path,
-                        "change_type": change_type,
-                    })
+                    files.append(
+                        {
+                            "file_path": file_path,
+                            "change_type": change_type,
+                        }
+                    )
 
             return files
 

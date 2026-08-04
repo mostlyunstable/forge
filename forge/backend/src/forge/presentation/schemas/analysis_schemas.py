@@ -1,4 +1,5 @@
 """Schemas for the analysis API."""
+
 from pydantic import BaseModel, Field
 
 

@@ -1,12 +1,13 @@
 """GitAnalyzer - analyzes git repositories for commit intelligence."""
+
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from git import Repo, GitCommandError, InvalidGitRepositoryError
+from git import InvalidGitRepositoryError, Repo
 
 from forge.domain.git.value_objects.commit_classification import CommitClassification
 
@@ -78,15 +79,17 @@ class GitAnalyzer:
         """Retrieve classified commit history."""
         commits = []
         for commit in self._repo.iter_commits(max_count=limit):
-            classification = self._classifier.classify(commit.message)
-            commits.append({
-                "sha": commit.hexsha,
-                "message": commit.message.strip(),
-                "author": str(commit.author),
-                "timestamp": datetime.fromtimestamp(commit.committed_date, tz=timezone.utc),
-                "files_changed": list(commit.stats.files.keys()),
-                "classification": classification.value,
-            })
+            classification = self._classifier.classify(commit.message)  # type: ignore
+            commits.append(
+                {
+                    "sha": commit.hexsha,
+                    "message": commit.message.strip(),
+                    "author": str(commit.author),
+                    "timestamp": datetime.fromtimestamp(commit.committed_date, tz=UTC),
+                    "files_changed": list(commit.stats.files.keys()),
+                    "classification": classification.value,
+                }
+            )
         return commits
 
     def get_technologies(self) -> list[str]:
@@ -135,10 +138,6 @@ class GitAnalyzer:
         return {
             "total_commits": len(commits),
             "technologies": self.get_technologies(),
-            "first_commit": datetime.fromtimestamp(
-                commits[-1].committed_date, tz=timezone.utc
-            ).isoformat(),
-            "last_commit": datetime.fromtimestamp(
-                commits[0].committed_date, tz=timezone.utc
-            ).isoformat(),
+            "first_commit": datetime.fromtimestamp(commits[-1].committed_date, tz=UTC).isoformat(),
+            "last_commit": datetime.fromtimestamp(commits[0].committed_date, tz=UTC).isoformat(),
         }

@@ -1,4 +1,5 @@
 """Git schemas."""
+
 from pydantic import BaseModel
 
 

@@ -1,8 +1,8 @@
 """IConversationRepository - contract for conversation persistence."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from forge.domain.conversation.entities.conversation import Conversation
 from forge.domain.conversation.value_objects.conversation_id import ConversationId
@@ -13,11 +13,13 @@ class IConversationRepository(ABC):
     """Interface for conversation persistence."""
 
     @abstractmethod
-    async def get_by_id(self, conversation_id: ConversationId) -> Optional[Conversation]:
+    async def get_by_id(self, conversation_id: ConversationId) -> Conversation | None:
         """Retrieve a conversation by its ID."""
 
     @abstractmethod
-    async def get_by_project(self, project_id: ProjectId, skip: int = 0, limit: int = 50) -> list[Conversation]:
+    async def get_by_project(
+        self, project_id: ProjectId, skip: int = 0, limit: int = 50
+    ) -> list[Conversation]:
         """Retrieve conversations for a project, newest first."""
 
     @abstractmethod

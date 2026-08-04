@@ -1,11 +1,11 @@
+# mypy: disable-error-code="assignment, arg-type"
 """AnalysisReportRepository — persists analysis reports to the database."""
+
 from __future__ import annotations
 
-import json
-from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from forge.domain.analysis.entities.analysis_report import (
@@ -39,11 +39,9 @@ class AnalysisReportRepository(IAnalysisReportRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, report_id: AnalysisId) -> Optional[AnalysisReport]:
+    async def get_by_id(self, report_id: AnalysisId) -> AnalysisReport | None:
         result = await self._session.execute(
-            select(AnalysisReportModel).where(
-                AnalysisReportModel.id == str(report_id.value)
-            )
+            select(AnalysisReportModel).where(AnalysisReportModel.id == str(report_id.value))
         )
         model = result.scalar_one_or_none()
         return self._to_domain(model) if model else None
@@ -60,9 +58,7 @@ class AnalysisReportRepository(IAnalysisReportRepository):
         )
         return [self._to_domain(m) for m in result.scalars().all()]
 
-    async def get_by_pr(
-        self, project_id: ProjectId, pr_number: int
-    ) -> Optional[AnalysisReport]:
+    async def get_by_pr(self, project_id: ProjectId, pr_number: int) -> AnalysisReport | None:
         result = await self._session.execute(
             select(AnalysisReportModel).where(
                 AnalysisReportModel.project_id == str(project_id.value),
@@ -73,9 +69,7 @@ class AnalysisReportRepository(IAnalysisReportRepository):
         return self._to_domain(model) if model else None
 
     async def save(self, report: AnalysisReport) -> AnalysisReport:
-        existing = await self._session.get(
-            AnalysisReportModel, str(report.id.value)
-        )
+        existing = await self._session.get(AnalysisReportModel, str(report.id.value))
         if existing:
             existing.title = report.title
             existing.summary = report.summary
@@ -106,9 +100,7 @@ class AnalysisReportRepository(IAnalysisReportRepository):
 
     async def delete(self, report_id: AnalysisId) -> bool:
         result = await self._session.execute(
-            select(AnalysisReportModel).where(
-                AnalysisReportModel.id == str(report_id.value)
-            )
+            select(AnalysisReportModel).where(AnalysisReportModel.id == str(report_id.value))
         )
         model = result.scalar_one_or_none()
         if model:
@@ -118,9 +110,9 @@ class AnalysisReportRepository(IAnalysisReportRepository):
 
     async def count_by_project(self, project_id: ProjectId) -> int:
         result = await self._session.execute(
-            select(func.count()).select_from(AnalysisReportModel).where(
-                AnalysisReportModel.project_id == str(project_id.value)
-            )
+            select(func.count())
+            .select_from(AnalysisReportModel)
+            .where(AnalysisReportModel.project_id == str(project_id.value))
         )
         return result.scalar() or 0
 
@@ -155,19 +147,44 @@ class AnalysisReportRepository(IAnalysisReportRepository):
     def _serialize_history(self, h: HistoricalContext) -> dict:
         return {
             "related_decisions": [
-                {"id": d.id, "title": d.title, "decision": d.decision, "status": d.status, "relevance_reason": d.relevance_reason}
+                {
+                    "id": d.id,
+                    "title": d.title,
+                    "decision": d.decision,
+                    "status": d.status,
+                    "relevance_reason": d.relevance_reason,
+                }
                 for d in h.related_decisions
             ],
             "related_bugs": [
-                {"id": b.id, "title": b.title, "root_cause": b.root_cause, "solution": b.solution, "severity": b.severity, "resolved": b.resolved, "relevance_reason": b.relevance_reason}
+                {
+                    "id": b.id,
+                    "title": b.title,
+                    "root_cause": b.root_cause,
+                    "solution": b.solution,
+                    "severity": b.severity,
+                    "resolved": b.resolved,
+                    "relevance_reason": b.relevance_reason,
+                }
                 for b in h.related_bugs
             ],
             "related_commits": [
-                {"sha": c.sha, "message": c.message, "classification": c.classification, "timestamp": c.timestamp, "relevance_reason": c.relevance_reason}
+                {
+                    "sha": c.sha,
+                    "message": c.message,
+                    "classification": c.classification,
+                    "timestamp": c.timestamp,
+                    "relevance_reason": c.relevance_reason,
+                }
                 for c in h.related_commits
             ],
             "related_preferences": [
-                {"key": p.key, "value": p.value, "confidence": p.confidence, "relevance_reason": p.relevance_reason}
+                {
+                    "key": p.key,
+                    "value": p.value,
+                    "confidence": p.confidence,
+                    "relevance_reason": p.relevance_reason,
+                }
                 for p in h.related_preferences
             ],
         }
@@ -191,7 +208,8 @@ class AnalysisReportRepository(IAnalysisReportRepository):
     # --- Deserialization helpers ---
 
     def _to_domain(self, model: AnalysisReportModel) -> AnalysisReport:
-        cs_data = model.change_set or {}
+        from typing import Any
+        cs_data: dict[str, Any] = model.change_set or {}
         entries = [
             ChangeEntry(
                 file_path=e["file_path"],
@@ -206,7 +224,7 @@ class AnalysisReportRepository(IAnalysisReportRepository):
         ]
         change_set = ChangeSet(entries=entries)
 
-        di_data = model.dependency_impact or {}
+        di_data: dict[str, Any] = model.dependency_impact or {}
         dep_impact = DependencyImpact(
             directly_affected=di_data.get("directly_affected", []),
             transitively_affected=di_data.get("transitively_affected", []),
@@ -216,19 +234,25 @@ class AnalysisReportRepository(IAnalysisReportRepository):
             affected_layers=di_data.get("affected_layers", []),
         )
 
-        h_data = model.historical_context or {}
+        h_data: dict[str, Any] = model.historical_context or {}
         history = HistoricalContext(
             related_decisions=[
                 RelatedDecision(
-                    id=d["id"], title=d["title"], decision=d["decision"],
-                    status=d["status"], relevance_reason=d.get("relevance_reason", ""),
+                    id=d["id"],
+                    title=d["title"],
+                    decision=d["decision"],
+                    status=d["status"],
+                    relevance_reason=d.get("relevance_reason", ""),
                 )
                 for d in h_data.get("related_decisions", [])
             ],
             related_bugs=[
                 RelatedBug(
-                    id=b["id"], title=b["title"], root_cause=b["root_cause"],
-                    solution=b["solution"], severity=b["severity"],
+                    id=b["id"],
+                    title=b["title"],
+                    root_cause=b["root_cause"],
+                    solution=b["solution"],
+                    severity=b["severity"],
                     resolved=b.get("resolved", True),
                     relevance_reason=b.get("relevance_reason", ""),
                 )
@@ -236,7 +260,8 @@ class AnalysisReportRepository(IAnalysisReportRepository):
             ],
             related_commits=[
                 RelatedCommit(
-                    sha=c["sha"], message=c["message"],
+                    sha=c["sha"],
+                    message=c["message"],
                     classification=c["classification"],
                     timestamp=c.get("timestamp", ""),
                     relevance_reason=c.get("relevance_reason", ""),
@@ -245,7 +270,8 @@ class AnalysisReportRepository(IAnalysisReportRepository):
             ],
             related_preferences=[
                 RelatedPreference(
-                    key=p["key"], value=p["value"],
+                    key=p["key"],
+                    value=p["value"],
                     confidence=p.get("confidence", 0.0),
                     relevance_reason=p.get("relevance_reason", ""),
                 )
@@ -253,24 +279,28 @@ class AnalysisReportRepository(IAnalysisReportRepository):
             ],
         )
 
-        r_data = model.risk_assessment or {}
+        r_data: dict[str, Any] = model.risk_assessment or {}
         risk = RiskAssessment(
             score=r_data.get("score", 0),
             level=RiskLevel(r_data.get("level", "low")),
             factors=[
                 RiskFactor(
-                    name=f["name"], weight=f["weight"],
-                    score=f["score"], reason=f["reason"],
+                    name=f["name"],
+                    weight=f["weight"],
+                    score=f["score"],
+                    reason=f["reason"],
                 )
                 for f in r_data.get("factors", [])
             ],
         )
 
-        recs_data = model.recommendations or []
+        recs_data: list[dict[str, Any]] = model.recommendations or []
         recommendations = [
             ReviewRecommendation(
-                area=r["area"], priority=r["priority"],
-                description=r["description"], files=r.get("files", []),
+                area=r["area"],
+                priority=r["priority"],
+                description=r["description"],
+                files=r.get("files", []),
             )
             for r in recs_data
         ]

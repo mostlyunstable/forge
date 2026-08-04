@@ -1,19 +1,10 @@
 """Global error handler middleware."""
+
 from __future__ import annotations
 
 import structlog
 from fastapi import Request
 from fastapi.responses import JSONResponse
-
-from forge.domain.projects.exceptions import ProjectNotFoundError, ProjectAlreadyExistsError
-from forge.domain.memory.exceptions import DecisionNotFoundError, BugNotFoundError, PreferenceNotFoundError
-from forge.domain.code.exceptions import CodeEntryNotFoundError, IndexingError
-from forge.domain.git.exceptions import CommitNotFoundError
-from forge.domain.conversation.exceptions import (
-    ConversationNotFoundError,
-    ConversationAccessDenied,
-    ConversationLimitExceeded,
-)
 
 logger = structlog.get_logger()
 
@@ -51,35 +42,35 @@ def _error_response(status_code: int, error_code: str, detail: str) -> JSONRespo
     )
 
 
-async def project_not_found_handler(request: Request, exc: ProjectNotFoundError) -> JSONResponse:
+async def project_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(404, ErrorCode.PROJECT_NOT_FOUND, str(exc))
 
 
-async def project_already_exists_handler(request: Request, exc: ProjectAlreadyExistsError) -> JSONResponse:
+async def project_already_exists_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(409, ErrorCode.PROJECT_ALREADY_EXISTS, str(exc))
 
 
-async def decision_not_found_handler(request: Request, exc: DecisionNotFoundError) -> JSONResponse:
+async def decision_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(404, ErrorCode.DECISION_NOT_FOUND, str(exc))
 
 
-async def bug_not_found_handler(request: Request, exc: BugNotFoundError) -> JSONResponse:
+async def bug_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(404, ErrorCode.BUG_NOT_FOUND, str(exc))
 
 
-async def preference_not_found_handler(request: Request, exc: PreferenceNotFoundError) -> JSONResponse:
+async def preference_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(404, ErrorCode.PREFERENCE_NOT_FOUND, str(exc))
 
 
-async def code_entry_not_found_handler(request: Request, exc: CodeEntryNotFoundError) -> JSONResponse:
+async def code_entry_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(404, ErrorCode.CODE_ENTRY_NOT_FOUND, str(exc))
 
 
-async def indexing_error_handler(request: Request, exc: IndexingError) -> JSONResponse:
+async def indexing_error_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(422, ErrorCode.INDEXING_ERROR, str(exc))
 
 
-async def commit_not_found_handler(request: Request, exc: CommitNotFoundError) -> JSONResponse:
+async def commit_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(404, ErrorCode.COMMIT_NOT_FOUND, str(exc))
 
 
@@ -88,13 +79,14 @@ async def generic_error_handler(request: Request, exc: Exception) -> JSONRespons
     return _error_response(500, ErrorCode.INTERNAL_ERROR, "Internal server error")
 
 
-async def conversation_not_found_handler(request: Request, exc: ConversationNotFoundError) -> JSONResponse:
+async def conversation_not_found_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(404, ErrorCode.CONVERSATION_NOT_FOUND, str(exc))
 
 
-async def conversation_access_denied_handler(request: Request, exc: ConversationAccessDenied) -> JSONResponse:
+async def conversation_access_denied_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(403, ErrorCode.CONVERSATION_ACCESS_DENIED, str(exc))
 
 
-async def conversation_limit_exceeded_handler(request: Request, exc: ConversationLimitExceeded) -> JSONResponse:
+async def conversation_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
     return _error_response(429, ErrorCode.CONVERSATION_LIMIT_EXCEEDED, str(exc))
+

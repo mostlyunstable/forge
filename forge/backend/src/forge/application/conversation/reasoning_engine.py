@@ -1,13 +1,13 @@
 from typing import Any
-from forge.application.ports.llm_provider import ILLMProvider
+
 from forge.application.conversation.token_manager import ContextWindow
+from forge.application.ports.llm_provider import ILLMProvider
 
 
 def _build_system_prompt(retrieved_context: str) -> str:
     """Build a system prompt based on the user's requirements."""
-    import os
     from pathlib import Path
-    
+
     base_prompt = """# FORGE SYSTEM PROMPT
 
 ## AI Engineering Companion
@@ -231,7 +231,7 @@ Every response should leave the engineer with greater clarity than they had befo
     backend_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
     forge_dir = backend_dir.parent
     rules_path = forge_dir / ".forge_rules.md"
-    
+
     if rules_path.exists():
         try:
             rules_content = rules_path.read_text(encoding="utf-8")
@@ -258,7 +258,7 @@ class ReasoningEngine:
         context_window: ContextWindow,
         retrieved_context: str,
         user_prompt: str | None = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """
         Generate a response based on the context window and retrieved context.
@@ -271,26 +271,39 @@ class ReasoningEngine:
         messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
         for msg in context_window.messages:
-            messages.append({"role": msg.role, "content": msg.content})
+            image_url = msg.metadata.get("image_url")
+            if image_url:
+                messages.append(
+                    {
+                        "role": msg.role,
+                        "content": [  # type: ignore
+                            {"type": "text", "text": msg.content or ""},
+                            {"type": "image_url", "image_url": {"url": image_url}},
+                        ],
+                    }
+                )
+            else:
+                messages.append({"role": msg.role, "content": msg.content})
 
         if user_prompt:
             messages.append({"role": "user", "content": user_prompt})
 
         response = await self._llm.chat(messages, **kwargs)
-        return response
+        return response.content or ""
 
     async def generate_response_stream(
         self,
         context_window: ContextWindow,
         retrieved_context: str,
         user_prompt: str | None = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Any:
         """
         Agentic reasoning loop that handles tools.
         Yields dicts with 'type' and 'content' or 'message'.
         """
         import json
+
         from forge.application.agent.tools import ForgeTools
 
         system_prompt = _build_system_prompt(retrieved_context)
@@ -303,20 +316,36 @@ class ReasoningEngine:
         messages: list[dict[str, Any]] = [{"role": "system", "content": system_prompt}]
         for msg in context_window.messages:
             if msg.role == "tool":
-                messages.append({
-                    "role": "tool",
-                    "content": msg.content,
-                    "tool_call_id": msg.metadata.get("tool_call_id", ""),
-                    "name": msg.metadata.get("name", ""),
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "content": msg.content,
+                        "tool_call_id": msg.metadata.get("tool_call_id", ""),
+                        "name": msg.metadata.get("name", ""),
+                    }
+                )
             elif msg.role == "assistant" and msg.metadata.get("tool_calls"):
-                messages.append({
-                    "role": "assistant",
-                    "content": msg.content or "",
-                    "tool_calls": msg.metadata.get("tool_calls")
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": msg.content or "",
+                        "tool_calls": msg.metadata.get("tool_calls"),
+                    }
+                )
             else:
-                messages.append({"role": msg.role, "content": msg.content or ""})
+                image_url = msg.metadata.get("image_url")
+                if image_url:
+                    messages.append(
+                        {
+                            "role": msg.role,
+                            "content": [
+                                {"type": "text", "text": msg.content or ""},
+                                {"type": "image_url", "image_url": {"url": image_url}},
+                            ],
+                        }
+                    )
+                else:
+                    messages.append({"role": msg.role, "content": msg.content or ""})
 
         if user_prompt:
             messages.append({"role": "user", "content": user_prompt})
@@ -325,33 +354,37 @@ class ReasoningEngine:
         max_iterations = 10
         for _ in range(max_iterations):
             response = await self._llm.chat(messages, tools=tools_schema, **kwargs)
-            
+
             if response.tool_calls:
                 # Append assistant message with tool calls
-                messages.append({
-                    "role": "assistant",
-                    "content": response.content or "",
-                    "tool_calls": response.tool_calls
-                })
-                
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": response.content or "",
+                        "tool_calls": response.tool_calls,
+                    }
+                )
+
                 # Execute tools
                 for tc in response.tool_calls:
                     name = tc["function"]["name"]
                     args_str = tc["function"]["arguments"]
                     yield {"type": "status", "message": f"Running tool '{name}'..."}
-                    
+
                     try:
                         args = json.loads(args_str)
                         result = ForgeTools.execute_tool(name, args)
                     except Exception as e:
                         result = f"Failed to parse arguments or execute: {e}"
-                        
-                    messages.append({
-                        "role": "tool",
-                        "content": str(result),
-                        "tool_call_id": tc["id"],
-                        "name": name,
-                    })
+
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "content": str(result),
+                            "tool_call_id": tc["id"],
+                            "name": name,
+                        }
+                    )
             else:
                 # Final text response
                 # Stream the final response if needed, or just yield it in chunks.
@@ -360,6 +393,5 @@ class ReasoningEngine:
                 # Chunk it for the UI to feel responsive
                 chunk_size = 20
                 for i in range(0, len(content), chunk_size):
-                    yield {"type": "text", "content": content[i:i+chunk_size]}
+                    yield {"type": "text", "content": content[i : i + chunk_size]}
                 break
-

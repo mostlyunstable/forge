@@ -1,10 +1,13 @@
 """GetConversationHistoryUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
 from forge.domain.conversation.exceptions import ConversationNotFoundError
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
 from forge.domain.conversation.value_objects.conversation_id import ConversationId
 
 
@@ -36,7 +39,9 @@ class GetConversationHistoryUseCase:
     def __init__(self, conversation_repo: IConversationRepository) -> None:
         self._conversation_repo = conversation_repo
 
-    async def execute(self, conversation_id: str, include_summary: bool = True) -> ConversationHistoryResponse:
+    async def execute(
+        self, conversation_id: str, include_summary: bool = True
+    ) -> ConversationHistoryResponse:
         conv_id = ConversationId.from_string(conversation_id)
         conversation = await self._conversation_repo.get_by_id(conv_id)
         if not conversation:
@@ -57,7 +62,9 @@ class GetConversationHistoryUseCase:
             id=str(conversation.id),
             project_id=str(conversation.project_id),
             title=conversation.title,
-            summary=(conversation.summaries[-1].content if conversation.summaries else "") if include_summary else "",
+            summary=(conversation.summaries[-1].content if conversation.summaries else "")
+            if include_summary
+            else "",
             messages=messages,
             message_count=len(conversation.messages),
             total_token_count=conversation.total_token_count,

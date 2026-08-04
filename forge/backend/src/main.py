@@ -1,4 +1,5 @@
 """Application entry point."""
+
 import uvicorn
 
 from forge.presentation.app import create_app

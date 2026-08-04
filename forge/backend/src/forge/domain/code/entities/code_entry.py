@@ -1,16 +1,16 @@
 """CodeEntry entity."""
+
 from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TypedDict
 
 from forge.domain.code.value_objects.code_location import FilePath, LineRange
 from forge.domain.code.value_objects.entry_type import EntryType
 from forge.domain.projects.value_objects.project_id import ProjectId
 
-
-from typing import TypedDict, Any
 
 class CodeEntryMetadata(TypedDict, total=False):
     repository: str
@@ -28,9 +28,10 @@ class CodeEntryMetadata(TypedDict, total=False):
     git_author: str | None
     git_branch: str | None
     # Add generic support for other keys
-    # Note: TypedDict handles generic keys via Any if we don't strict-enforce total=True, but 
-    # we can just use dict for the field and type-hint it. For runtime we'll just keep it a dict, 
+    # Note: TypedDict handles generic keys via Any if we don't strict-enforce total=True, but
+    # we can just use dict for the field and type-hint it. For runtime we'll just keep it a dict,
     # but with typed fields in CodeEntryMetadata.
+
 
 @dataclass
 class CodeEntry:
@@ -44,8 +45,8 @@ class CodeEntry:
     content: str
     language: str
     lines: LineRange
-    metadata: CodeEntryMetadata = field(default_factory=dict)
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: CodeEntryMetadata = field(default_factory=lambda: CodeEntryMetadata())
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def display_name(self) -> str:
@@ -62,7 +63,7 @@ class CodeEntry:
         language: str,
         start_line: int,
         end_line: int,
-        metadata: dict | None = None,
+        metadata: CodeEntryMetadata | None = None,
     ) -> CodeEntry:
         return cls(
             id=uuid.uuid4(),
@@ -73,5 +74,5 @@ class CodeEntry:
             content=content,
             language=language,
             lines=LineRange(start=start_line, end=end_line),
-            metadata=metadata or {},
+            metadata=metadata or CodeEntryMetadata(),
         )

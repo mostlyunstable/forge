@@ -1,15 +1,16 @@
 """Integration tests for code indexing use case."""
-import pytest
-from unittest.mock import AsyncMock, MagicMock
+
 from uuid import uuid4
 
+import pytest
+
+from forge.application.code.index_repository import IndexRepositoryRequest, IndexRepositoryUseCase
+from forge.domain.code.repository_contracts.code_repository import ICodeRepository
+from forge.domain.code.value_objects.entry_type import EntryType
 from forge.domain.projects.entities.project import Project
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
-from forge.domain.code.repository_contracts.code_repository import ICodeRepository
-from forge.application.code.index_repository import IndexRepositoryUseCase, IndexRepositoryRequest
-from forge.domain.code.value_objects.entry_type import EntryType
 
 
 class FakeProjectRepo(IProjectRepository):
@@ -30,7 +31,7 @@ class FakeProjectRepo(IProjectRepository):
         return None
 
     async def get_all(self, skip=0, limit=100):
-        return list(self._projects.values())[skip:skip+limit]
+        return list(self._projects.values())[skip : skip + limit]
 
     async def delete(self, project_id):
         if project_id in self._projects:
@@ -60,10 +61,16 @@ class FakeCodeRepo(ICodeRepository):
         return [e for e in self._entries if e.project_id == project_id]
 
     async def get_by_file_path(self, project_id, file_path):
-        return [e for e in self._entries if e.project_id == project_id and e.file_path.value == file_path]
+        return [
+            e
+            for e in self._entries
+            if e.project_id == project_id and e.file_path.value == file_path
+        ]
 
     async def get_by_type(self, project_id, entry_type):
-        return [e for e in self._entries if e.project_id == project_id and e.entry_type == entry_type]
+        return [
+            e for e in self._entries if e.project_id == project_id and e.entry_type == entry_type
+        ]
 
     async def save_many(self, entries):
         self._entries.extend(entries)
@@ -74,7 +81,11 @@ class FakeCodeRepo(ICodeRepository):
         return True
 
     async def search_by_name(self, project_id, query):
-        return [e for e in self._entries if e.project_id == project_id and query.lower() in e.name.lower()]
+        return [
+            e
+            for e in self._entries
+            if e.project_id == project_id and query.lower() in e.name.lower()
+        ]
 
 
 class FakeCodeIndexer:
@@ -83,6 +94,7 @@ class FakeCodeIndexer:
 
     async def index(self, project_id, repo_path):
         from forge.domain.code.entities.code_entry import CodeEntry
+
         entry = CodeEntry.create(
             project_id=project_id,
             file_path="src/main.py",

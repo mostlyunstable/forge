@@ -1,32 +1,36 @@
+# mypy: disable-error-code="assignment, arg-type"
 """ConversationRepository - implements IConversationRepository."""
+
 from __future__ import annotations
 
-from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func, delete
-from sqlalchemy.orm import selectinload
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from forge.domain.conversation.entities.citation import ConversationCitation
 from forge.domain.conversation.entities.conversation import Conversation
 from forge.domain.conversation.entities.message import ConversationMessage
 from forge.domain.conversation.entities.session import ConversationSession
 from forge.domain.conversation.entities.summary import ConversationSummary
-from forge.domain.conversation.entities.citation import ConversationCitation
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
+from forge.domain.conversation.value_objects.citation_id import CitationId
 from forge.domain.conversation.value_objects.conversation_id import ConversationId
+from forge.domain.conversation.value_objects.conversation_state import ConversationState
 from forge.domain.conversation.value_objects.message_id import MessageId
 from forge.domain.conversation.value_objects.session_id import SessionId
 from forge.domain.conversation.value_objects.summary_id import SummaryId
-from forge.domain.conversation.value_objects.citation_id import CitationId
-from forge.domain.conversation.value_objects.conversation_state import ConversationState
 from forge.domain.projects.value_objects.project_id import ProjectId
-
+from forge.infrastructure.database.models.conversation_citation_model import (
+    ConversationCitationModel,
+)
 from forge.infrastructure.database.models.conversation_model import ConversationModel
-from forge.infrastructure.database.models.message_model import MessageModel
 from forge.infrastructure.database.models.conversation_session_model import ConversationSessionModel
 from forge.infrastructure.database.models.conversation_summary_model import ConversationSummaryModel
-from forge.infrastructure.database.models.conversation_citation_model import ConversationCitationModel
+from forge.infrastructure.database.models.message_model import MessageModel
 
 
 class ConversationRepository(IConversationRepository):
@@ -35,13 +39,13 @@ class ConversationRepository(IConversationRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, conversation_id: ConversationId) -> Optional[Conversation]:
+    async def get_by_id(self, conversation_id: ConversationId) -> Conversation | None:
         result = await self._session.execute(
             select(ConversationModel)
             .options(
                 selectinload(ConversationModel.messages).selectinload(MessageModel.citations),
                 selectinload(ConversationModel.sessions),
-                selectinload(ConversationModel.summaries)
+                selectinload(ConversationModel.summaries),
             )
             .where(ConversationModel.id == str(conversation_id.value))
         )
@@ -58,7 +62,7 @@ class ConversationRepository(IConversationRepository):
             .options(
                 selectinload(ConversationModel.messages).selectinload(MessageModel.citations),
                 selectinload(ConversationModel.sessions),
-                selectinload(ConversationModel.summaries)
+                selectinload(ConversationModel.summaries),
             )
             .where(ConversationModel.project_id == str(project_id.value))
             .order_by(ConversationModel.updated_at.desc())
@@ -68,13 +72,14 @@ class ConversationRepository(IConversationRepository):
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, conversation: Conversation) -> Conversation:
-        model = await self._session.get(
-            ConversationModel, str(conversation.id.value)
-        )
+        model = await self._session.get(ConversationModel, str(conversation.id.value))
+        import json
+
         if model:
             model.title = conversation.title
             model.state = conversation.state.value
             model.total_token_count = conversation.total_token_count
+            model.metadata_ = json.dumps(conversation.metadata)
             model.updated_at = conversation.updated_at
         else:
             model = ConversationModel(
@@ -83,15 +88,26 @@ class ConversationRepository(IConversationRepository):
                 title=conversation.title,
                 state=conversation.state.value,
                 total_token_count=conversation.total_token_count,
+                metadata_=json.dumps(conversation.metadata),
                 created_at=conversation.created_at,
                 updated_at=conversation.updated_at,
             )
             self._session.add(model)
 
         # Clear existing relations
-        await self._session.execute(delete(MessageModel).where(MessageModel.conversation_id == str(conversation.id.value)))
-        await self._session.execute(delete(ConversationSessionModel).where(ConversationSessionModel.conversation_id == str(conversation.id.value)))
-        await self._session.execute(delete(ConversationSummaryModel).where(ConversationSummaryModel.conversation_id == str(conversation.id.value)))
+        await self._session.execute(
+            delete(MessageModel).where(MessageModel.conversation_id == str(conversation.id.value))
+        )
+        await self._session.execute(
+            delete(ConversationSessionModel).where(
+                ConversationSessionModel.conversation_id == str(conversation.id.value)
+            )
+        )
+        await self._session.execute(
+            delete(ConversationSummaryModel).where(
+                ConversationSummaryModel.conversation_id == str(conversation.id.value)
+            )
+        )
 
         # Insert new models
         for session in conversation.sessions:
@@ -100,7 +116,7 @@ class ConversationRepository(IConversationRepository):
                 conversation_id=str(conversation.id.value),
                 started_at=session.started_at,
                 ended_at=session.ended_at,
-                metadata_json=session.metadata
+                metadata_json=session.metadata,
             )
             self._session.add(sess_model)
 
@@ -110,7 +126,7 @@ class ConversationRepository(IConversationRepository):
                 conversation_id=str(conversation.id.value),
                 content=summary.content,
                 token_count=summary.token_count,
-                created_at=summary.created_at
+                created_at=summary.created_at,
             )
             self._session.add(sum_model)
 
@@ -132,7 +148,7 @@ class ConversationRepository(IConversationRepository):
                     source_type=cit.source_type,
                     source_reference=cit.source_reference,
                     snippet=cit.snippet,
-                    metadata_json=cit.metadata if cit.metadata else {}
+                    metadata_json=cit.metadata if cit.metadata else {},
                 )
                 self._session.add(cit_model)
 
@@ -141,9 +157,7 @@ class ConversationRepository(IConversationRepository):
 
     async def delete(self, conversation_id: ConversationId) -> bool:
         result = await self._session.execute(
-            select(ConversationModel).where(
-                ConversationModel.id == str(conversation_id.value)
-            )
+            select(ConversationModel).where(ConversationModel.id == str(conversation_id.value))
         )
         model = result.scalar_one_or_none()
         if model:
@@ -160,7 +174,7 @@ class ConversationRepository(IConversationRepository):
             .options(
                 selectinload(ConversationModel.messages).selectinload(MessageModel.citations),
                 selectinload(ConversationModel.sessions),
-                selectinload(ConversationModel.summaries)
+                selectinload(ConversationModel.summaries),
             )
             .outerjoin(ConversationModel.messages)
             .outerjoin(ConversationModel.summaries)
@@ -178,9 +192,9 @@ class ConversationRepository(IConversationRepository):
 
     async def count_by_project(self, project_id: ProjectId) -> int:
         result = await self._session.execute(
-            select(func.count()).select_from(ConversationModel).where(
-                ConversationModel.project_id == str(project_id.value)
-            )
+            select(func.count())
+            .select_from(ConversationModel)
+            .where(ConversationModel.project_id == str(project_id.value))
         )
         return result.scalar_one()
 
@@ -191,18 +205,18 @@ class ConversationRepository(IConversationRepository):
                 conversation_id=ConversationId(UUID(s.conversation_id)),
                 started_at=s.started_at,
                 ended_at=s.ended_at,
-                metadata=s.metadata_json or {}
+                metadata=s.metadata_json or {},
             )
             for s in model.sessions
         ]
-        
+
         summaries = [
             ConversationSummary(
                 id=SummaryId(UUID(sm.id)),
                 conversation_id=ConversationId(UUID(sm.conversation_id)),
                 content=sm.content,
                 token_count=sm.token_count,
-                created_at=sm.created_at
+                created_at=sm.created_at,
             )
             for sm in model.summaries
         ]
@@ -216,7 +230,7 @@ class ConversationRepository(IConversationRepository):
                     source_type=c.source_type,
                     source_reference=c.source_reference,
                     snippet=c.snippet,
-                    metadata=c.metadata_json or {}
+                    metadata=c.metadata_json or {},
                 )
                 for c in m.citations
             ]

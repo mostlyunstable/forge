@@ -1,36 +1,42 @@
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 
 @dataclass
 class SearchResult:
     content: str
-    citations: List[str]
+    citations: list[str]
+
 
 @dataclass
 class ExplainResult:
     explanation: str
-    citations: List[str]
+    citations: list[str]
+
 
 @dataclass
 class GraphResult:
-    nodes: List[Dict[str, Any]]
-    edges: List[Dict[str, Any]]
-    citations: List[str]
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+    citations: list[str]
+
 
 class ContextRetriever:
     def search(self, query: str) -> SearchResult:
-        pass
+        raise NotImplementedError()
+
 
 class ReasoningEngine:
     def explain(self, file_path: str) -> ExplainResult:
-        pass
+        raise NotImplementedError()
+
 
 class IGraphAdapter:
     def get_graph(self) -> GraphResult:
-        pass
+        raise NotImplementedError()
 
     def get_deps(self, target: str) -> GraphResult:
-        pass
+        raise NotImplementedError()
 
     def get_references(self, target: str) -> GraphResult:
-        pass
+        raise NotImplementedError()

@@ -21,6 +21,7 @@ class PreferenceNotFoundError(Exception):
     def __init__(self, key: str) -> None:
         super().__init__(f"Preference not found: {key}")
 
+
 class MemoryNotFoundError(Exception):
     """Raised when a memory cannot be found."""
 

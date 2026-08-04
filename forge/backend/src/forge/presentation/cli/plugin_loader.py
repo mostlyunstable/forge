@@ -1,23 +1,24 @@
 import importlib
 import pkgutil
-from typing import List
+
 from typer import Typer
 
-def load_plugins(app: Typer, package_name: str) -> List[str]:
+
+def load_plugins(app: Typer, package_name: str) -> list[str]:
     """
     Dynamically loads Typer commands and groups from the specified package.
     Expects each plugin module to have a `register(app: Typer)` function.
     """
-    loaded_plugins = []
-    
+    loaded_plugins = []  # type: ignore
+
     try:
         package = importlib.import_module(package_name)
     except ImportError:
         return loaded_plugins
-    
+
     if not hasattr(package, "__path__"):
         return loaded_plugins
-        
+
     for _, module_name, _ in pkgutil.iter_modules(package.__path__):
         full_module_name = f"{package_name}.{module_name}"
         try:
@@ -26,6 +27,6 @@ def load_plugins(app: Typer, package_name: str) -> List[str]:
                 module.register(app)
                 loaded_plugins.append(full_module_name)
         except Exception:
-            pass # In a real app we'd log this, but for now we swallow it or print a warning
-            
+            pass  # In a real app we'd log this, but for now we swallow it or print a warning
+
     return loaded_plugins

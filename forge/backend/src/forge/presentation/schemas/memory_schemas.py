@@ -1,7 +1,8 @@
 """Memory schemas."""
+
 from pydantic import BaseModel, Field, field_validator
 
-from forge.presentation.schemas.validators import validate_uuid, validate_severity
+from forge.presentation.schemas.validators import validate_severity, validate_uuid
 
 
 class SaveDecisionRequest(BaseModel):

@@ -2,6 +2,7 @@
 
 Logs all domain events for audit trail and debugging.
 """
+
 from __future__ import annotations
 
 import structlog

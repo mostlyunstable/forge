@@ -1,5 +1,6 @@
 """ConversationModel ORM mapping."""
-from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
+
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from forge.infrastructure.database.base import Base
@@ -15,7 +16,23 @@ class ConversationModel(Base):
     total_token_count = Column(Integer, server_default="0")
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
+    metadata_ = Column(String, server_default="{}", nullable=False)  # Store JSON string
 
-    messages = relationship("MessageModel", back_populates="conversation", cascade="all, delete-orphan", order_by="MessageModel.created_at")
-    sessions = relationship("ConversationSessionModel", back_populates="conversation", cascade="all, delete-orphan", order_by="ConversationSessionModel.started_at")
-    summaries = relationship("ConversationSummaryModel", back_populates="conversation", cascade="all, delete-orphan", order_by="ConversationSummaryModel.created_at")
+    messages = relationship(
+        "MessageModel",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="MessageModel.created_at",
+    )
+    sessions = relationship(
+        "ConversationSessionModel",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="ConversationSessionModel.started_at",
+    )
+    summaries = relationship(
+        "ConversationSummaryModel",
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="ConversationSummaryModel.created_at",
+    )

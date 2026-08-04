@@ -1,4 +1,5 @@
 """BuildDependencyGraphUseCase - builds dependency graph from indexed code."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

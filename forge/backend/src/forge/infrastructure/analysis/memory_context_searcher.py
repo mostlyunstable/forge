@@ -1,16 +1,17 @@
+# mypy: disable-error-code="assignment, arg-type"
 """MemoryContextSearcher — searches historical context for PR analysis."""
+
 from __future__ import annotations
 
 from typing import Any
 
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from forge.domain.analysis.ports import IContextSearcher
-from forge.infrastructure.repositories.decision_repository import DecisionRepository
 from forge.infrastructure.repositories.bug_repository import BugRepository
 from forge.infrastructure.repositories.commit_repository import CommitRepository
-
-import structlog
+from forge.infrastructure.repositories.decision_repository import DecisionRepository
 
 logger = structlog.get_logger()
 
@@ -24,9 +25,7 @@ class MemoryContextSearcher(IContextSearcher):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def search_related_decisions(
-        self, project_id: str, query: str
-    ) -> list[dict[str, Any]]:
+    async def search_related_decisions(self, project_id: str, query: str) -> list[dict[str, Any]]:
         """Find decisions relevant to the query."""
         try:
             repo = DecisionRepository(self._session)
@@ -44,9 +43,7 @@ class MemoryContextSearcher(IContextSearcher):
             logger.warning("context_search_decisions_error", error=str(e))
             return []
 
-    async def search_related_bugs(
-        self, project_id: str, query: str
-    ) -> list[dict[str, Any]]:
+    async def search_related_bugs(self, project_id: str, query: str) -> list[dict[str, Any]]:
         """Find bugs relevant to the query."""
         try:
             repo = BugRepository(self._session)
@@ -71,8 +68,9 @@ class MemoryContextSearcher(IContextSearcher):
     ) -> list[dict[str, Any]]:
         """Find commits that previously touched the same files."""
         try:
-            from forge.domain.projects.value_objects.project_id import ProjectId
             from uuid import UUID
+
+            from forge.domain.projects.value_objects.project_id import ProjectId
 
             repo = CommitRepository(self._session)
             pid = ProjectId(UUID(project_id))

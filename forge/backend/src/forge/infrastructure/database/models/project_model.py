@@ -1,5 +1,6 @@
 """ProjectModel ORM mapping."""
-from sqlalchemy import Column, String, Text, DateTime, JSON
+
+from sqlalchemy import JSON, Column, DateTime, String, Text
 
 from forge.infrastructure.database.base import Base
 

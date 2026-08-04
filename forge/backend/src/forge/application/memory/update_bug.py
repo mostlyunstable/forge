@@ -1,13 +1,14 @@
 """UpdateBugUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from forge.domain.memory.events import BugReopened, BugResolved
+from forge.domain.memory.exceptions import BugNotFoundError
 from forge.domain.memory.repository_contracts.bug_repository import IBugRepository
 from forge.domain.memory.value_objects.bug_id import BugId
-from forge.domain.memory.exceptions import BugNotFoundError
-from forge.domain.memory.events import BugResolved, BugReopened
 from forge.domain.shared.events import IEventBus
 
 
@@ -74,7 +75,7 @@ class UpdateBugUseCase:
         if request.resolved is not None:
             if request.resolved and not was_resolved:
                 bug.resolved = True
-                bug.resolved_at = datetime.now(timezone.utc)
+                bug.resolved_at = datetime.now(UTC)
             elif not request.resolved and was_resolved:
                 bug.mark_unresolved()
 

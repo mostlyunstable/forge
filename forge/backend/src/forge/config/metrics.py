@@ -1,7 +1,8 @@
 """Prometheus metrics for monitoring."""
+
 from __future__ import annotations
 
-from prometheus_client import Counter, Histogram, Gauge, Info
+from prometheus_client import Counter, Gauge, Histogram, Info
 
 REQUEST_COUNT = Counter(
     "forge_requests_total",

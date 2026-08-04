@@ -1,12 +1,13 @@
 """ReindexDetector — determines when re-indexing is needed."""
+
 from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
 from uuid import UUID
 
-from forge.domain.indexing.repository_contracts.index_job_repository import IIndexJobRepository
 from forge.domain.indexing.repository_contracts.file_index_repository import IFileIndexRepository
+from forge.domain.indexing.repository_contracts.index_job_repository import IIndexJobRepository
 
 
 @dataclass
@@ -89,9 +90,7 @@ class ReindexDetector:
             reason="Project is up to date",
         )
 
-    def _compute_state_hash(
-        self, files: dict[str, str], latest_commit: str | None
-    ) -> str:
+    def _compute_state_hash(self, files: dict[str, str], latest_commit: str | None) -> str:
         """Compute a hash of the project state."""
         # Sort files for deterministic hashing
         sorted_files = sorted(files.items())

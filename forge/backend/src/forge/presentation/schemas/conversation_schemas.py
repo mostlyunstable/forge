@@ -1,4 +1,5 @@
 """Conversation schemas."""
+
 from pydantic import BaseModel, Field, field_validator
 
 from forge.presentation.schemas.validators import validate_uuid

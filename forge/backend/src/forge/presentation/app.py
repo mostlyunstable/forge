@@ -1,4 +1,5 @@
 """FastAPI application factory."""
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -7,41 +8,56 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from forge.config.settings import get_settings
 from forge.config.logging import setup_logging
 from forge.config.metrics import APP_INFO
-from forge.infrastructure.database.connection import database_manager
-from forge.infrastructure.search.qdrant_client import vector_store
-from forge.infrastructure.search.in_memory_vector_store import in_memory_vector_store
-from forge.presentation.routes import projects, memory, chat, code, git, dependencies, metrics, analysis, index, conversations
-from forge.presentation.middleware.error_handler import (
-    project_not_found_handler,
-    project_already_exists_handler,
-    decision_not_found_handler,
-    bug_not_found_handler,
-    preference_not_found_handler,
-    code_entry_not_found_handler,
-    indexing_error_handler,
-    commit_not_found_handler,
-    generic_error_handler,
-    conversation_not_found_handler,
-    conversation_access_denied_handler,
-    conversation_limit_exceeded_handler,
-    _error_response,
-    ErrorCode,
-)
-from forge.presentation.middleware.rate_limit import RateLimitMiddleware
-from forge.presentation.middleware.request_id import RequestIDMiddleware
-from forge.presentation.middleware.metrics import MetricsMiddleware
-from forge.domain.projects.exceptions import ProjectNotFoundError, ProjectAlreadyExistsError
-from forge.domain.memory.exceptions import DecisionNotFoundError, BugNotFoundError, PreferenceNotFoundError
+from forge.config.settings import get_settings
+from forge.domain.analysis.exceptions import AnalysisError, AnalysisReportNotFoundError
 from forge.domain.code.exceptions import CodeEntryNotFoundError, IndexingError
-from forge.domain.git.exceptions import CommitNotFoundError
-from forge.domain.analysis.exceptions import AnalysisReportNotFoundError, AnalysisError
 from forge.domain.conversation.exceptions import (
-    ConversationNotFoundError,
     ConversationAccessDenied,
     ConversationLimitExceeded,
+    ConversationNotFoundError,
+)
+from forge.domain.git.exceptions import CommitNotFoundError
+from forge.domain.memory.exceptions import (
+    BugNotFoundError,
+    DecisionNotFoundError,
+    PreferenceNotFoundError,
+)
+from forge.domain.projects.exceptions import ProjectAlreadyExistsError, ProjectNotFoundError
+from forge.infrastructure.database.connection import database_manager
+from forge.infrastructure.search.in_memory_vector_store import in_memory_vector_store
+from forge.infrastructure.search.qdrant_client import vector_store
+from forge.presentation.middleware.error_handler import (
+    ErrorCode,
+    _error_response,
+    bug_not_found_handler,
+    code_entry_not_found_handler,
+    commit_not_found_handler,
+    conversation_access_denied_handler,
+    conversation_limit_exceeded_handler,
+    conversation_not_found_handler,
+    decision_not_found_handler,
+    generic_error_handler,
+    indexing_error_handler,
+    preference_not_found_handler,
+    project_already_exists_handler,
+    project_not_found_handler,
+)
+from forge.presentation.middleware.metrics import MetricsMiddleware
+from forge.presentation.middleware.rate_limit import RateLimitMiddleware
+from forge.presentation.middleware.request_id import RequestIDMiddleware
+from forge.presentation.routes import (
+    analysis,
+    chat,
+    code,
+    conversations,
+    dependencies,
+    git,
+    index,
+    memory,
+    metrics,
+    projects,
 )
 
 logger = structlog.get_logger()

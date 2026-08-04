@@ -1,12 +1,14 @@
 """Feature entity."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from forge.domain.memory.entities.memory import Memory
 from forge.domain.memory.value_objects.memory_id import MemoryId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.memory.entities.memory import Memory
+
 
 @dataclass(kw_only=True)
 class Feature(Memory):
@@ -38,6 +40,6 @@ class Feature(Memory):
             author=author,
             status=status,
             acceptance_criteria=acceptance_criteria or [],
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )

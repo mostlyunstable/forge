@@ -1,18 +1,24 @@
 """Dependency routes."""
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
-from forge.application.code.build_dependency_graph import BuildDependencyGraphUseCase, BuildDependencyGraphRequest
-from forge.application.code.get_import_graph import GetImportGraphUseCase
+from forge.application.code.build_dependency_graph import (
+    BuildDependencyGraphRequest,
+    BuildDependencyGraphUseCase,
+)
 from forge.application.code.get_call_graph import GetCallGraphUseCase
+from forge.application.code.get_import_graph import GetImportGraphUseCase
+from forge.infrastructure.search.graph_adapter import SQLiteDependencyGraph
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.dependency_schemas import (
     BuildDependencyGraphRequest as BuildSchema,
+)
+from forge.presentation.schemas.dependency_schemas import (
     BuildDependencyGraphResponse,
-    GetImportGraphResponse,
     GetCallGraphResponse,
+    GetImportGraphResponse,
 )
 
 router = APIRouter(prefix="/dependencies", tags=["dependencies"])

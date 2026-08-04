@@ -1,19 +1,21 @@
 """API tests for conversation endpoints."""
+
 import os
+
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from forge.infrastructure.database.base import Base
+from forge.infrastructure.database.connection import database_manager
 from forge.presentation.app import create_app
 from forge.presentation.middleware.auth import create_access_token
-from forge.infrastructure.database.connection import database_manager
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
-    os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing"
+    os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-testing-32-bytes"
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -24,6 +26,22 @@ async def setup_db():
     )
     yield
     await engine.dispose()
+
+
+from unittest.mock import AsyncMock, patch
+
+from forge.infrastructure.llm.llm_service import LLMResponse
+
+
+@pytest.fixture(autouse=True)
+def mock_llm_service():
+    with patch(
+        "forge.infrastructure.llm.llm_service.LLMService.chat", new_callable=AsyncMock
+    ) as mock_chat:
+        mock_chat.return_value = LLMResponse(
+            content="Mocked LLM Response", model="test-model", usage={}
+        )
+        yield mock_chat
 
 
 @pytest.fixture

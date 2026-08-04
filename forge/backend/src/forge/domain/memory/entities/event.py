@@ -1,14 +1,15 @@
 """EngineeringEvent entity."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import FrozenInstanceError, dataclass, field
+from datetime import UTC, datetime
 from typing import Any
-from dataclasses import FrozenInstanceError
 
+from forge.domain.memory.entities.memory import Memory
 from forge.domain.memory.value_objects.memory_id import MemoryId
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.memory.entities.memory import Memory
+
 
 @dataclass(kw_only=True)
 class EngineeringEvent(Memory):
@@ -23,7 +24,9 @@ class EngineeringEvent(Memory):
 
     def __setattr__(self, name: str, value: Any) -> None:
         if getattr(self, "_initialized", False) and name != "_initialized":
-            raise FrozenInstanceError(f"cannot assign to field {name!r}, EngineeringEvent is immutable")
+            raise FrozenInstanceError(
+                f"cannot assign to field {name!r}, EngineeringEvent is immutable"
+            )
         super().__setattr__(name, value)
 
     def update_content(self, title: str, summary: str, body: str) -> None:
@@ -55,6 +58,6 @@ class EngineeringEvent(Memory):
             author=author,
             event_type=event_type,
             event_data=event_data or {},
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )

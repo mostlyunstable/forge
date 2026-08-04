@@ -1,11 +1,12 @@
 """UpdateDecisionUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from forge.domain.memory.exceptions import DecisionNotFoundError
 from forge.domain.memory.repository_contracts.decision_repository import IDecisionRepository
 from forge.domain.memory.value_objects.decision_id import DecisionId
-from forge.domain.memory.exceptions import DecisionNotFoundError
 from forge.domain.shared.events import IEventBus
 
 

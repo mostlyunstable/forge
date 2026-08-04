@@ -1,5 +1,6 @@
 """IndexJobModel ORM mapping."""
-from sqlalchemy import Column, String, DateTime, JSON, Float
+
+from sqlalchemy import JSON, Column, DateTime, String
 
 from forge.infrastructure.database.base import Base
 

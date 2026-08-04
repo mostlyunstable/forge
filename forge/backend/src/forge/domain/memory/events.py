@@ -1,7 +1,8 @@
 """Memory domain events (decisions, bugs, preferences)."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from forge.domain.shared.events import DomainEvent
 

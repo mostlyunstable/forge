@@ -1,21 +1,24 @@
 """SendConversationMessageUseCase — multi-turn conversation with memory."""
+
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import structlog
 
-from forge.domain.conversation.entities.conversation import Conversation
-from forge.domain.conversation.entities.message import Message
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
-from forge.domain.conversation.exceptions import ConversationNotFoundError
-from forge.domain.conversation.value_objects.conversation_id import ConversationId
-from forge.domain.conversation.events import MessageAdded, ConversationSummarized
-from forge.domain.shared.events import IEventBus
 from forge.application.conversation.context_builder import ContextBuilder
 from forge.application.conversation.token_manager import TokenManager
+from forge.domain.conversation.entities.conversation import Conversation
+from forge.domain.conversation.entities.message import Message
+from forge.domain.conversation.events import ConversationSummarized, MessageAdded
+from forge.domain.conversation.exceptions import ConversationNotFoundError
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
+from forge.domain.conversation.value_objects.conversation_id import ConversationId
+from forge.domain.shared.events import IEventBus
 
 logger = structlog.get_logger()
 
@@ -71,7 +74,7 @@ class SendConversationMessageUseCase:
 
         # 1. Create and persist user message
         user_msg = Message.create_user(
-            conversation_id=str(conv_id),
+            conversation_id=conv_id,
             content=request.message,
             token_count=self._token_manager.estimate_tokens(request.message),
         )
@@ -98,12 +101,13 @@ class SendConversationMessageUseCase:
         )
 
         # 3. Build context within token budget
-        memory_tokens = self._token_manager.estimate_tokens(
-            str(memory_context)
-        ) if memory_context else 0
+        memory_tokens = (
+            self._token_manager.estimate_tokens(str(memory_context)) if memory_context else 0
+        )
 
         context_window = self._token_manager.build_context_window(
-            conversation, memory_tokens=memory_tokens,
+            conversation,
+            memory_tokens=memory_tokens,
         )
 
         llm_context = self._context_builder.build(
@@ -113,32 +117,40 @@ class SendConversationMessageUseCase:
             max_history_tokens=context_window.message_tokens,
         )
 
-        # 4. Call LLM
+
+        # 4. Invoke Reasoning Engine or LLM directly
         if not self._llm_service.is_configured:
-            response_text = self._format_raw_context(memory_context)
+            # Just format context without LLM
+            response_text = "LLM not configured. Context retrieved successfully."
             sources = llm_context.sources
             token_count = 0
         else:
             start = time.perf_counter()
-            messages = [{"role": "system", "content": llm_context.system_prompt}]
-            messages.extend(llm_context.history_messages)
-            messages.append({"role": "user", "content": request.message})
+            if False:  # Use advanced reasoning later
+                pass
+            else:
+                messages = [
+                    {"role": "system", "content": llm_context.system_prompt},
+                ]
+                for m in llm_context.history_messages:
+                    messages.append(m)
+                messages.append({"role": "user", "content": llm_context.user_message})
 
-            llm_response = await self._llm_service.chat(messages)
-            response_text = llm_response.content
-            token_count = llm_response.usage.get("total_tokens", 0)
-            sources = llm_context.sources
+                llm_response = await self._llm_service.chat(messages)
+                response_text = llm_response.content
+                token_count = llm_response.usage.get("total_tokens", 0)
+                sources = llm_context.sources
 
-            logger.info(
-                "conversation_llm_call",
-                conversation_id=str(conv_id),
-                duration=time.perf_counter() - start,
-                tokens=token_count,
-            )
+                logger.info(
+                    "conversation_llm_call",
+                    conversation_id=str(conv_id),
+                    duration=time.perf_counter() - start,
+                    tokens=token_count,
+                )
 
         # 5. Create and persist assistant message
         assistant_msg = Message.create_assistant(
-            conversation_id=str(conv_id),
+            conversation_id=conv_id,
             content=response_text,
             token_count=self._token_manager.estimate_tokens(response_text),
             metadata={"sources": sources, "llm_tokens": token_count},
@@ -180,11 +192,14 @@ class SendConversationMessageUseCase:
                 return
 
             summary_prompt = [
-                {"role": "system", "content": (
-                    "Summarize this engineering conversation concisely. "
-                    "Focus on: decisions made, problems solved, key technical details. "
-                    "Output a 2-3 paragraph summary."
-                )},
+                {
+                    "role": "system",
+                    "content": (
+                        "Summarize this engineering conversation concisely. "
+                        "Focus on: decisions made, problems solved, key technical details. "
+                        "Output a 2-3 paragraph summary."
+                    ),
+                },
             ]
             for msg in older_messages:
                 summary_prompt.append({"role": msg.role, "content": msg.content})
@@ -194,19 +209,24 @@ class SendConversationMessageUseCase:
             token_count = self._token_manager.estimate_tokens(new_summary)
 
             # Merge with existing summary
-            if conversation.summary:
-                new_summary = f"{conversation.summary}\n\n{new_summary}"
+            existing_summary_text = ""
+            if conversation.summaries:
+                existing_summary_text = conversation.summaries[-1].content
+                new_summary = f"{existing_summary_text}\n\n{new_summary}"
                 token_count = self._token_manager.estimate_tokens(new_summary)
 
-            conversation.set_summary(new_summary, token_count)
+            from forge.domain.conversation.entities.summary import ConversationSummary
+            summary_obj = ConversationSummary.create(
+                conversation_id=conversation.id,
+                content=new_summary,
+                token_count=token_count
+            )
+            conversation.add_summary(summary_obj)
 
             # Prune old messages (keep last 10)
             pruned_count = len(conversation.messages) - 10
             conversation.messages = conversation.messages[-10:]
-            conversation.message_count = len(conversation.messages)
-            conversation.total_token_count = sum(
-                m.token_count for m in conversation.messages
-            )
+            conversation.total_token_count = sum(m.token_count for m in conversation.messages)
 
             await self._conversation_repo.save(conversation)
 

@@ -1,12 +1,13 @@
 """DeleteBugUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from forge.domain.memory.events import BugDeleted
+from forge.domain.memory.exceptions import BugNotFoundError
 from forge.domain.memory.repository_contracts.bug_repository import IBugRepository
 from forge.domain.memory.value_objects.bug_id import BugId
-from forge.domain.memory.exceptions import BugNotFoundError
-from forge.domain.memory.events import BugDeleted
 from forge.domain.shared.events import IEventBus
 
 
@@ -38,8 +39,6 @@ class DeleteBugUseCase:
         deleted = await self._bug_repo.delete(BugId.from_string(bug_id))
 
         if self._event_bus and deleted:
-            await self._event_bus.publish(
-                BugDeleted(bug_id=bug_id, project_id=project_id)
-            )
+            await self._event_bus.publish(BugDeleted(bug_id=bug_id, project_id=project_id))
 
         return DeleteBugResponse(deleted=deleted, bug_id=bug_id)

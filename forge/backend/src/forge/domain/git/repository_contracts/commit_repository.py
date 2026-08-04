@@ -1,8 +1,8 @@
 """ICommitRepository - contract for commit persistence."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from forge.domain.git.entities.commit import Commit
 from forge.domain.git.value_objects.commit_classification import CommitClassification
@@ -14,7 +14,7 @@ class ICommitRepository(ABC):
     """Interface for commit persistence."""
 
     @abstractmethod
-    async def get_by_sha(self, project_id: ProjectId, sha: CommitSha) -> Optional[Commit]:
+    async def get_by_sha(self, project_id: ProjectId, sha: CommitSha) -> Commit | None:
         """Retrieve a commit by its SHA."""
 
     @abstractmethod

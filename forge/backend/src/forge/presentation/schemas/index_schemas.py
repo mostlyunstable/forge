@@ -1,4 +1,5 @@
 """Schemas for indexing API."""
+
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
@@ -9,7 +10,9 @@ class StartIndexRequest(BaseModel):
 
     project_id: str = Field(..., description="Project ID to index")
     repo_path: str = Field(..., description="Path to the git repository")
-    type: str = Field(default="full", description="Index type: full, incremental, git_only, memory_only")
+    type: str = Field(
+        default="full", description="Index type: full, incremental, git_only, memory_only"
+    )
 
 
 class IndexJobResponse(BaseModel):

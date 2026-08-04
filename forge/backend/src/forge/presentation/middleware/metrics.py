@@ -1,4 +1,5 @@
 """Metrics collection middleware."""
+
 from __future__ import annotations
 
 import time
@@ -6,7 +7,7 @@ import time
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from forge.config.metrics import REQUEST_COUNT, REQUEST_LATENCY, ACTIVE_REQUESTS
+from forge.config.metrics import ACTIVE_REQUESTS, REQUEST_COUNT, REQUEST_LATENCY
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
@@ -41,4 +42,4 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             endpoint=request.url.path,
         ).observe(duration)
 
-        return response
+        return response  # type: ignore

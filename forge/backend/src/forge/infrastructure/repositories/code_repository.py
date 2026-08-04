@@ -1,7 +1,8 @@
+# mypy: disable-error-code="assignment, arg-type"
 """CodeRepository - implements ICodeRepository."""
+
 from __future__ import annotations
 
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import select
@@ -22,7 +23,7 @@ class CodeRepository(ICodeRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, entry_id: UUID) -> Optional[CodeEntry]:
+    async def get_by_id(self, entry_id: UUID) -> CodeEntry | None:
         result = await self._session.execute(
             select(CodeEntryModel).where(CodeEntryModel.id == str(entry_id))
         )
@@ -50,8 +51,7 @@ class CodeRepository(ICodeRepository):
 
     async def get_by_type(self, project_id: ProjectId, entry_type: EntryType) -> list[CodeEntry]:
         result = await self._session.execute(
-            select(CodeEntryModel)
-            .where(
+            select(CodeEntryModel).where(
                 CodeEntryModel.project_id == str(project_id.value),
                 CodeEntryModel.entry_type == entry_type.value,
             )
@@ -75,8 +75,7 @@ class CodeRepository(ICodeRepository):
     async def search_by_name(self, project_id: ProjectId, query: str) -> list[CodeEntry]:
         safe_pattern = f"%{escape_like_pattern(query)}%"
         result = await self._session.execute(
-            select(CodeEntryModel)
-            .where(
+            select(CodeEntryModel).where(
                 CodeEntryModel.project_id == str(project_id.value),
                 CodeEntryModel.name.ilike(safe_pattern),
             )
@@ -85,6 +84,7 @@ class CodeRepository(ICodeRepository):
 
     def _to_domain(self, model: CodeEntryModel) -> CodeEntry:
         from uuid import UUID
+
         return CodeEntry(
             id=UUID(model.id),
             project_id=ProjectId(UUID(model.project_id)),

@@ -1,8 +1,9 @@
 """FileIndex — tracks indexed files and their state."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 
@@ -19,7 +20,7 @@ class FileIndex:
     content_hash: str
     language: str = ""
     last_indexed_commit: str = ""
-    parsed_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    parsed_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     index_job_id: UUID | None = None
 
     def needs_reindex(self, current_hash: str) -> bool:

@@ -1,12 +1,13 @@
 """DeleteProjectUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from forge.domain.projects.events import ProjectDeleted
+from forge.domain.projects.exceptions import ProjectNotFoundError
 from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.projects.exceptions import ProjectNotFoundError
-from forge.domain.projects.events import ProjectDeleted
 from forge.domain.shared.events import IEventBus
 
 
@@ -37,8 +38,6 @@ class DeleteProjectUseCase:
         deleted = await self._project_repo.delete(ProjectId.from_string(project_id))
 
         if self._event_bus and deleted:
-            await self._event_bus.publish(
-                ProjectDeleted(project_id=project_id)
-            )
+            await self._event_bus.publish(ProjectDeleted(project_id=project_id))
 
         return DeleteProjectResponse(deleted=deleted, project_id=project_id)

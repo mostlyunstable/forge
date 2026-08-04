@@ -3,6 +3,7 @@ SqliteRetriever — fast keyword search over code_entries using SQLite FTS5.
 
 No Qdrant, no embeddings needed. Works out of the box.
 """
+
 from __future__ import annotations
 
 import re
@@ -10,7 +11,9 @@ from pathlib import Path
 
 import aiosqlite
 
-DB_PATH = Path(__file__).parent.parent.parent.parent.parent.parent / "forge" / "backend" / "forge.db"
+DB_PATH = (
+    Path(__file__).parent.parent.parent.parent.parent.parent / "forge" / "backend" / "forge.db"
+)
 PROJECT_ID = "00000000-0000-0000-0000-000000000001"
 MAX_RESULTS = 8
 MAX_CONTENT_CHARS = 800  # truncate each snippet for context budget
@@ -115,15 +118,14 @@ class SqliteRetriever:
     async def _like_search(self, db, words: list[str], top_k: int) -> list[dict]:
         """LIKE-based fallback when FTS table isn't available."""
         conditions = " AND ".join(
-            f"(content LIKE ? OR name LIKE ? OR file_path LIKE ?)"
-            for _ in words
+            "(content LIKE ? OR name LIKE ? OR file_path LIKE ?)" for _ in words
         )
         params: list[str] = []
         for w in words:
             pat = f"%{w}%"
             params.extend([pat, pat, pat])
         params.append(PROJECT_ID)
-        params.append(top_k)
+        params.append(top_k)  # type: ignore
 
         cur = await db.execute(
             f"""
@@ -152,7 +154,5 @@ class SqliteRetriever:
             return ""
         parts = []
         for r in results:
-            parts.append(
-                f"### {r['file_path']} ({r['name']})\n```\n{r['content']}\n```"
-            )
+            parts.append(f"### {r['file_path']} ({r['name']})\n```\n{r['content']}\n```")
         return "\n\n".join(parts)

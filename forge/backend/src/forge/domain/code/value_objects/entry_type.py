@@ -1,8 +1,9 @@
 """EntryType value object."""
-from enum import Enum
+
+from enum import StrEnum
 
 
-class EntryType(str, Enum):
+class EntryType(StrEnum):
     """Classification of code entries extracted by Tree-sitter."""
 
     CLASS = "class"

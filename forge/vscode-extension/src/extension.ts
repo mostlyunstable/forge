@@ -7,7 +7,9 @@ export function activate(context: vscode.ExtensionContext) {
   const api = new ForgeApiClient();
 
   const treeProvider = new MemoryTreeProvider(api);
-  vscode.window.registerTreeDataProvider("forge-memories", treeProvider);
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("forge-memories", treeProvider)
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("forge.chat", () => {

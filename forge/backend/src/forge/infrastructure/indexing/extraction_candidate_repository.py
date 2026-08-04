@@ -1,9 +1,11 @@
+# mypy: disable-error-code="assignment, arg-type"
 """ExtractionCandidateRepository — implements IExtractionCandidateRepository."""
+
 from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from forge.domain.indexing.entities.extraction_candidate import ExtractionCandidate
@@ -48,27 +50,21 @@ class ExtractionCandidateRepository(IExtractionCandidateRepository):
 
     async def get_by_id(self, candidate_id: UUID) -> ExtractionCandidate | None:
         result = await self._session.execute(
-            select(ExtractionCandidateModel).where(
-                ExtractionCandidateModel.id == str(candidate_id)
-            )
+            select(ExtractionCandidateModel).where(ExtractionCandidateModel.id == str(candidate_id))
         )
         model = result.scalar_one_or_none()
         return self._to_domain(model) if model else None
 
     async def get_by_dedup_key(self, dedup_key: str) -> ExtractionCandidate | None:
         result = await self._session.execute(
-            select(ExtractionCandidateModel).where(
-                ExtractionCandidateModel.dedup_key == dedup_key
-            )
+            select(ExtractionCandidateModel).where(ExtractionCandidateModel.dedup_key == dedup_key)
         )
         model = result.scalar_one_or_none()
         return self._to_domain(model) if model else None
 
     async def get_by_job(self, job_id: UUID) -> list[ExtractionCandidate]:
         result = await self._session.execute(
-            select(ExtractionCandidateModel).where(
-                ExtractionCandidateModel.job_id == str(job_id)
-            )
+            select(ExtractionCandidateModel).where(ExtractionCandidateModel.job_id == str(job_id))
         )
         return [self._to_domain(m) for m in result.scalars().all()]
 

@@ -29,7 +29,7 @@ export class ForgeApiClient {
         headers: this.headers(),
         body: JSON.stringify(body),
       });
-      const data = await resp.json();
+      const data = (await resp.json()) as { response?: string };
       return data.response || "No response from Forge.";
     } catch (err) {
       return `Error connecting to Forge: ${err}`;
@@ -57,7 +57,7 @@ export class ForgeApiClient {
       const resp = await fetch(`${this.baseUrl}/api/v1/memory/search?q=`, {
         headers: this.headers(),
       });
-      const data = await resp.json();
+      const data = (await resp.json()) as { results?: any[] };
       return data.results || [];
     } catch {
       return [];

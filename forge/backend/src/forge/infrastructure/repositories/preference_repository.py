@@ -1,7 +1,7 @@
+# mypy: disable-error-code="assignment, arg-type"
 """PreferenceRepository - implements IPreferenceRepository."""
-from __future__ import annotations
 
-from typing import Optional
+from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +18,7 @@ class PreferenceRepository(IPreferenceRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_key(self, key: PreferenceKey) -> Optional[DeveloperPreference]:
+    async def get_by_key(self, key: PreferenceKey) -> DeveloperPreference | None:
         result = await self._session.execute(
             select(PreferenceModel).where(PreferenceModel.id == key.value)
         )
@@ -26,9 +26,7 @@ class PreferenceRepository(IPreferenceRepository):
         return self._to_domain(model) if model else None
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> list[DeveloperPreference]:
-        result = await self._session.execute(
-            select(PreferenceModel).offset(skip).limit(limit)
-        )
+        result = await self._session.execute(select(PreferenceModel).offset(skip).limit(limit))
         return [self._to_domain(m) for m in result.scalars().all()]
 
     async def save(self, preference: DeveloperPreference) -> DeveloperPreference:

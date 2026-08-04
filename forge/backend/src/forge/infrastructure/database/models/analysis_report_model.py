@@ -1,5 +1,7 @@
 """AnalysisReportModel — SQLAlchemy ORM model for analysis reports."""
-from sqlalchemy import Column, String, Integer, Text, DateTime, JSON, Boolean
+
+from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
+
 from forge.infrastructure.database.base import Base
 
 

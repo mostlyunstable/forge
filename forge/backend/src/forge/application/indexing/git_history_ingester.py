@@ -1,13 +1,13 @@
 """GitHistoryIngester — ingests git history into the knowledge graph."""
+
 from __future__ import annotations
 
 import structlog
-from uuid import UUID
 
-from forge.domain.indexing.entities.index_job import IndexJob
-from forge.domain.indexing.repository_contracts.index_job_repository import IIndexJobRepository
-from forge.domain.indexing.ports.git_commit_parser import IGitCommitParser
 from forge.application.indexing.memory_extractor import MemoryExtractor
+from forge.domain.indexing.entities.index_job import IndexJob
+from forge.domain.indexing.ports.git_commit_parser import IGitCommitParser
+from forge.domain.indexing.repository_contracts.index_job_repository import IIndexJobRepository
 
 logger = structlog.get_logger()
 

@@ -1,4 +1,5 @@
 """IIndexJobRepository — persistence port for IndexJob aggregate."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

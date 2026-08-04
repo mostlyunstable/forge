@@ -1,4 +1,5 @@
 """Request ID middleware for distributed tracing."""
+
 from __future__ import annotations
 
 import uuid
@@ -33,4 +34,4 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         )
 
         response.headers["X-Request-ID"] = request_id
-        return response
+        return response  # type: ignore

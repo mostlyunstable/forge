@@ -1,11 +1,12 @@
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, Static, Label
-from textual.containers import Container, Vertical, Horizontal
 from textual.binding import Binding
+from textual.containers import Container, Vertical
+from textual.widgets import Footer, Header, Label, Static
+
 
 class Dashboard(App):
     """Interactive Textual Dashboard for Forge."""
-    
+
     CSS = """
     Screen {
         layout: vertical;
@@ -48,7 +49,10 @@ class Dashboard(App):
                 yield Label(f"Memory: {self.project_info.get('memory_count', 0)}")
                 yield Label(f"Sessions: {self.project_info.get('active_sessions', 0)}")
             with Container(id="content"):
-                yield Static("Welcome to Forge Interactive Dashboard.\nUse Command Palette F1-F7 for actions.", id="main-text")
+                yield Static(
+                    "Welcome to Forge Interactive Dashboard.\nUse Command Palette F1-F7 for actions.",
+                    id="main-text",
+                )
         yield Footer()
 
     def action_chat(self) -> None:
@@ -56,6 +60,6 @@ class Dashboard(App):
 
     def action_search(self) -> None:
         self.query_one("#main-text").update("Opened Search view.")
-        
+
     def action_graph(self) -> None:
         self.query_one("#main-text").update("Opened Graph view.")

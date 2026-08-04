@@ -1,11 +1,11 @@
 """Risk calculation logic for PR analysis."""
+
 from __future__ import annotations
 
 from forge.domain.analysis.entities.change_set import ChangeSet
 from forge.domain.analysis.entities.dependency_impact import DependencyImpact
 from forge.domain.analysis.entities.historical_context import HistoricalContext
 from forge.domain.analysis.entities.risk_assessment import RiskAssessment, RiskFactor
-from forge.domain.analysis.value_objects.risk_level import RiskLevel
 
 
 def calculate_risk(
@@ -17,9 +17,7 @@ def calculate_risk(
     factors: list[RiskFactor] = []
 
     # Factor 1: Core module changes (weight: 3)
-    core_pct = (
-        len(change_set.core_module_files) / max(change_set.total_files, 1)
-    ) * 100
+    core_pct = (len(change_set.core_module_files) / max(change_set.total_files, 1)) * 100
     factors.append(
         RiskFactor(
             name="core_module_changes",

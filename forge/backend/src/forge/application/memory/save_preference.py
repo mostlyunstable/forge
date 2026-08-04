@@ -1,12 +1,13 @@
 """SavePreferenceUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from forge.domain.memory.entities.preference import DeveloperPreference
+from forge.domain.memory.events import PreferenceRecorded, PreferenceStrengthened
 from forge.domain.memory.repository_contracts.preference_repository import IPreferenceRepository
 from forge.domain.memory.value_objects.preference_key import PreferenceKey
-from forge.domain.memory.events import PreferenceRecorded, PreferenceStrengthened
 from forge.domain.shared.events import IEventBus
 
 

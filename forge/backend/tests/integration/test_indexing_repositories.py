@@ -1,20 +1,21 @@
 """Integration tests for indexing repositories."""
+
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
-from uuid import uuid4
-from datetime import datetime, timezone
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from forge.infrastructure.database.base import Base
-from forge.domain.indexing.entities.index_job import IndexJob
-from forge.domain.indexing.entities.file_index import FileIndex
 from forge.domain.indexing.entities.extraction_candidate import ExtractionCandidate
+from forge.domain.indexing.entities.file_index import FileIndex
+from forge.domain.indexing.entities.index_job import IndexJob
 from forge.domain.indexing.value_objects.index_type import IndexType
-from forge.infrastructure.indexing.index_job_repository import IndexJobRepository
-from forge.infrastructure.indexing.file_index_repository import FileIndexRepository
+from forge.infrastructure.database.base import Base
 from forge.infrastructure.indexing.extraction_candidate_repository import (
     ExtractionCandidateRepository,
 )
+from forge.infrastructure.indexing.file_index_repository import FileIndexRepository
+from forge.infrastructure.indexing.index_job_repository import IndexJobRepository
 
 
 @pytest_asyncio.fixture
@@ -135,9 +136,7 @@ class TestFileIndexRepository:
         )
         await repo.save(fi)
 
-        stale = await repo.get_stale_files(
-            project_id, {"src/main.py": "new_hash"}
-        )
+        stale = await repo.get_stale_files(project_id, {"src/main.py": "new_hash"})
         assert len(stale) == 1
         assert stale[0].file_path == "src/main.py"
 

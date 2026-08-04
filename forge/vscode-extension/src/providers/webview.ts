@@ -79,8 +79,15 @@ export class ChatPanel {
 
     function addMessage(role, content) {
       const div = document.createElement('div');
-      div.className = 'msg ' + role;
-      div.innerHTML = '<div class="role">' + role + '</div><div class="content">' + content.replace(/</g, '&lt;') + '</div>';
+      div.className = 'msg ' + (role === 'user' ? 'user' : 'assistant');
+      const roleEl = document.createElement('div');
+      roleEl.className = 'role';
+      roleEl.textContent = role;
+      const contentEl = document.createElement('div');
+      contentEl.className = 'content';
+      contentEl.textContent = content;
+      div.appendChild(roleEl);
+      div.appendChild(contentEl);
       messages.appendChild(div);
       messages.scrollTop = messages.scrollHeight;
     }

@@ -1,4 +1,5 @@
 """GetAnalysisReportUseCase — retrieves analysis reports."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -77,7 +78,12 @@ class GetAnalysisReportUseCase:
             related_bugs=len(report.historical_context.related_bugs),
             related_commits=len(report.historical_context.related_commits),
             recommendations=[
-                {"area": r.area, "priority": r.priority, "description": r.description, "files": r.files}
+                {
+                    "area": r.area,
+                    "priority": r.priority,
+                    "description": r.description,
+                    "files": r.files,
+                }
                 for r in report.recommendations
             ],
             created_at=report.created_at.isoformat(),

@@ -1,9 +1,8 @@
 """Architecture tests: enforce dependency rules, file size limits, module isolation.
 These tests MUST pass in CI. Any failure is a build breaker."""
+
 import ast
-import os
 from pathlib import Path
-import pytest
 
 SRC_DIR = Path(__file__).parent.parent.parent / "src" / "forge"
 
@@ -66,7 +65,7 @@ class TestDomainIsolation:
             for imp in _get_imports_from_file(filepath):
                 if _is_application_import(imp):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Domain imports Application:\n" + "\n".join(violations)
+        assert not violations, "Domain imports Application:\n" + "\n".join(violations)
 
     def test_domain_has_no_infrastructure_imports(self):
         violations = []
@@ -74,7 +73,7 @@ class TestDomainIsolation:
             for imp in _get_imports_from_file(filepath):
                 if _is_infrastructure_import(imp):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Domain imports Infrastructure:\n" + "\n".join(violations)
+        assert not violations, "Domain imports Infrastructure:\n" + "\n".join(violations)
 
     def test_domain_has_no_presentation_imports(self):
         violations = []
@@ -82,7 +81,7 @@ class TestDomainIsolation:
             for imp in _get_imports_from_file(filepath):
                 if _is_presentation_import(imp):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Domain imports Presentation:\n" + "\n".join(violations)
+        assert not violations, "Domain imports Presentation:\n" + "\n".join(violations)
 
 
 class TestApplicationIsolation:
@@ -94,7 +93,7 @@ class TestApplicationIsolation:
             for imp in _get_imports_from_file(filepath):
                 if _is_infrastructure_import(imp):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Application imports Infrastructure:\n" + "\n".join(violations)
+        assert not violations, "Application imports Infrastructure:\n" + "\n".join(violations)
 
     def test_application_has_no_presentation_imports(self):
         violations = []
@@ -102,7 +101,7 @@ class TestApplicationIsolation:
             for imp in _get_imports_from_file(filepath):
                 if _is_presentation_import(imp):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Application imports Presentation:\n" + "\n".join(violations)
+        assert not violations, "Application imports Presentation:\n" + "\n".join(violations)
 
 
 class TestInfrastructureIsolation:
@@ -114,7 +113,7 @@ class TestInfrastructureIsolation:
             for imp in _get_imports_from_file(filepath):
                 if _is_application_import(imp):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Infrastructure imports Application:\n" + "\n".join(violations)
+        assert not violations, "Infrastructure imports Application:\n" + "\n".join(violations)
 
     def test_infrastructure_has_no_presentation_imports(self):
         violations = []
@@ -122,15 +121,15 @@ class TestInfrastructureIsolation:
             for imp in _get_imports_from_file(filepath):
                 if _is_presentation_import(imp):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Infrastructure imports Presentation:\n" + "\n".join(violations)
+        assert not violations, "Infrastructure imports Presentation:\n" + "\n".join(violations)
 
 
 class TestPresentationIsolation:
     """Presentation layer architecture rules.
-    
+
     Routes MAY import infrastructure for dependency wiring (instantiating repos, adapters).
     This is the composition root - where concrete implementations are created.
-    
+
     Rules:
     - Routes must NOT contain business logic (only validation + use case delegation)
     - Business logic must NOT live in presentation layer
@@ -147,7 +146,7 @@ class TestPresentationIsolation:
                 tree = ast.parse(content)
             except (SyntaxError, UnicodeDecodeError):
                 continue
-            
+
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     func_lines = node.end_lineno - node.lineno + 1 if node.end_lineno else 0
@@ -155,7 +154,7 @@ class TestPresentationIsolation:
                         violations.append(
                             f"{filepath.relative_to(SRC_DIR)}: route function {node.name} has {func_lines} lines (max 50)"
                         )
-        assert not violations, f"Routes with business logic:\n" + "\n".join(violations)
+        assert not violations, "Routes with business logic:\n" + "\n".join(violations)
 
 
 class TestFileSizeLimits:
@@ -169,7 +168,7 @@ class TestFileSizeLimits:
                 violations.append(
                     f"{filepath.relative_to(SRC_DIR)}: {len(lines)} lines (max {MAX_FILE_LINES})"
                 )
-        assert not violations, f"Oversized files:\n" + "\n".join(violations)
+        assert not violations, "Oversized files:\n" + "\n".join(violations)
 
 
 class TestModuleIsolation:
@@ -184,7 +183,7 @@ class TestModuleIsolation:
             for imp in _get_imports_from_file(filepath):
                 if imp.startswith("forge.domain.memory"):
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Projects imports Memory:\n" + "\n".join(violations)
+        assert not violations, "Projects imports Memory:\n" + "\n".join(violations)
 
     def test_memory_domain_does_not_import_projects_entities(self):
         """Memory may import shared value objects (ProjectId) but NOT project entities."""
@@ -194,4 +193,4 @@ class TestModuleIsolation:
             for imp in _get_imports_from_file(filepath):
                 if imp.startswith("forge.domain.projects") and "value_objects" not in imp:
                     violations.append(f"{filepath.relative_to(SRC_DIR)}: imports {imp}")
-        assert not violations, f"Memory imports Projects entities:\n" + "\n".join(violations)
+        assert not violations, "Memory imports Projects entities:\n" + "\n".join(violations)

@@ -1,28 +1,38 @@
 """IncrementalIndexUseCase — indexes new changes since last job."""
+
 from __future__ import annotations
 
 import hashlib
-import structlog
 import os
 from uuid import UUID
 
-from forge.domain.indexing.entities.index_job import IndexJob
+import structlog
+
+from forge.application.indexing.memory_extractor import MemoryExtractor
 from forge.domain.indexing.entities.file_index import FileIndex
-from forge.domain.indexing.value_objects.index_type import IndexType
-from forge.domain.indexing.repository_contracts.index_job_repository import IIndexJobRepository
-from forge.domain.indexing.repository_contracts.file_index_repository import IFileIndexRepository
+from forge.domain.indexing.entities.index_job import IndexJob
+from forge.domain.indexing.ports.git_commit_parser import IGitCommitParser
+from forge.domain.indexing.ports.git_diff_provider import IGitDiffProvider
 from forge.domain.indexing.repository_contracts.extraction_candidate_repository import (
     IExtractionCandidateRepository,
 )
-from forge.domain.indexing.ports.git_diff_provider import IGitDiffProvider
-from forge.domain.indexing.ports.git_commit_parser import IGitCommitParser
-from forge.application.indexing.memory_extractor import MemoryExtractor
+from forge.domain.indexing.repository_contracts.file_index_repository import IFileIndexRepository
+from forge.domain.indexing.repository_contracts.index_job_repository import IIndexJobRepository
+from forge.domain.indexing.value_objects.index_type import IndexType
 
 logger = structlog.get_logger()
 
 SKIP_DIRS = {
-    ".git", "node_modules", "__pycache__", "venv", ".venv",
-    "dist", "build", ".mypy_cache", ".pytest_cache", "egg-info",
+    ".git",
+    "node_modules",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "dist",
+    "build",
+    ".mypy_cache",
+    ".pytest_cache",
+    "egg-info",
 }
 
 
@@ -91,9 +101,7 @@ class IncrementalIndexUseCase:
             await self._job_repo.save(job)
 
             if last_commit:
-                changed_files = self._git_diff_provider.get_changed_files(
-                    repo_path, last_commit
-                )
+                changed_files = self._git_diff_provider.get_changed_files(repo_path, last_commit)
             else:
                 # No previous commit — full index needed
                 job.fail("No previous commit found, use full index", "detect_changes")
@@ -124,7 +132,7 @@ class IncrementalIndexUseCase:
                     # Also delete from vector store if supported
                     if self._vector_store and hasattr(self._vector_store, "delete_by_file"):
                         await self._vector_store.delete_by_file(str(project_id), file_path)
-                    
+
                     if self._dep_graph and hasattr(self._dep_graph, "delete_file_edges"):
                         await self._dep_graph.delete_file_edges(project_id, file_path)
                     continue
@@ -134,17 +142,19 @@ class IncrementalIndexUseCase:
                 try:
                     if not os.path.exists(full_path):
                         continue
-                        
+
                     # Check file size (>10MB)
                     size = os.path.getsize(full_path)
                     if size > 10 * 1024 * 1024:
-                        logger.warning("skipping_large_file", file=file_path, size=size, reason="too_large")
+                        logger.warning(
+                            "skipping_large_file", file=file_path, size=size, reason="too_large"
+                        )
                         continue
-                        
+
                     # Check for null bytes (binary heuristic)
                     with open(full_path, "rb") as f:
                         chunk = f.read(1024)
-                        if b'\x00' in chunk:
+                        if b"\x00" in chunk:
                             logger.warning("skipping_binary_file", file=file_path, reason="binary")
                             continue
 
@@ -180,12 +190,12 @@ class IncrementalIndexUseCase:
                     # Extract code comments
                     ext = os.path.splitext(file_path)[1]
                     if ext in {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs"}:
-                        with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                        with open(full_path, encoding="utf-8", errors="ignore") as f:
                             content = f.read()
-                            
+
                         if self._dep_graph and hasattr(self._dep_graph, "add_file_edges"):
                             await self._dep_graph.add_file_edges(project_id, file_path, content)
-                            
+
                         code_candidates = self._memory_extractor.extract_from_code_comments(
                             job_id=job.id,
                             file_path=file_path,
@@ -198,7 +208,9 @@ class IncrementalIndexUseCase:
 
             if self._code_indexer and files_to_index:
                 logger.info("re-indexing_changed_files", count=len(files_to_index))
-                await self._code_indexer.index_files(project_id, repo_path, files_to_index, self._commit_parser)
+                await self._code_indexer.index_files(
+                    project_id, repo_path, files_to_index, self._commit_parser
+                )
 
             # Phase 3: Extract knowledge from new commits
             job.update_progress("extract", 0, 0)
@@ -260,9 +272,17 @@ class IncrementalIndexUseCase:
     def _detect_language(self, file_path: str) -> str:
         ext = os.path.splitext(file_path)[1].lower()
         language_map = {
-            ".py": "python", ".js": "javascript", ".ts": "typescript",
-            ".tsx": "tsx", ".jsx": "jsx", ".go": "go", ".rs": "rust",
-            ".java": "java", ".rb": "ruby", ".c": "c", ".cpp": "cpp",
+            ".py": "python",
+            ".js": "javascript",
+            ".ts": "typescript",
+            ".tsx": "tsx",
+            ".jsx": "jsx",
+            ".go": "go",
+            ".rs": "rust",
+            ".java": "java",
+            ".rb": "ruby",
+            ".c": "c",
+            ".cpp": "cpp",
         }
         return language_map.get(ext, "")
 

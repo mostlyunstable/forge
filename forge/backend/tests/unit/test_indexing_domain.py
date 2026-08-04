@@ -1,10 +1,10 @@
 """Tests for indexing domain model."""
-import pytest
+
 from uuid import uuid4
 
-from forge.domain.indexing.entities.index_job import IndexJob
-from forge.domain.indexing.entities.file_index import FileIndex
 from forge.domain.indexing.entities.extraction_candidate import ExtractionCandidate
+from forge.domain.indexing.entities.file_index import FileIndex
+from forge.domain.indexing.entities.index_job import IndexJob
 from forge.domain.indexing.value_objects.index_type import IndexType
 from forge.domain.indexing.value_objects.job_status import JobStatus
 
@@ -116,47 +116,35 @@ class TestExtractionCandidate:
         assert candidate.status == "suggested"
 
     def test_auto_acceptable(self):
-        candidate = ExtractionCandidate.create(
-            job_id=uuid4(), kind="decision", confidence=0.9
-        )
+        candidate = ExtractionCandidate.create(job_id=uuid4(), kind="decision", confidence=0.9)
         assert candidate.is_auto_acceptable is True
         assert candidate.is_reviewable is False
         assert candidate.is_discardable is False
 
     def test_reviewable(self):
-        candidate = ExtractionCandidate.create(
-            job_id=uuid4(), kind="decision", confidence=0.6
-        )
+        candidate = ExtractionCandidate.create(job_id=uuid4(), kind="decision", confidence=0.6)
         assert candidate.is_auto_acceptable is False
         assert candidate.is_reviewable is True
         assert candidate.is_discardable is False
 
     def test_discardable(self):
-        candidate = ExtractionCandidate.create(
-            job_id=uuid4(), kind="decision", confidence=0.3
-        )
+        candidate = ExtractionCandidate.create(job_id=uuid4(), kind="decision", confidence=0.3)
         assert candidate.is_auto_acceptable is False
         assert candidate.is_reviewable is False
         assert candidate.is_discardable is True
 
     def test_accept(self):
-        candidate = ExtractionCandidate.create(
-            job_id=uuid4(), kind="decision", confidence=0.8
-        )
+        candidate = ExtractionCandidate.create(job_id=uuid4(), kind="decision", confidence=0.8)
         candidate.accept()
         assert candidate.status == "accepted"
         assert candidate.reviewed_at is not None
 
     def test_reject(self):
-        candidate = ExtractionCandidate.create(
-            job_id=uuid4(), kind="decision", confidence=0.6
-        )
+        candidate = ExtractionCandidate.create(job_id=uuid4(), kind="decision", confidence=0.6)
         candidate.reject()
         assert candidate.status == "rejected"
 
     def test_mark_duplicate(self):
-        candidate = ExtractionCandidate.create(
-            job_id=uuid4(), kind="decision", confidence=0.8
-        )
+        candidate = ExtractionCandidate.create(job_id=uuid4(), kind="decision", confidence=0.8)
         candidate.mark_duplicate()
         assert candidate.status == "duplicate"

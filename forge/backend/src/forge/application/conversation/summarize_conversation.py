@@ -1,4 +1,5 @@
 """SummarizeConversationUseCase — manual summarization trigger."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,12 +7,14 @@ from typing import Any
 
 import structlog
 
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
-from forge.domain.conversation.exceptions import ConversationNotFoundError
-from forge.domain.conversation.value_objects.conversation_id import ConversationId
-from forge.domain.conversation.events import ConversationSummarized
-from forge.domain.shared.events import IEventBus
 from forge.application.conversation.token_manager import TokenManager
+from forge.domain.conversation.events import ConversationSummarized
+from forge.domain.conversation.exceptions import ConversationNotFoundError
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
+from forge.domain.conversation.value_objects.conversation_id import ConversationId
+from forge.domain.shared.events import IEventBus
 
 logger = structlog.get_logger()
 
@@ -46,17 +49,20 @@ class SummarizeConversationUseCase:
         if not self._llm_service.is_configured:
             return SummarizeConversationResponse(
                 conversation_id=conversation_id,
-                summary=conversation.summary,
+                summary=conversation.summaries[-1].content if conversation.summaries else "",
                 message_count_pruned=0,
             )
 
         try:
             summary_prompt = [
-                {"role": "system", "content": (
-                    "Summarize this engineering conversation concisely. "
-                    "Focus on: decisions made, problems solved, key technical details. "
-                    "Output a 2-3 paragraph summary."
-                )},
+                {
+                    "role": "system",
+                    "content": (
+                        "Summarize this engineering conversation concisely. "
+                        "Focus on: decisions made, problems solved, key technical details. "
+                        "Output a 2-3 paragraph summary."
+                    ),
+                },
             ]
             for msg in conversation.messages:
                 summary_prompt.append({"role": msg.role, "content": msg.content})
@@ -65,7 +71,13 @@ class SummarizeConversationUseCase:
             new_summary = response.content
             token_count = self._token_manager.estimate_tokens(new_summary)
 
-            conversation.set_summary(new_summary, token_count)
+            from forge.domain.conversation.entities.summary import ConversationSummary
+            summary_obj = ConversationSummary.create(
+                conversation_id=conversation.id,
+                content=new_summary,
+                token_count=token_count
+            )
+            conversation.add_summary(summary_obj)
             saved = await self._conversation_repo.save(conversation)
 
             if self._event_bus:
@@ -85,6 +97,6 @@ class SummarizeConversationUseCase:
             logger.warning("manual_summarize_failed", error=str(e))
             return SummarizeConversationResponse(
                 conversation_id=conversation_id,
-                summary=conversation.summary,
+                summary=conversation.summaries[-1].content if conversation.summaries else "",
                 message_count_pruned=0,
             )

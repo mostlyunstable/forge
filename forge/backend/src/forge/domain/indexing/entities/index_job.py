@@ -1,8 +1,9 @@
 """IndexJob — aggregate root for indexing operations."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from forge.domain.indexing.value_objects.index_type import IndexType
@@ -30,34 +31,36 @@ class IndexJob:
     checkpoint: dict = field(default_factory=dict)
     state_hash: str = ""
     created_by: str = "api"
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def start(self) -> None:
         """Transition to running state."""
         self.status = JobStatus.RUNNING
-        self.started_at = datetime.now(timezone.utc)
+        self.started_at = datetime.now(UTC)
 
     def complete(self, result: dict, state_hash: str) -> None:
         """Mark job as completed."""
         self.status = JobStatus.COMPLETED
-        self.completed_at = datetime.now(timezone.utc)
+        self.completed_at = datetime.now(UTC)
         self.result = result
         self.state_hash = state_hash
 
     def fail(self, error: str, phase: str = "") -> None:
         """Mark job as failed."""
         self.status = JobStatus.FAILED
-        self.completed_at = datetime.now(timezone.utc)
-        self.error_log.append({
-            "error": error,
-            "phase": phase,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self.completed_at = datetime.now(UTC)
+        self.error_log.append(
+            {
+                "error": error,
+                "phase": phase,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
     def cancel(self) -> None:
         """Cancel the job."""
         self.status = JobStatus.CANCELLED
-        self.completed_at = datetime.now(timezone.utc)
+        self.completed_at = datetime.now(UTC)
 
     def update_progress(self, phase: str, files_done: int, files_total: int) -> None:
         """Update progress tracking."""
@@ -73,12 +76,14 @@ class IndexJob:
 
     def log_error(self, file_path: str, error: str, phase: str = "") -> None:
         """Log a per-file error without failing the job."""
-        self.error_log.append({
-            "file": file_path,
-            "error": error,
-            "phase": phase,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self.error_log.append(
+            {
+                "file": file_path,
+                "error": error,
+                "phase": phase,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
     @property
     def is_resumable(self) -> bool:
@@ -94,7 +99,7 @@ class IndexJob:
         """Return job duration in seconds, or None if not completed."""
         if not self.started_at:
             return None
-        end = self.completed_at or datetime.now(timezone.utc)
+        end = self.completed_at or datetime.now(UTC)
         return (end - self.started_at).total_seconds()
 
     @classmethod

@@ -1,5 +1,6 @@
 """FileIndexModel ORM mapping."""
-from sqlalchemy import Column, String, DateTime, Text
+
+from sqlalchemy import Column, DateTime, String, Text
 
 from forge.infrastructure.database.base import Base
 

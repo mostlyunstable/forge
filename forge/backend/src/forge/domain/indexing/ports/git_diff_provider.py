@@ -1,4 +1,5 @@
 """IGitDiffProvider — port for git diff operations."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

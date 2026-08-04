@@ -1,12 +1,14 @@
 """UpdateMemoryUseCase."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
 from copy import deepcopy
+from dataclasses import dataclass
 
+from forge.domain.memory.exceptions import MemoryNotFoundError
 from forge.domain.memory.repository_contracts.memory_repository import IMemoryRepository
 from forge.domain.memory.value_objects.memory_id import MemoryId
-from forge.domain.memory.exceptions import MemoryNotFoundError
+
 
 @dataclass
 class UpdateMemoryRequest:
@@ -15,11 +17,13 @@ class UpdateMemoryRequest:
     summary: str | None = None
     body: str | None = None
 
+
 @dataclass
 class UpdateMemoryResponse:
     memory_id: str
     previous_version_id: str
     version_number: int
+
 
 class UpdateMemoryUseCase:
     """Updates a memory by creating a new version in the chain."""
@@ -28,9 +32,9 @@ class UpdateMemoryUseCase:
         self._memory_repo = memory_repo
 
     async def execute(self, request: UpdateMemoryRequest) -> UpdateMemoryResponse:
-        memory_id = MemoryId(request.memory_id)
+        memory_id = MemoryId(request.memory_id)  # type: ignore
         existing_memory = await self._memory_repo.get_by_id(memory_id)
-        
+
         if not existing_memory:
             raise MemoryNotFoundError(f"Memory with ID {request.memory_id} not found.")
 
@@ -45,11 +49,11 @@ class UpdateMemoryUseCase:
             new_memory.update_content(
                 title=request.title or existing_memory.title,
                 summary=request.summary or existing_memory.summary,
-                body=request.body or existing_memory.body
+                body=request.body or existing_memory.body,
             )
 
         existing_memory.superseded_by_id = new_memory.id
-        
+
         # Save both
         await self._memory_repo.save(existing_memory)
         await self._memory_repo.save(new_memory)
@@ -57,5 +61,5 @@ class UpdateMemoryUseCase:
         return UpdateMemoryResponse(
             memory_id=str(new_memory.id.value),
             previous_version_id=str(existing_memory.id.value),
-            version_number=new_memory.version_number
+            version_number=new_memory.version_number,
         )

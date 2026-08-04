@@ -1,20 +1,18 @@
 """InMemoryDependencyGraph - in-memory graph adapter for dependency analysis."""
+
 from __future__ import annotations
 
+import asyncio
+import sqlite3
 from collections import defaultdict
 from typing import Any
 
 from forge.domain.code.repository_contracts.dependency_graph import IDependencyGraph
 from forge.domain.code.value_objects.dependency_edge import DependencyEdge
 from forge.domain.code.value_objects.dependency_type import DependencyType
-from forge.domain.code.value_objects.entry_type import EntryType
 from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.infrastructure.code_indexer.tree_sitter_parser import TreeSitterParser
 
-
-import sqlite3
-import asyncio
-import json
 
 class SQLiteDependencyGraph(IDependencyGraph):
     """SQLite-backed graph adapter for dependency analysis."""
@@ -26,7 +24,7 @@ class SQLiteDependencyGraph(IDependencyGraph):
 
     def _init_db(self):
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute('''
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS dependency_edges (
                     project_id TEXT,
                     source_file TEXT,
@@ -37,15 +35,22 @@ class SQLiteDependencyGraph(IDependencyGraph):
                     line_number INTEGER,
                     UNIQUE(project_id, source_file, target_file, source_name, target_name)
                 )
-            ''')
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_source ON dependency_edges(project_id, source_file)')
-            conn.execute('CREATE INDEX IF NOT EXISTS idx_target ON dependency_edges(project_id, target_file)')
+            """)
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_source ON dependency_edges(project_id, source_file)"
+            )
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_target ON dependency_edges(project_id, target_file)"
+            )
 
     async def build(self, project_id: ProjectId, indexed_files: list[dict[str, Any]]) -> None:
         """Build dependency graph from indexed file data."""
+
         def _build():
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute("DELETE FROM dependency_edges WHERE project_id = ?", (str(project_id),))
+                conn.execute(
+                    "DELETE FROM dependency_edges WHERE project_id = ?", (str(project_id),)
+                )
                 edges = []
                 for file_data in indexed_files:
                     file_path = file_data.get("file_path", "")
@@ -53,22 +58,39 @@ class SQLiteDependencyGraph(IDependencyGraph):
                     dependencies = self._parser.extract_dependencies(file_path, content)
                     for dep in dependencies:
                         target_file = self._resolve_import_path(file_path, dep.target_module)
-                        edges.append((
-                            str(project_id), file_path, dep.target_name, target_file,
-                            dep.target_name, dep.dependency_type.name if hasattr(dep.dependency_type, 'name') else str(dep.dependency_type), dep.line_number
-                        ))
-                
-                conn.executemany('''
-                    INSERT OR IGNORE INTO dependency_edges 
+                        edges.append(
+                            (
+                                str(project_id),
+                                file_path,
+                                dep.target_name,
+                                target_file,
+                                dep.target_name,
+                                dep.dependency_type.name
+                                if hasattr(dep.dependency_type, "name")
+                                else str(dep.dependency_type),
+                                dep.line_number,
+                            )
+                        )
+
+                conn.executemany(
+                    """
+                    INSERT OR IGNORE INTO dependency_edges
                     (project_id, source_file, source_name, target_file, target_name, dependency_type, line_number)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', edges)
+                """,
+                    edges,
+                )
+
         await asyncio.to_thread(_build)
 
     async def delete_file_edges(self, project_id: ProjectId, file_path: str) -> None:
         def _delete():
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute("DELETE FROM dependency_edges WHERE project_id = ? AND source_file = ?", (str(project_id), file_path))
+                conn.execute(
+                    "DELETE FROM dependency_edges WHERE project_id = ? AND source_file = ?",
+                    (str(project_id), file_path),
+                )
+
         await asyncio.to_thread(_delete)
 
     async def add_file_edges(self, project_id: ProjectId, file_path: str, content: str) -> None:
@@ -77,16 +99,29 @@ class SQLiteDependencyGraph(IDependencyGraph):
             edges = []
             for dep in dependencies:
                 target_file = self._resolve_import_path(file_path, dep.target_module)
-                edges.append((
-                    str(project_id), file_path, dep.target_name, target_file,
-                    dep.target_name, dep.dependency_type.name if hasattr(dep.dependency_type, 'name') else str(dep.dependency_type), dep.line_number
-                ))
+                edges.append(
+                    (
+                        str(project_id),
+                        file_path,
+                        dep.target_name,
+                        target_file,
+                        dep.target_name,
+                        dep.dependency_type.name
+                        if hasattr(dep.dependency_type, "name")
+                        else str(dep.dependency_type),
+                        dep.line_number,
+                    )
+                )
             with sqlite3.connect(self.db_path) as conn:
-                conn.executemany('''
-                    INSERT OR IGNORE INTO dependency_edges 
+                conn.executemany(
+                    """
+                    INSERT OR IGNORE INTO dependency_edges
                     (project_id, source_file, source_name, target_file, target_name, dependency_type, line_number)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', edges)
+                """,
+                    edges,
+                )
+
         await asyncio.to_thread(_add)
 
     def _resolve_import_path(self, source_file: str, module_name: str) -> str:
@@ -107,15 +142,23 @@ class SQLiteDependencyGraph(IDependencyGraph):
     async def get_imports(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
         def _get():
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute("SELECT * FROM dependency_edges WHERE project_id = ? AND source_file = ?", (str(project_id), file_path))
+                cursor = conn.execute(
+                    "SELECT * FROM dependency_edges WHERE project_id = ? AND source_file = ?",
+                    (str(project_id), file_path),
+                )
                 return [self._row_to_edge(row) for row in cursor.fetchall()]
+
         return await asyncio.to_thread(_get)
 
     async def get_dependents(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
         def _get():
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute("SELECT * FROM dependency_edges WHERE project_id = ? AND target_file = ?", (str(project_id), file_path))
+                cursor = conn.execute(
+                    "SELECT * FROM dependency_edges WHERE project_id = ? AND target_file = ?",
+                    (str(project_id), file_path),
+                )
                 return [self._row_to_edge(row) for row in cursor.fetchall()]
+
         return await asyncio.to_thread(_get)
 
     def _row_to_edge(self, row) -> DependencyEdge:
@@ -128,7 +171,9 @@ class SQLiteDependencyGraph(IDependencyGraph):
             line_number=row[6],
         )
 
-    async def get_transitive_imports(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
+    async def get_transitive_imports(
+        self, project_id: ProjectId, file_path: str
+    ) -> list[DependencyEdge]:
         # Using iterative approach with db queries
         visited = set()
         queue = [file_path]
@@ -145,7 +190,9 @@ class SQLiteDependencyGraph(IDependencyGraph):
                     queue.append(edge.target_file)
         return result
 
-    async def get_reverse_transitive(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
+    async def get_reverse_transitive(
+        self, project_id: ProjectId, file_path: str
+    ) -> list[DependencyEdge]:
         visited = set()
         queue = [file_path]
         result = []
@@ -167,9 +214,12 @@ class SQLiteDependencyGraph(IDependencyGraph):
             visited = set()
             rec_stack = set()
             path = []
-            
+
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute("SELECT source_file, target_file FROM dependency_edges WHERE project_id = ?", (str(project_id),))
+                cursor = conn.execute(
+                    "SELECT source_file, target_file FROM dependency_edges WHERE project_id = ?",
+                    (str(project_id),),
+                )
                 forward = defaultdict(list)
                 for src, tgt in cursor.fetchall():
                     forward[src].append(tgt)
@@ -192,25 +242,38 @@ class SQLiteDependencyGraph(IDependencyGraph):
                 if f not in visited:
                     dfs(f)
             return cycles
+
         return await asyncio.to_thread(_detect)
 
     async def get_statistics(self, project_id: ProjectId) -> dict[str, Any]:
         def _stats():
             with sqlite3.connect(self.db_path) as conn:
-                c1 = conn.execute("SELECT COUNT(*) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
-                c2 = conn.execute("SELECT COUNT(DISTINCT source_file) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
-                c3 = conn.execute("SELECT COUNT(DISTINCT target_file) FROM dependency_edges WHERE project_id = ?", (str(project_id),)).fetchone()[0]
-                c4 = conn.execute('''
+                c1 = conn.execute(
+                    "SELECT COUNT(*) FROM dependency_edges WHERE project_id = ?", (str(project_id),)
+                ).fetchone()[0]
+                c2 = conn.execute(
+                    "SELECT COUNT(DISTINCT source_file) FROM dependency_edges WHERE project_id = ?",
+                    (str(project_id),),
+                ).fetchone()[0]
+                c3 = conn.execute(
+                    "SELECT COUNT(DISTINCT target_file) FROM dependency_edges WHERE project_id = ?",
+                    (str(project_id),),
+                ).fetchone()[0]
+                c4 = conn.execute(
+                    """
                     SELECT COUNT(DISTINCT file_path) FROM (
                         SELECT source_file AS file_path FROM dependency_edges WHERE project_id = ?
                         UNION
                         SELECT target_file AS file_path FROM dependency_edges WHERE project_id = ?
                     )
-                ''', (str(project_id), str(project_id))).fetchone()[0]
+                """,
+                    (str(project_id), str(project_id)),
+                ).fetchone()[0]
                 return {
                     "total_dependencies": c1,
                     "files_with_imports": c2,
                     "files_imported": c3,
                     "total_files": c4,
                 }
+
         return await asyncio.to_thread(_stats)

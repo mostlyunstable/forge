@@ -1,11 +1,14 @@
 """ListConversationsUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
 from forge.domain.projects.exceptions import ProjectNotFoundError
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.project_id import ProjectId
 
 
@@ -38,7 +41,9 @@ class ListConversationsUseCase:
         self._conversation_repo = conversation_repo
         self._project_repo = project_repo
 
-    async def execute(self, project_id: str, skip: int = 0, limit: int = 50) -> ListConversationsResponse:
+    async def execute(
+        self, project_id: str, skip: int = 0, limit: int = 50
+    ) -> ListConversationsResponse:
         pid = ProjectId.from_string(project_id)
         project = await self._project_repo.get_by_id(pid)
         if not project:

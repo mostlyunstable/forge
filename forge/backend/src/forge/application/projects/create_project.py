@@ -1,13 +1,14 @@
 """CreateProjectUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from forge.domain.projects.entities.project import Project
+from forge.domain.projects.events import ProjectCreated
+from forge.domain.projects.exceptions import ProjectAlreadyExistsError
 from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.value_objects.tech_stack import TechStack
-from forge.domain.projects.exceptions import ProjectAlreadyExistsError
-from forge.domain.projects.events import ProjectCreated
 from forge.domain.shared.events import IEventBus
 
 

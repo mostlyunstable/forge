@@ -1,18 +1,21 @@
 """IGraphAdapter - Repository contract for the knowledge graph."""
+
 from __future__ import annotations
 
 import abc
 from typing import Any
 
-from forge.domain.projects.value_objects.project_id import ProjectId
 from forge.domain.knowledge_graph.entities.relationship import Relationship, RelationshipType
+from forge.domain.projects.value_objects.project_id import ProjectId
 
 
 class IGraphAdapter(abc.ABC):
     """Abstract interface for knowledge graph operations."""
 
     @abc.abstractmethod
-    async def add_relationships(self, project_id: ProjectId, relationships: list[Relationship]) -> None:
+    async def add_relationships(
+        self, project_id: ProjectId, relationships: list[Relationship]
+    ) -> None:
         """Add a batch of relationships to the knowledge graph."""
         pass
 
@@ -23,11 +26,11 @@ class IGraphAdapter(abc.ABC):
 
     @abc.abstractmethod
     async def get_relationships(
-        self, 
-        project_id: ProjectId, 
-        source_id: str | None = None, 
+        self,
+        project_id: ProjectId,
+        source_id: str | None = None,
         target_id: str | None = None,
-        relationship_type: RelationshipType | None = None
+        relationship_type: RelationshipType | None = None,
     ) -> list[Relationship]:
         """Get relationships matching the criteria."""
         pass
@@ -39,7 +42,7 @@ class IGraphAdapter(abc.ABC):
         start_id: str,
         max_depth: int = 1,
         relationship_types: list[RelationshipType] | None = None,
-        direction: str = "outbound"
+        direction: str = "outbound",
     ) -> list[dict[str, Any]]:
         """
         Perform a multi-hop traversal from the start_id.

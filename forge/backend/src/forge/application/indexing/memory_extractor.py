@@ -1,4 +1,5 @@
 """MemoryExtractor — extracts decisions, bugs, preferences from code and commits."""
+
 from __future__ import annotations
 
 import hashlib
@@ -7,24 +8,43 @@ from uuid import UUID
 
 from forge.domain.indexing.entities.extraction_candidate import ExtractionCandidate
 
-
 # Keyword patterns for extraction
 DECISION_KEYWORDS = [
-    r"\bdecided?\b", r"\bchose?\b", r"\badopted?\b", r"\bswitched?\s+to\b",
-    r"\binstead\s+of\b", r"\bprefer(?:red|ence)?\b", r"\bRFC\b",
-    r"\barchitecture\b", r"\bdesign\s+choice\b", r"\btrade-?off\b",
-    r"\bfor\s+now\b", r"\btemporary\b", r"\bworkaround\b",
+    r"\bdecided?\b",
+    r"\bchose?\b",
+    r"\badopted?\b",
+    r"\bswitched?\s+to\b",
+    r"\binstead\s+of\b",
+    r"\bprefer(?:red|ence)?\b",
+    r"\bRFC\b",
+    r"\barchitecture\b",
+    r"\bdesign\s+choice\b",
+    r"\btrade-?off\b",
+    r"\bfor\s+now\b",
+    r"\btemporary\b",
+    r"\bworkaround\b",
 ]
 
 BUG_FIX_KEYWORDS = [
-    r"\bfix(?:ed|es)?\b", r"\bbug\b", r"\bresolve[ds]?\b",
-    r"\bpatch\b", r"\bcrash(?:ed)?\b", r"\berror\b",
-    r"\bfail(?:ed|ure)?\b", r"\bregression\b", r"\bhack\b",
+    r"\bfix(?:ed|es)?\b",
+    r"\bbug\b",
+    r"\bresolve[ds]?\b",
+    r"\bpatch\b",
+    r"\bcrash(?:ed)?\b",
+    r"\berror\b",
+    r"\bfail(?:ed|ure)?\b",
+    r"\bregression\b",
+    r"\bhack\b",
 ]
 
 PREFERENCE_KEYWORDS = [
-    r"\bprefer(?:red|ence)?\b", r"\bconvention\b", r"\bstandard\b",
-    r"\bstyle\b", r"\bformat\b", r"\blint\b", r"\bcodestyle\b",
+    r"\bprefer(?:red|ence)?\b",
+    r"\bconvention\b",
+    r"\bstandard\b",
+    r"\bstyle\b",
+    r"\bformat\b",
+    r"\blint\b",
+    r"\bcodestyle\b",
 ]
 
 # Code comment patterns
@@ -58,57 +78,60 @@ class MemoryExtractor:
         # Extract decisions
         decision_confidence = self._check_keywords(message_lower, DECISION_KEYWORDS)
         if decision_confidence > 0:
-            has_adr = any(
-                "adr" in f.lower() or "decision" in f.lower()
-                for f in files_changed
-            )
+            has_adr = any("adr" in f.lower() or "decision" in f.lower() for f in files_changed)
             if has_adr:
                 decision_confidence = min(decision_confidence + 0.2, 1.0)
 
-            candidates.append(ExtractionCandidate.create(
-                job_id=job_id,
-                kind="decision",
-                confidence=decision_confidence,
-                data={
-                    "title": message.split("\n")[0][:200],
-                    "rationale": message,
-                    "author": author_name,
-                },
-                source_commit=commit_sha,
-                dedup_key=self._make_dedup_key("decision", commit_sha),
-            ))
+            candidates.append(
+                ExtractionCandidate.create(
+                    job_id=job_id,
+                    kind="decision",
+                    confidence=decision_confidence,
+                    data={
+                        "title": message.split("\n")[0][:200],
+                        "rationale": message,
+                        "author": author_name,
+                    },
+                    source_commit=commit_sha,
+                    dedup_key=self._make_dedup_key("decision", commit_sha),
+                )
+            )
 
         # Extract bug fixes
         bug_confidence = self._check_keywords(message_lower, BUG_FIX_KEYWORDS)
         if bug_confidence > 0:
-            candidates.append(ExtractionCandidate.create(
-                job_id=job_id,
-                kind="bug",
-                confidence=bug_confidence,
-                data={
-                    "title": message.split("\n")[0][:200],
-                    "fix_commit": commit_sha,
-                    "author": author_name,
-                },
-                source_commit=commit_sha,
-                dedup_key=self._make_dedup_key("bug", commit_sha),
-            ))
+            candidates.append(
+                ExtractionCandidate.create(
+                    job_id=job_id,
+                    kind="bug",
+                    confidence=bug_confidence,
+                    data={
+                        "title": message.split("\n")[0][:200],
+                        "fix_commit": commit_sha,
+                        "author": author_name,
+                    },
+                    source_commit=commit_sha,
+                    dedup_key=self._make_dedup_key("bug", commit_sha),
+                )
+            )
 
         # Extract preferences
         pref_confidence = self._check_keywords(message_lower, PREFERENCE_KEYWORDS)
         if pref_confidence > 0:
-            candidates.append(ExtractionCandidate.create(
-                job_id=job_id,
-                kind="preference",
-                confidence=pref_confidence,
-                data={
-                    "key": message.split("\n")[0][:100],
-                    "value": message,
-                    "author": author_name,
-                },
-                source_commit=commit_sha,
-                dedup_key=self._make_dedup_key("preference", commit_sha),
-            ))
+            candidates.append(
+                ExtractionCandidate.create(
+                    job_id=job_id,
+                    kind="preference",
+                    confidence=pref_confidence,
+                    data={
+                        "key": message.split("\n")[0][:100],
+                        "value": message,
+                        "author": author_name,
+                    },
+                    source_commit=commit_sha,
+                    dedup_key=self._make_dedup_key("preference", commit_sha),
+                )
+            )
 
         return candidates
 
@@ -125,47 +148,53 @@ class MemoryExtractor:
             # TODO/FIXME → potential bugs
             match = TODO_PATTERN.search(line) or FIXME_PATTERN.search(line)
             if match:
-                candidates.append(ExtractionCandidate.create(
-                    job_id=job_id,
-                    kind="bug",
-                    confidence=0.5,
-                    data={
-                        "title": f"TODO/FIXME in {file_path}:{i}",
-                        "description": match.group(1).strip(),
-                    },
-                    source_file=file_path,
-                    dedup_key=self._make_dedup_key("bug", f"{file_path}:{i}"),
-                ))
+                candidates.append(
+                    ExtractionCandidate.create(
+                        job_id=job_id,
+                        kind="bug",
+                        confidence=0.5,
+                        data={
+                            "title": f"TODO/FIXME in {file_path}:{i}",
+                            "description": match.group(1).strip(),
+                        },
+                        source_file=file_path,
+                        dedup_key=self._make_dedup_key("bug", f"{file_path}:{i}"),
+                    )
+                )
 
             # HACK → potential technical debt
             match = HACK_PATTERN.search(line)
             if match:
-                candidates.append(ExtractionCandidate.create(
-                    job_id=job_id,
-                    kind="bug",
-                    confidence=0.6,
-                    data={
-                        "title": f"HACK in {file_path}:{i}",
-                        "description": match.group(1).strip(),
-                    },
-                    source_file=file_path,
-                    dedup_key=self._make_dedup_key("bug", f"{file_path}:{i}:hack"),
-                ))
+                candidates.append(
+                    ExtractionCandidate.create(
+                        job_id=job_id,
+                        kind="bug",
+                        confidence=0.6,
+                        data={
+                            "title": f"HACK in {file_path}:{i}",
+                            "description": match.group(1).strip(),
+                        },
+                        source_file=file_path,
+                        dedup_key=self._make_dedup_key("bug", f"{file_path}:{i}:hack"),
+                    )
+                )
 
             # NOTE/IMPORTANT → potential decisions
             match = NOTE_PATTERN.search(line) or IMPORTANT_PATTERN.search(line)
             if match:
-                candidates.append(ExtractionCandidate.create(
-                    job_id=job_id,
-                    kind="decision",
-                    confidence=0.5,
-                    data={
-                        "title": f"Note in {file_path}:{i}",
-                        "rationale": match.group(1).strip(),
-                    },
-                    source_file=file_path,
-                    dedup_key=self._make_dedup_key("decision", f"{file_path}:{i}"),
-                ))
+                candidates.append(
+                    ExtractionCandidate.create(
+                        job_id=job_id,
+                        kind="decision",
+                        confidence=0.5,
+                        data={
+                            "title": f"Note in {file_path}:{i}",
+                            "rationale": match.group(1).strip(),
+                        },
+                        source_file=file_path,
+                        dedup_key=self._make_dedup_key("decision", f"{file_path}:{i}"),
+                    )
+                )
 
         return candidates
 
@@ -177,13 +206,19 @@ class MemoryExtractor:
     ) -> ExtractionCandidate | None:
         """Extract preference from config file changes."""
         config_patterns = [
-            r"\.env\.example$", r"pyproject\.toml$", r"\.editorconfig$",
-            r"\.prettierrc$", r"\.eslintrc$", r"setup\.cfg$",
-            r"\.flake8$", r"\.isort\.cfg$", r"mypy\.ini$",
+            r"\.env\.example$",
+            r"pyproject\.toml$",
+            r"\.editorconfig$",
+            r"\.prettierrc$",
+            r"\.eslintrc$",
+            r"setup\.cfg$",
+            r"\.flake8$",
+            r"\.isort\.cfg$",
+            r"mypy\.ini$",
         ]
         for pattern in config_patterns:
             if re.search(pattern, file_path):
-                return ExtractionCandidate.create(
+                return ExtractionCandidate.create(  # type: ignore
                     project_id=UUID(),  # will be set by caller
                     job_id=job_id,
                     kind="preference",

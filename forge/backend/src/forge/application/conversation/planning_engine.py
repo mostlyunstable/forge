@@ -1,6 +1,7 @@
 from typing import Any
-from forge.application.ports.llm_provider import ILLMProvider
+
 from forge.application.conversation.token_manager import ContextWindow
+from forge.application.ports.llm_provider import ILLMProvider
 
 
 class PlanningEngine:
@@ -13,21 +14,17 @@ class PlanningEngine:
         self._llm = llm_provider
 
     async def generate_plan(
-        self,
-        query: str,
-        context_window: ContextWindow,
-        retrieved_context: str = "",
-        **kwargs: Any
+        self, query: str, context_window: ContextWindow, retrieved_context: str = "", **kwargs: Any
     ) -> str:
         """
         Generate a structured plan based on the user query, context window, and retrieved context.
-        
+
         Args:
             query: The user query (e.g., "plan a migration to postgres").
             context_window: The conversation history and summary.
             retrieved_context: Grounding context retrieved from search/memory.
             **kwargs: Extra parameters for the LLM.
-            
+
         Returns:
             The LLM response containing the structured plan.
         """
@@ -53,4 +50,4 @@ class PlanningEngine:
         messages.append({"role": "user", "content": query})
 
         response = await self._llm.chat(messages, **kwargs)
-        return response
+        return response.content or ""

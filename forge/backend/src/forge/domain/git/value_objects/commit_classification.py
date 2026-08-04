@@ -1,8 +1,9 @@
 """CommitClassification value object."""
-from enum import Enum
+
+from enum import StrEnum
 
 
-class CommitClassification(str, Enum):
+class CommitClassification(StrEnum):
     """Classification of a git commit by its purpose."""
 
     FEATURE = "feature"

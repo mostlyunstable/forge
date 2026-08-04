@@ -1,8 +1,9 @@
 """ChangeEntry — a single file change within a PR."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from forge.domain.analysis.value_objects.change_type import ChangeType
 
@@ -18,7 +19,7 @@ class ChangeEntry:
     is_test_file: bool = False
     is_core_module: bool = False
     language: str = ""
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     @property
     def net_lines(self) -> int:

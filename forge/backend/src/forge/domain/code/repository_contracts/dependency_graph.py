@@ -1,4 +1,5 @@
 """IDependencyGraph - contract for dependency graph operations."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -24,11 +25,15 @@ class IDependencyGraph(ABC):
         """Get files that import this file."""
 
     @abstractmethod
-    async def get_transitive_imports(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
+    async def get_transitive_imports(
+        self, project_id: ProjectId, file_path: str
+    ) -> list[DependencyEdge]:
         """Get all transitive imports."""
 
     @abstractmethod
-    async def get_reverse_transitive(self, project_id: ProjectId, file_path: str) -> list[DependencyEdge]:
+    async def get_reverse_transitive(
+        self, project_id: ProjectId, file_path: str
+    ) -> list[DependencyEdge]:
         """Get all reverse transitive dependents."""
 
     @abstractmethod

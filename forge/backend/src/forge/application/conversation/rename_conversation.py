@@ -1,12 +1,15 @@
 """RenameConversationUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
-from forge.domain.conversation.exceptions import ConversationNotFoundError
-from forge.domain.conversation.value_objects.conversation_id import ConversationId
 from forge.domain.conversation.events import ConversationRenamed
+from forge.domain.conversation.exceptions import ConversationNotFoundError
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
+from forge.domain.conversation.value_objects.conversation_id import ConversationId
 from forge.domain.shared.events import IEventBus
 
 

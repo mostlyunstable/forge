@@ -1,5 +1,5 @@
-import pytest
 from forge.infrastructure.code_indexer.tree_sitter_parser import TreeSitterParser
+
 
 def test_semantic_chunking_python():
     parser = TreeSitterParser()
@@ -12,12 +12,13 @@ class TestClass:
         return 1
 """
     results = parser.parse_file("test.py", content)
-    
+
     # Check that it extracted the function and the class
     names = [r.name for r in results]
     assert "test_func" in names
     assert "TestClass" in names
-    
+
+
 def test_semantic_chunking_markdown():
     parser = TreeSitterParser()
     content = """
@@ -27,7 +28,7 @@ Some content here
 More content
 """
     results = parser.parse_file("test.md", content)
-    
+
     # Should extract headers/sections based on markdown parser
     names = [r.name for r in results]
     assert "Header 1" in names

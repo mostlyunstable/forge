@@ -1,19 +1,17 @@
 """Integration tests for ConversationRepository with real database."""
-import os
+
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from forge.domain.conversation.entities.conversation import Conversation
+from forge.domain.conversation.entities.message import Message
+from forge.domain.projects.entities.project import Project
+from forge.domain.projects.value_objects.tech_stack import TechStack
 from forge.infrastructure.database.base import Base
 from forge.infrastructure.database.connection import database_manager
 from forge.infrastructure.repositories.conversation_repository import ConversationRepository
 from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.domain.conversation.entities.conversation import Conversation
-from forge.domain.conversation.entities.message import Message
-from forge.domain.conversation.value_objects.conversation_id import ConversationId
-from forge.domain.projects.entities.project import Project
-from forge.domain.projects.value_objects.project_id import ProjectId
-from forge.domain.projects.value_objects.tech_stack import TechStack
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -109,7 +107,10 @@ async def test_search(session_factory):
 
         conv = Conversation.create(project_id=project.id, title="Auth debugging")
         from forge.domain.conversation.entities.summary import ConversationSummary
-        summary = ConversationSummary.create(conversation_id=conv.id, content="Authentication related discussion", token_count=10)
+
+        summary = ConversationSummary.create(
+            conversation_id=conv.id, content="Authentication related discussion", token_count=10
+        )
         conv.add_summary(summary)
         await conv_repo.save(conv)
         await session.commit()
@@ -163,7 +164,10 @@ async def test_search_by_summary(session_factory):
 
         conv = Conversation.create(project_id=project.id, title="General chat")
         from forge.domain.conversation.entities.summary import ConversationSummary
-        summary = ConversationSummary.create(conversation_id=conv.id, content="Discussed database indexing strategy", token_count=10)
+
+        summary = ConversationSummary.create(
+            conversation_id=conv.id, content="Discussed database indexing strategy", token_count=10
+        )
         conv.add_summary(summary)
         await conv_repo.save(conv)
         await session.commit()

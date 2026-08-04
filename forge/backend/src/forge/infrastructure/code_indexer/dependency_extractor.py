@@ -1,13 +1,14 @@
 """DependencyExtractor - extracts dependency information from parsed ASTs."""
+
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
-from forge.domain.code.value_objects.dependency_type import DependencyType
-from forge.infrastructure.code_indexer.types import ParsedDependency, LANGUAGES
+from tree_sitter import Parser
 
-from tree_sitter import Language, Parser
+from forge.domain.code.value_objects.dependency_type import DependencyType
+from forge.infrastructure.code_indexer.types import LANGUAGES, ParsedDependency
 
 
 class DependencyExtractor:
@@ -77,7 +78,7 @@ class DependencyExtractor:
         content: str,
         file_path: str,
     ) -> ParsedDependency | None:
-        module_name = content[node.start_byte:node.end_byte]
+        module_name = content[node.start_byte : node.end_byte]
         module_name = module_name.replace("import ", "").strip()
         return ParsedDependency(
             dependency_type=DependencyType.IMPORT,
@@ -94,7 +95,7 @@ class DependencyExtractor:
         content: str,
         file_path: str,
     ) -> ParsedDependency | None:
-        raw = content[node.start_byte:node.end_byte]
+        raw = content[node.start_byte : node.end_byte]
         parts = raw.split(" import ")
         if len(parts) != 2:
             return None
@@ -115,7 +116,7 @@ class DependencyExtractor:
         content: str,
         file_path: str,
     ) -> ParsedDependency | None:
-        raw = content[node.start_byte:node.end_byte]
+        raw = content[node.start_byte : node.end_byte]
         if "from " in raw:
             parts = raw.split(" from ")
             if len(parts) == 2:
@@ -138,7 +139,7 @@ class DependencyExtractor:
     ) -> ParsedDependency | None:
         for child in node.children:
             if child.type == "class_heritage":
-                heritage = content[child.start_byte:child.end_byte]
+                heritage = content[child.start_byte : child.end_byte]
                 if "extends" in heritage:
                     parent = heritage.split("extends")[-1].strip().split("{")[0].strip()
                     return ParsedDependency(

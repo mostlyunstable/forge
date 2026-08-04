@@ -1,4 +1,5 @@
 """IFileIndexRepository — persistence port for FileIndex."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -19,9 +20,7 @@ class IFileIndexRepository(ABC):
         """Persist multiple file index entries. Returns count saved."""
 
     @abstractmethod
-    async def get_by_project_and_path(
-        self, project_id: UUID, file_path: str
-    ) -> FileIndex | None:
+    async def get_by_project_and_path(self, project_id: UUID, file_path: str) -> FileIndex | None:
         """Get a file index by project and path."""
 
     @abstractmethod

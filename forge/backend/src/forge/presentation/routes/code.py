@@ -1,22 +1,26 @@
 """Code routes."""
+
 import logging
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.infrastructure.repositories.code_repository import CodeRepository
+from forge.application.code.get_file_entries import GetFileEntriesUseCase
+from forge.application.code.index_repository import IndexRepositoryRequest, IndexRepositoryUseCase
+from forge.application.code.search_code import SearchCodeUseCase
 from forge.infrastructure.code_indexer.tree_sitter_code_indexer import TreeSitterCodeIndexer
 from forge.infrastructure.events.in_memory_event_bus import event_bus
-from forge.application.code.search_code import SearchCodeUseCase
-from forge.application.code.get_file_entries import GetFileEntriesUseCase
-from forge.application.code.index_repository import IndexRepositoryUseCase, IndexRepositoryRequest
+from forge.infrastructure.repositories.code_repository import CodeRepository
+from forge.infrastructure.repositories.project_repository import ProjectRepository
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.code_schemas import (
-    SearchCodeResponse,
     GetFileEntriesResponse,
-    IndexRepositoryRequest as IndexSchema,
     IndexRepositoryResponse,
+    SearchCodeResponse,
+)
+from forge.presentation.schemas.code_schemas import (
+    IndexRepositoryRequest as IndexSchema,
 )
 
 logger = logging.getLogger(__name__)

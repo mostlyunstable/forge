@@ -1,4 +1,5 @@
 """Recommendation generation for PR analysis."""
+
 from __future__ import annotations
 
 from forge.domain.analysis.entities.analysis_report import ReviewRecommendation
@@ -79,7 +80,9 @@ def generate_recommendations(
         )
 
     # Migration changes
-    migration_files = [e for e in change_set.entries if "alembic" in e.file_path or "migration" in e.file_path]
+    migration_files = [
+        e for e in change_set.entries if "alembic" in e.file_path or "migration" in e.file_path
+    ]
     if migration_files:
         recs.append(
             ReviewRecommendation(

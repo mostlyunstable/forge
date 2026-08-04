@@ -1,10 +1,11 @@
 """Git routes."""
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forge.infrastructure.repositories.project_repository import ProjectRepository
-from forge.infrastructure.repositories.commit_repository import CommitRepository
 from forge.application.git.analyze_commits import AnalyzeCommitsUseCase
+from forge.infrastructure.repositories.commit_repository import CommitRepository
+from forge.infrastructure.repositories.project_repository import ProjectRepository
 from forge.presentation.deps import get_session
 from forge.presentation.middleware.auth import verify_token
 from forge.presentation.schemas.git_schemas import AnalyzeCommitsResponse

@@ -1,8 +1,9 @@
 """ChangeType — classification of file changes in a PR."""
-from enum import Enum
+
+from enum import StrEnum
 
 
-class ChangeType(str, Enum):
+class ChangeType(StrEnum):
     """How a file was modified."""
 
     ADDED = "added"

@@ -1,4 +1,5 @@
 """EmbeddingService - generates vector embeddings via OpenAI."""
+
 from __future__ import annotations
 
 import hashlib
@@ -9,8 +10,8 @@ from typing import Any
 import structlog
 from openai import AsyncOpenAI
 
-from forge.config.settings import get_settings
 from forge.config.metrics import EMBEDDING_CALLS, EMBEDDING_LATENCY
+from forge.config.settings import get_settings
 
 logger = structlog.get_logger()
 
@@ -31,6 +32,7 @@ class EmbeddingService:
         self._client: AsyncOpenAI | None = None
         self._cache: OrderedDict[str, list[float]] = OrderedDict()
         from forge.infrastructure.search.sqlite_embedding_cache import SQLiteEmbeddingCache
+
         self._sqlite_cache = SQLiteEmbeddingCache()
 
     def _ensure_client(self) -> AsyncOpenAI:
@@ -40,7 +42,7 @@ class EmbeddingService:
                     "LLM_API_KEY is not configured. "
                     "Set the LLM_API_KEY environment variable to use embeddings."
                 )
-            kwargs = {"api_key": self._settings.LLM_API_KEY}
+            kwargs: dict[str, Any] = {"api_key": self._settings.LLM_API_KEY}
             if self._settings.LLM_BASE_URL:
                 kwargs["base_url"] = self._settings.LLM_BASE_URL
             self._client = AsyncOpenAI(**kwargs)
@@ -53,15 +55,15 @@ class EmbeddingService:
         self._cache[cache_key] = embedding
         if len(self._cache) > self.MAX_CACHE_SIZE:
             self._cache.popitem(last=False)
-        
+
         self._sqlite_cache.set(f"{input_type}:{content}", self.MODEL, "1.0", embedding)
-        
+
     def _cache_get(self, content: str, input_type: str) -> list[float] | None:
         cache_key = hashlib.md5(f"{input_type}:{content}".encode()).hexdigest()
         if cache_key in self._cache:
             self._cache.move_to_end(cache_key)
             return self._cache[cache_key]
-            
+
         cached_embedding = self._sqlite_cache.get(f"{input_type}:{content}", self.MODEL, "1.0")
         if cached_embedding:
             self._cache[cache_key] = cached_embedding

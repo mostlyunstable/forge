@@ -1,10 +1,11 @@
 """GetProjectUseCase."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 from forge.domain.projects.exceptions import ProjectNotFoundError
+from forge.domain.projects.repository_contracts.project_repository import IProjectRepository
 
 
 @dataclass
