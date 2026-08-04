@@ -57,11 +57,11 @@ const fileTree: FileNode[] = [
   },
 ];
 
-function getFileIcon(name: string) {
-  if (name.endsWith('.py')) return FileCode;
-  if (name.endsWith('.json')) return FileJson;
-  if (name.endsWith('.md')) return FileText;
-  return File;
+function getFileIcon(name: string, className: string) {
+  if (name.endsWith('.py')) return <FileCode className={className} />;
+  if (name.endsWith('.json')) return <FileJson className={className} />;
+  if (name.endsWith('.md')) return <FileText className={className} />;
+  return <File className={className} />;
 }
 
 interface FileTreeItemProps {
@@ -75,7 +75,6 @@ function FileTreeItem({ node, selectedFile, onSelect, level = 0 }: FileTreeItemP
   const [expanded, setExpanded] = useState(level < 1);
 
   if (node.type === 'file') {
-    const FileIcon = getFileIcon(node.name);
     const isSelected = selectedFile === node.path;
 
     return (
@@ -89,10 +88,10 @@ function FileTreeItem({ node, selectedFile, onSelect, level = 0 }: FileTreeItemP
         )}
         style={{ paddingLeft: `${(level * 14) + 12}px`, paddingRight: '12px' }}
       >
-        <FileIcon className={cn(
+        {getFileIcon(node.name, cn(
           'h-[14px] w-[14px] shrink-0',
           isSelected ? 'text-[var(--color-accent-blue)]' : 'text-[var(--color-text-muted)]'
-        )} />
+        ))}
         <span className="truncate font-mono text-[12px]">{node.name}</span>
       </button>
     );

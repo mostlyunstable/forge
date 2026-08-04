@@ -27,19 +27,20 @@ export function BugsView() {
   });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  // Listen for pending create-bug action from command palette
-  useEffect(() => {
-    if (pendingAction === 'create-bug') {
-      openCreate();
-      clearPendingAction();
-    }
-  }, [pendingAction]);
-
   const openCreate = () => {
     setEditingId(null);
     setForm({ title: '', problem: '', root_cause: '', solution: '', severity: 'medium', resolved: false });
     setSlideOpen(true);
   };
+
+  // Listen for pending create-bug action from command palette
+  useEffect(() => {
+    if (pendingAction === 'create-bug') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      openCreate();
+      clearPendingAction();
+    }
+  }, [pendingAction, clearPendingAction]);
 
   const openEdit = (b: { id: string; title: string; severity: string; resolved: boolean }) => {
     setEditingId(b.id);
@@ -56,12 +57,16 @@ export function BugsView() {
 
   const handleSave = async () => {
     if (!currentProjectId) return;
-    if (editingId) {
-      await updateBug.mutateAsync({ id: editingId, data: form });
-    } else {
-      await createBug.mutateAsync({ project_id: currentProjectId, title: form.title, problem: form.problem, root_cause: form.root_cause, solution: form.solution, severity: form.severity });
+    try {
+      if (editingId) {
+        await updateBug.mutateAsync({ id: editingId, data: form });
+      } else {
+        await createBug.mutateAsync({ project_id: currentProjectId, title: form.title, problem: form.problem, root_cause: form.root_cause, solution: form.solution, severity: form.severity });
+      }
+      setSlideOpen(false);
+    } catch {
+      // mutation error is handled by React Query's onError / error state
     }
-    setSlideOpen(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -157,6 +162,7 @@ export function BugsView() {
                         <button
                           onClick={() => setConfirmDeleteId(b.id)}
                           className="text-[var(--color-text-muted)] hover:text-[var(--color-accent-red)] transition-colors duration-120"
+                          aria-label="Delete bug"
                         >
                           <Trash2 className="h-[14px] w-[14px]" />
                         </button>

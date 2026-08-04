@@ -4,7 +4,7 @@ import { useDecisions, useBugs } from '@/hooks/useApi';
 import { useSettings } from '@/stores/settings';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { useSettingsDialog } from '@/stores/settings-dialog';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { checkServerConnection } from '@/lib/api';
 import {
   LayoutDashboard,
@@ -49,7 +49,7 @@ export function Sidebar() {
     };
     check();
     return () => { cancelled = true; };
-  }, [apiUrl]);
+  }, [apiUrl, setConnectionStatus]);
 
   // Listen for forge:open-settings event from command palette
   useEffect(() => {

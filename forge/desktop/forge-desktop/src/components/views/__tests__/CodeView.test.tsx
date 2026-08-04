@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, afterEach, afterAll, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { setupServer } from 'msw/node'
-import { http, HttpResponse } from 'msw'
+
 import { handlers } from '@/test/handlers'
 import { renderWithProviders } from '@/test/test-utils'
 import { useSettings } from '@/stores/settings'

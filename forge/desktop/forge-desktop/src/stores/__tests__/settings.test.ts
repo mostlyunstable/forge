@@ -11,7 +11,7 @@ const initialState = {
   apiUrl: 'http://127.0.0.1:8000',
   authToken: null,
   currentProjectId: null,
-  connectionStatus: 'checking',
+  connectionStatus: 'checking' as const,
 };
 
 describe('useSettings', () => {

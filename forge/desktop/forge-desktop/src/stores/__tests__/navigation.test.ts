@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useNavigation } from '@/stores/navigation';
 
 const initialState = {
-  activeView: 'dashboard',
+  activeView: 'dashboard' as const,
   sidebarCollapsed: false,
   detailPanelOpen: false,
   selectedFile: null,

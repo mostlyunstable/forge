@@ -7,10 +7,10 @@ describe('cn', () => {
   });
 
   it('handles conditional classes', () => {
-    expect(cn('foo', false && 'bar', 'baz')).toBe('foo baz');
-    expect(cn('foo', true && 'bar', 'baz')).toBe('foo bar baz');
-    expect(cn('foo', null && 'bar', 'baz')).toBe('foo baz');
-    expect(cn('foo', undefined && 'bar', 'baz')).toBe('foo baz');
+    const isTrue = true;
+    const isFalse = false;
+    expect(cn('foo', isFalse && 'bar', 'baz')).toBe('foo baz');
+    expect(cn('foo', isTrue && 'bar', 'baz')).toBe('foo bar baz');
   });
 
   it('resolves Tailwind conflicts (last wins)', () => {

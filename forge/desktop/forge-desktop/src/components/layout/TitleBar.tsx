@@ -22,7 +22,7 @@ export function TitleBar() {
     };
     check();
     return () => { cancelled = true; };
-  }, [apiUrl]);
+  }, [apiUrl, setConnectionStatus]);
 
   const projects = projectsQuery.data?.projects ?? [];
   const currentProject = projects.find((p) => p.id === currentProjectId);

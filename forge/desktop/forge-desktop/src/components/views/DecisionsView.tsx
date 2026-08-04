@@ -20,19 +20,20 @@ export function DecisionsView() {
   const [form, setForm] = useState({ title: '', decision: '', reason: '', status: 'proposed' });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  // Listen for pending create-decision action from command palette
-  useEffect(() => {
-    if (pendingAction === 'create-decision') {
-      openCreate();
-      clearPendingAction();
-    }
-  }, [pendingAction]);
-
   const openCreate = () => {
     setEditingId(null);
     setForm({ title: '', decision: '', reason: '', status: 'proposed' });
     setSlideOpen(true);
   };
+
+  // Listen for pending create-decision action from command palette
+  useEffect(() => {
+    if (pendingAction === 'create-decision') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      openCreate();
+      clearPendingAction();
+    }
+  }, [pendingAction, clearPendingAction]);
 
   const openEdit = (d: { id: string; title: string; decision: string; status: string }) => {
     setEditingId(d.id);
@@ -42,12 +43,16 @@ export function DecisionsView() {
 
   const handleSave = async () => {
     if (!currentProjectId) return;
-    if (editingId) {
-      await updateDecision.mutateAsync({ id: editingId, data: form });
-    } else {
-      await createDecision.mutateAsync({ project_id: currentProjectId, ...form });
+    try {
+      if (editingId) {
+        await updateDecision.mutateAsync({ id: editingId, data: form });
+      } else {
+        await createDecision.mutateAsync({ project_id: currentProjectId, ...form });
+      }
+      setSlideOpen(false);
+    } catch {
+      // mutation error is handled by React Query's onError / error state
     }
-    setSlideOpen(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -132,6 +137,7 @@ export function DecisionsView() {
                         <button
                           onClick={() => setConfirmDeleteId(d.id)}
                           className="text-[var(--color-text-muted)] hover:text-[var(--color-accent-red)] transition-colors duration-120"
+                          aria-label="Delete decision"
                         >
                           <Trash2 className="h-[14px] w-[14px]" />
                         </button>

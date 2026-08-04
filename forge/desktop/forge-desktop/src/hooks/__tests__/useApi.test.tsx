@@ -112,7 +112,6 @@ describe('useCreateDecision', () => {
       title: 'New decision',
       decision: 'Details',
       reason: 'Because',
-      alternatives: [],
     })
 
     await waitFor(() => {

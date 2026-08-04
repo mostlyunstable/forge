@@ -111,7 +111,7 @@ describe('BugDetail', () => {
   it('shows not found when bug does not exist', async () => {
     server.use(
       http.get('http://127.0.0.1:8000/api/v1/memory/bugs/:id', () => {
-        return new HttpResponse.json({ detail: 'Not found' }, { status: 404 });
+        return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
       })
     );
 

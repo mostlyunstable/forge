@@ -76,18 +76,18 @@ export function GraphView() {
         .attr('stroke', '#2A2A3A')
         .attr('stroke-width', 1);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dragBehavior = d3.drag<any, GraphNode>()
-        .on('start', (event: any, d: GraphNode) => {
+      type DragEvent = d3.D3DragEvent<SVGGElement, GraphNode, GraphNode>;
+      const dragBehavior = d3.drag<SVGGElement, GraphNode>()
+        .on('start', (event: DragEvent, d: GraphNode) => {
           if (!event.active) simulation!.alphaTarget(0.3).restart();
           d.fx = d.x;
           d.fy = d.y;
         })
-        .on('drag', (event: any, d: GraphNode) => {
+        .on('drag', (event: DragEvent, d: GraphNode) => {
           d.fx = event.x;
           d.fy = event.y;
         })
-        .on('end', (event: any, d: GraphNode) => {
+        .on('end', (event: DragEvent, d: GraphNode) => {
           if (!event.active) simulation!.alphaTarget(0);
           d.fx = null;
           d.fy = null;
@@ -97,6 +97,7 @@ export function GraphView() {
         .selectAll('g')
         .data(nodes)
         .join('g')
+        // @ts-expect-error D3 types mismatch between DragBehavior and Selection
         .call(dragBehavior);
 
       node.append('circle')
