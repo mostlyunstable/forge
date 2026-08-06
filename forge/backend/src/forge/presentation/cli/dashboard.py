@@ -35,11 +35,16 @@ class ChatPane(Vertical):
         log.write("\n[b][blue]Forge is thinking...[/blue][/b]")
         
         try:
-            settings = Settings()
-            llm = LLMService(settings)
+            llm = LLMService()
             engine = ReasoningEngine(llm)
             
-            cw = ContextWindow(max_tokens=4000)
+            cw = ContextWindow(
+                summary="",
+                summary_tokens=0,
+                messages=[],
+                message_tokens=0,
+                total_tokens=4000
+            )
             
             # Let's use non-streaming for the UI to avoid RichLog chunking issues for now
             response_text = await engine.generate_response(
