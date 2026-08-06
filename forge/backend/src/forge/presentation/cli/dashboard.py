@@ -165,52 +165,56 @@ class GraphPane(Vertical):
             kg_node.add(f"{src_icon} [dim]{src['title']}[/dim]  [b][blue]──({rel['type']})──>[/blue][/b]  {tgt_icon} [dim]{tgt['title']}[/dim]")
 
 
-class MiniRobot(Static):
+class FloatingRobot(Static):
     FRAMES = [
         r"""
-       [b][blue]▞[/blue][cyan]▀▀▀▀▀▀▀▀[/cyan][blue]▚[/blue][/b]
-      [b][blue]▐[/blue][/b] [b][white]▄▄▄▄▄▄▄▄[/white][/b] [b][blue]▌[/blue][/b]
-      [b][blue]▐[/blue][/b] [b][cyan]◉[/cyan][/b]  [b][dim]▄▄[/dim][/b]  [b][cyan]◉[/cyan][/b] [b][blue]▌[/blue][/b]
-      [b][blue]▐[/blue][/b]   [b][yellow]▀▀▀▀[/yellow][/b]   [b][blue]▌[/blue][/b]
-       [b][blue]▚[/blue][cyan]▄▄▄▄▄▄▄▄[/cyan][blue]▞[/blue][/b]
-       [b][dim]╱[/dim][/b] [b][white]======[/white][/b] [b][dim]╲[/dim][/b]
-     [b][magenta]▞[/magenta][white]▀[/white][/b]          [b][white]▀[/white][magenta]▚[/magenta][/b]
+   [b][cyan]🤖[/cyan][/b]
+  ┌/||\┐
+   /  \ 
 """,
         r"""
-       [b][blue]▞[/blue][cyan]▀▀▀▀▀▀▀▀[/cyan][blue]▚[/blue][/b]
-      [b][blue]▐[/blue][/b] [b][white]▄▄▄▄▄▄▄▄[/white][/b] [b][blue]▌[/blue][/b]
-      [b][blue]▐[/blue][/b] [b][cyan]─[/cyan][/b]  [b][dim]▄▄[/dim][/b]  [b][cyan]─[/cyan][/b] [b][blue]▌[/blue][/b]
-      [b][blue]▐[/blue][/b]   [b][yellow]▀▀▀▀[/yellow][/b]   [b][blue]▌[/blue][/b]
-       [b][blue]▚[/blue][cyan]▄▄▄▄▄▄▄▄[/cyan][blue]▞[/blue][/b]
-       [b][dim]╱[/dim][/b] [b][white]======[/white][/b] [b][dim]╲[/dim][/b]
-     [b][magenta]▞[/magenta][white]▀[/white][/b]          [b][white]▀[/white][magenta]▚[/magenta][/b]
-""",
-        r"""
-       [b][blue]▞[/blue][cyan]▀▀▀▀▀▀▀▀[/cyan][blue]▚[/blue][/b]
-      [b][blue]▐[/blue][/b] [b][white]▄▄▄▄▄▄▄▄[/white][/b] [b][blue]▌[/blue][/b]
-      [b][blue]▐[/blue][/b] [b][cyan]>[/cyan][/b]  [b][dim]▄▄[/dim][/b]  [b][cyan]<[/cyan][/b] [b][blue]▌[/blue][/b]
-      [b][blue]▐[/blue][/b]   [b][yellow]▅▅▅▅[/yellow][/b]   [b][blue]▌[/blue][/b]
-       [b][blue]▚[/blue][cyan]▄▄▄▄▄▄▄▄[/cyan][blue]▞[/blue][/b]
-       [b][dim]╱[/dim][/b] [b][cyan]======[/cyan][/b] [b][dim]╲[/dim][/b]
-     [b][magenta]▞[/magenta][white]▀[/white][/b]          [b][white]▀[/white][magenta]▚[/magenta][/b]
+   [b][cyan]🤖[/cyan][/b]
+  ┌\||/┐
+   \  / 
 """
     ]
     
     def on_mount(self) -> None:
         self.frame_idx = 0
-        self.state = "idle"
-        self.update_robot()
-        self.set_interval(1.0, self.update_robot)
+        self.pos_x = 35.0
+        self.pos_y = 10.0
+        self.vx = 8.0  # cells per second X
+        self.vy = 4.0  # cells per second Y
         
-    def update_robot(self):
-        if self.state == "idle":
-            self.frame_idx = (self.frame_idx + 1) % 2
-        elif self.state == "thinking":
-            self.frame_idx = 2
+        self.styles.offset = (int(self.pos_x), int(self.pos_y))
+        self.update(self.FRAMES[self.frame_idx])
+        
+        self.set_interval(0.2, self.tick)
+        
+    def tick(self):
+        self.pos_x += self.vx * 0.2
+        self.pos_y += self.vy * 0.2
+        
+        max_x = max(0, self.screen.size.width - 10)
+        max_y = max(0, self.screen.size.height - 7)
+        
+        if self.pos_x <= 0:
+            self.pos_x = 0
+            self.vx *= -1
+        elif self.pos_x >= max_x:
+            self.pos_x = max_x
+            self.vx *= -1
             
-        if random.random() < 0.2:
-            self.state = "thinking" if self.state == "idle" else "idle"
+        if self.pos_y <= 2:
+            self.pos_y = 2
+            self.vy *= -1
+        elif self.pos_y >= max_y:
+            self.pos_y = max_y
+            self.vy *= -1
             
+        self.styles.offset = (int(self.pos_x), int(self.pos_y))
+        
+        self.frame_idx = (self.frame_idx + 1) % len(self.FRAMES)
         self.update(self.FRAMES[self.frame_idx])
 
 
@@ -220,10 +224,12 @@ class Dashboard(App):
     CSS = """
     Screen {
         layout: vertical;
+        layers: base overlay;
     }
     #main-container {
         height: 1fr;
         layout: horizontal;
+        layer: base;
     }
     #sidebar {
         width: 30;
@@ -310,6 +316,13 @@ class Dashboard(App):
         background: $surface;
         padding: 1;
     }
+    
+    #floating-robot {
+        layer: overlay;
+        position: absolute;
+        width: 10;
+        height: 5;
+    }
     """
 
     BINDINGS = [
@@ -341,6 +354,7 @@ class Dashboard(App):
         self.welcome = Static(logo, id="main-text", classes="welcome-text")
 
     def compose(self) -> ComposeResult:
+        yield FloatingRobot(id="floating-robot")
         yield Header()
         with Container(id="main-container"):
             with Vertical(id="sidebar"):
@@ -350,8 +364,6 @@ class Dashboard(App):
                 yield Label(f"Index: {self.project_info.get('index_status', 'Unknown')}")
                 yield Label(f"Memory: {self.project_info.get('memory_count', 0)}")
                 yield Label(f"Sessions: {self.project_info.get('active_sessions', 0)}")
-                yield Static("")
-                yield MiniRobot()
             with Container(id="content"):
                 yield self.welcome
         yield Footer()
