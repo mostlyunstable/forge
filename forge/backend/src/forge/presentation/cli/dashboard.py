@@ -169,7 +169,19 @@ class Dashboard(App):
         super().__init__(*args, **kwargs)
         self.project_info = project_info
         self.chat_pane = ChatPane(id="chat-pane")
-        self.welcome = Static("Welcome to Forge Interactive Dashboard.\nUse 'c' to Chat, 's' to Search, 'g' to view Graph.", id="main-text")
+        
+        logo = r"""[b][blue]
+    ______                           
+   / ____/___  _________ ____  
+  / /_  / __ \/ ___/ __ `/ _ \ 
+ / __/ / /_/ / /  / /_/ /  __/ 
+/_/    \____/_/   \__, /\___/  
+                 /____/        
+[/blue][/b]
+Welcome to the Forge Interactive Dashboard.
+[dim]Use 'c' to Chat, 's' to Search, 'g' to view Graph.[/dim]
+"""
+        self.welcome = Static(logo, id="main-text")
 
     def compose(self) -> ComposeResult:
         yield Header()
