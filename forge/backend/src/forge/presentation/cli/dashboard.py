@@ -2,8 +2,11 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Vertical, VerticalScroll, Horizontal
-from textual.widgets import Footer, Header, Label, Static, Input, Markdown
+from textual.widgets import Footer, Header, Label, Static, Input, Markdown, Tree
 import re
+import sqlite3
+import json
+import asyncio
 
 from forge.application.conversation.reasoning_engine import ReasoningEngine
 from forge.infrastructure.llm.llm_service import LLMService
@@ -83,6 +86,84 @@ class ChatPane(Vertical):
             feed.scroll_end(animate=False)
 
 
+class GraphPane(Vertical):
+    def compose(self) -> ComposeResult:
+        with Container(id="graph-container"):
+            yield Static(" [b]Forge Memory Graph[/b]", id="graph-header")
+            tree = Tree("Root", id="memory-tree")
+            tree.root.expand()
+            tree.show_root = False
+            yield tree
+
+    def on_mount(self) -> None:
+        self.fetch_graph_data()
+
+    @work(exclusive=True)
+    async def fetch_graph_data(self) -> None:
+        tree = self.app.query_one("#memory-tree", Tree)
+        
+        # Add root nodes
+        conv_node = tree.root.add("[b][cyan]💬 Conversations & Extracted Memories[/cyan][/b]", expand=True)
+        kg_node = tree.root.add("[b][magenta]🧠 Semantic Knowledge Graph (Relationships)[/magenta][/b]", expand=True)
+        
+        def _fetch():
+            data = {"conversations": [], "relationships": [], "memories": {}}
+            try:
+                # Fetch from forge.db
+                with sqlite3.connect("forge.db") as conn:
+                    # 1. Fetch active conversations
+                    c_cursor = conn.execute("SELECT id, title FROM conversations ORDER BY created_at DESC LIMIT 20")
+                    for c_id, title in c_cursor.fetchall():
+                        data["conversations"].append({"id": c_id, "title": title})
+                    
+                    # 2. Fetch memories (Notes, Bugs, Features, Decisions)
+                    m_cursor = conn.execute("SELECT id, memory_type, title, source FROM memories")
+                    for m_id, m_type, title, source in m_cursor.fetchall():
+                        data["memories"][m_id] = {"type": m_type, "title": title, "source": source}
+                        
+                # Fetch from forge_knowledge_graph.db
+                try:
+                    with sqlite3.connect("forge_knowledge_graph.db") as conn:
+                        r_cursor = conn.execute("SELECT source_id, target_id, relationship_type FROM relationships LIMIT 100")
+                        for src, tgt, rtype in r_cursor.fetchall():
+                            data["relationships"].append({"src": src, "tgt": tgt, "type": rtype})
+                except sqlite3.OperationalError:
+                    pass # knowledge graph db might not exist yet
+            except Exception as e:
+                data["error"] = str(e)
+            return data
+
+        data = await asyncio.to_thread(_fetch)
+        
+        if "error" in data:
+            tree.root.add(f"[red]Error fetching graph data:[/red] {data['error']}")
+            return
+
+        # Render Conversations
+        for conv in data["conversations"]:
+            node = conv_node.add(f"[white]💬 {conv['title']}[/white]")
+            conv_memories = [m for m in data["memories"].values() if conv['id'] in m['source']]
+            if conv_memories:
+                for m in conv_memories:
+                    icon = "🐛" if m['type'] == 'bug' else "📝" if m['type'] == 'note' else ("⚖️" if m['type'] == 'decision' else "⚡")
+                    color = "red" if m['type'] == 'bug' else "green" if m['type'] == 'note' else "yellow"
+                    node.add(f"[{color}]{icon} [{m['type'].upper()}][/{color}] [dim]{m['title']}[/dim]")
+            else:
+                node.add("[dim]No memories extracted yet.[/dim]")
+                    
+        # Render Knowledge Graph Relationships
+        if not data["relationships"]:
+            kg_node.add("[dim]No semantic relationships found.[/dim]")
+        for rel in data["relationships"]:
+            src = data["memories"].get(rel["src"], {"title": f"Unknown ({rel['src'][:8]})", "type": "node"})
+            tgt = data["memories"].get(rel["tgt"], {"title": f"Unknown ({rel['tgt'][:8]})", "type": "node"})
+            
+            src_icon = "🐛" if src['type'] == 'bug' else "📝" if src['type'] == 'note' else ("⚖️" if src['type'] == 'decision' else "⚡")
+            tgt_icon = "🐛" if tgt['type'] == 'bug' else "📝" if tgt['type'] == 'note' else ("⚖️" if tgt['type'] == 'decision' else "⚡")
+            
+            kg_node.add(f"{src_icon} [dim]{src['title']}[/dim]  [b][blue]──({rel['type']})──>[/blue][/b]  {tgt_icon} [dim]{tgt['title']}[/dim]")
+
+
 class Dashboard(App):
     """Interactive Textual Dashboard for Forge."""
 
@@ -156,6 +237,29 @@ class Dashboard(App):
     #chat-input:focus {
         border: round $primary;
     }
+    
+    /* Graph Container */
+    #graph-container {
+        width: 100%;
+        height: 1fr;
+        layout: vertical;
+        padding: 2;
+    }
+    
+    #graph-header {
+        background: $surface-lighten-2;
+        color: $text;
+        width: 100%;
+        padding: 1;
+        margin-bottom: 1;
+    }
+    
+    #memory-tree {
+        height: 1fr;
+        border: round $primary-muted;
+        background: $surface;
+        padding: 1;
+    }
     """
 
     BINDINGS = [
@@ -169,6 +273,7 @@ class Dashboard(App):
         super().__init__(*args, **kwargs)
         self.project_info = project_info
         self.chat_pane = ChatPane(id="chat-pane")
+        self.graph_pane = GraphPane(id="graph-pane")
         
         logo = r"""[b][cyan]
 ███████╗ ██████╗ ██████╗  ██████╗ ███████╗
@@ -216,4 +321,4 @@ class Dashboard(App):
         content = self.query_one("#content")
         for child in content.children:
             child.remove()
-        content.mount(Static("Opened Graph view.", id="graph-text"))
+        content.mount(self.graph_pane)
