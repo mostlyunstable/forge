@@ -12,7 +12,17 @@ from forge.application.conversation.token_manager import ContextWindow
 from forge.infrastructure.llm.llm_service import LLMService
 
 
+import argparse
+
+from forge.application.agent.tools import ForgeTools, set_tools_base_dir
+
 async def run_evals():
+    parser = argparse.ArgumentParser(description="Forge AI Evaluation Harness")
+    parser.add_argument("--filter", type=str, help="Run only tasks matching this ID substring")
+    args = parser.parse_args()
+
+    set_tools_base_dir(backend_dir)
+
     llm_service = LLMService()
     if not llm_service.is_configured:
         print("❌ Error: LLM API key not configured. Set GROQ_API_KEY.")
@@ -26,6 +36,9 @@ async def run_evals():
         sys.exit(1)
 
     tasks = json.loads(tasks_file.read_text())
+    
+    if args.filter:
+        tasks = [t for t in tasks if args.filter in t["id"]]
 
     print("=" * 60)
     print(f"🚀 FORGE EVALUATION HARNESS - {len(tasks)} TASKS")
@@ -33,6 +46,11 @@ async def run_evals():
 
     total_score = 0
     total_possible = 0
+    report_lines = [
+        "# Forge Evaluation Report",
+        f"**Total Tasks:** {len(tasks)}\n",
+        "## Task Details"
+    ]
 
     for i, task in enumerate(tasks, 1):
         print(f"\n[Task {i}/{len(tasks)}] {task['id']}")
@@ -101,12 +119,29 @@ Return ONLY the integer score (1, 2, 3, 4, or 5). Do not include any other text.
         total_score += score
 
         print(f"Score for {task['id']}: {score}/5")
+        
+        report_lines.extend([
+            f"\n### {task['id']}",
+            f"**Prompt:** {task['prompt']}",
+            f"**Score:** {score}/5",
+            f"**Tool Calls:** {tool_calls}",
+            "**Output:**",
+            f"```text\n{final_text.strip()}\n```",
+            "---"
+        ])
 
+    final_percentage = (total_score / total_possible) * 100 if total_possible > 0 else 0
     print("\n" + "=" * 60)
     print(
-        f"🏆 FINAL EVALUATION SCORE: {total_score}/{total_possible} ({(total_score / total_possible) * 100:.1f}%)"
+        f"🏆 FINAL EVALUATION SCORE: {total_score}/{total_possible} ({final_percentage:.1f}%)"
     )
     print("=" * 60)
+    
+    report_lines.insert(1, f"**Final Score:** {total_score}/{total_possible} ({final_percentage:.1f}%)\n")
+    
+    report_path = Path(__file__).parent / "eval_report.md"
+    report_path.write_text("\n".join(report_lines))
+    print(f"📄 Report written to {report_path.resolve()}")
 
 
 if __name__ == "__main__":

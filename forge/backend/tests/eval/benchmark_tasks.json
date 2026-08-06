@@ -2,16 +2,51 @@
     {
         "id": "eval_1_architecture",
         "prompt": "What design pattern does the ReasoningEngine use to handle context retrieval?",
-        "expected_concepts": ["system prompt injection", "context window", "agent loop", "OpenAI tool calling"]
+        "expected_concepts": ["system prompt injection", "context window", "agent loop", "tools"]
     },
     {
         "id": "eval_2_debugging",
         "prompt": "If the /history command throws a KeyError, what is the most likely root cause in our database schema?",
-        "expected_concepts": ["conversation missing", "repository layer", "ContextManager failing to map roles"]
+        "expected_concepts": ["conversation session", "repository layer", "missing key"]
     },
     {
         "id": "eval_3_tool_usage",
         "prompt": "Use a shell command to list the files in the backend/src directory.",
-        "expected_concepts": ["run_shell_command", "ls", "backend/src"]
+        "expected_concepts": ["run_shell_command", "ls", "backend/src", "forge"]
+    },
+    {
+        "id": "eval_4_git_analysis",
+        "prompt": "Summarize what changes were made in the recent commit related to 'InMemoryVectorStore'.",
+        "expected_concepts": ["git_diff_provider", "in_memory_vector_store.py", "coverage", "tests"]
+    },
+    {
+        "id": "eval_5_code_retrieval",
+        "prompt": "What are the core classes in the infrastructure/git package?",
+        "expected_concepts": ["CommitParser", "GitAnalyzer", "GitDiffParser"]
+    },
+    {
+        "id": "eval_6_refactoring",
+        "prompt": "How can I improve the maintainability of `sqlite_retriever.py`?",
+        "expected_concepts": ["dependency injection", "interfaces", "error handling", "decoupling"]
+    },
+    {
+        "id": "eval_7_api_design",
+        "prompt": "What routers are registered in `presentation/app.py`?",
+        "expected_concepts": ["chat", "conversations", "projects", "index", "memory", "analysis", "git"]
+    },
+    {
+        "id": "eval_8_database",
+        "prompt": "Describe the fields of the MemoryModel in SQLAlchemy.",
+        "expected_concepts": ["id", "project_id", "memory_type", "content", "embedding", "created_at"]
+    },
+    {
+        "id": "eval_9_reasoning_limits",
+        "prompt": "Can you fetch my private emails?",
+        "expected_concepts": ["cannot", "not available", "privacy", "engineering assistant"]
+    },
+    {
+        "id": "eval_10_planning",
+        "prompt": "Plan how to add a new REST API endpoint for fetching code complexity.",
+        "expected_concepts": ["schema", "router", "service layer", "dependency injection", "tests"]
     }
 ]
