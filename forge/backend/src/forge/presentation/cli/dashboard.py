@@ -1,20 +1,19 @@
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Vertical
-from textual.widgets import Footer, Header, Label, Static, Input, RichLog
-from textual.message import Message as TextualMessage
+from textual.containers import Container, Vertical, VerticalScroll, Horizontal
+from textual.widgets import Footer, Header, Label, Static, Input, Markdown
+import re
 
 from forge.application.conversation.reasoning_engine import ReasoningEngine
-from forge.application.conversation.token_manager import ContextWindow, Message
-from forge.config.settings import Settings
 from forge.infrastructure.llm.llm_service import LLMService
-
 
 class ChatPane(Vertical):
     def compose(self) -> ComposeResult:
-        yield RichLog(id="chat-log", markup=True, auto_scroll=True)
-        yield Input(placeholder="Ask Forge (Hit Enter to send)...", id="chat-input")
+        with Container(id="chat-container"):
+            yield VerticalScroll(id="chat-feed")
+            with Horizontal(id="input-container"):
+                yield Input(placeholder="Ask Forge (Hit Enter to send)...", id="chat-input")
 
     async def on_input_submitted(self, message: Input.Submitted) -> None:
         if not message.value.strip():
@@ -22,17 +21,30 @@ class ChatPane(Vertical):
             
         user_text = message.value
         self.query_one("#chat-input", Input).value = ""
-        log = self.query_one("#chat-log", RichLog)
+        feed = self.query_one("#chat-feed", VerticalScroll)
         
-        log.write(f"\n[b][green]You:[/green][/b]\n{user_text}")
+        user_msg = Static(f"[b][white]You[/white][/b]\n{user_text}", classes="user-msg")
+        feed.mount(user_msg)
+        feed.scroll_end(animate=False)
         
         # Trigger background task for LLM response
         self.fetch_response(user_text)
 
+    def _format_thinking(self, text: str) -> str:
+        """Format XML thinking tags as dimmed markdown blockquotes."""
+        text = re.sub(r'<thinking>(.*?)</thinking>', r'> *Thought Process:*\n> \1', text, flags=re.DOTALL)
+        if '<thinking>' in text and '</thinking>' not in text:
+            parts = text.split('<thinking>')
+            return parts[0] + "\n> *Thinking...*\n> " + parts[1]
+        return text
+
     @work(exclusive=True)
     async def fetch_response(self, text: str) -> None:
-        log = self.app.query_one("#chat-log", RichLog)
-        log.write("\n[b][blue]Forge is thinking...[/blue][/b]")
+        feed = self.app.query_one("#chat-feed", VerticalScroll)
+        
+        ai_msg = Markdown("*Thinking...*", classes="forge-msg")
+        feed.mount(ai_msg)
+        feed.scroll_end(animate=False)
         
         try:
             llm = LLMService()
@@ -46,16 +58,29 @@ class ChatPane(Vertical):
                 total_tokens=DEFAULT_MAX_TOKENS
             )
             
-            # Let's use non-streaming for the UI to avoid RichLog chunking issues for now
-            response_text = await engine.generate_response(
+            full_text = ""
+            async for chunk in engine.generate_response_stream(
                 context_window=cw,
                 retrieved_context="CLI interactive dashboard mode.",
                 user_prompt=text
-            )
-            log.write(f"\n[b][blue]Forge:[/blue][/b]\n{response_text}")
+            ):
+                if chunk["type"] == "text":
+                    full_text += chunk.get("content", "")
+                    display_text = self._format_thinking(full_text)
+                    # Update markdown
+                    ai_msg.update(display_text)
+                    feed.scroll_end(animate=False)
+                elif chunk["type"] == "status":
+                    # Status messages from tool calls
+                    status = chunk.get("message", "")
+                    full_text += f"\n> _{status}_\n"
+                    ai_msg.update(self._format_thinking(full_text))
+                    feed.scroll_end(animate=False)
             
         except Exception as e:
-            log.write(f"\n[bold red]Error communicating with AI Engine:[/bold red]\n{str(e)}")
+            err_msg = Static(f"[bold red]Error communicating with AI Engine:[/bold red]\n{str(e)}", classes="error-msg")
+            feed.mount(err_msg)
+            feed.scroll_end(animate=False)
 
 
 class Dashboard(App):
@@ -78,20 +103,60 @@ class Dashboard(App):
     #content {
         height: 1fr;
         width: 1fr;
+        align: center middle;
     }
-    ChatPane {
+    
+    /* Claude-like Centered Chat Container */
+    #chat-container {
+        width: 100%;
+        max-width: 100;
         height: 1fr;
-        width: 1fr;
+        layout: vertical;
+        padding-top: 1;
+        padding-bottom: 1;
+    }
+    
+    #chat-feed {
+        height: 1fr;
         padding: 1;
     }
-    #chat-log {
-        height: 1fr;
-        border: solid blue;
+    
+    /* Message Bubbles */
+    .user-msg {
+        background: $surface-light;
+        color: $text;
+        padding: 1;
+        margin-bottom: 1;
+        border-radius: 1;
+        border-left: thick $accent;
+    }
+    
+    .forge-msg {
+        padding: 1;
+        margin-bottom: 2;
+    }
+    
+    .error-msg {
+        background: $error-muted;
+        color: $error;
+        padding: 1;
+        border-radius: 1;
+    }
+
+    /* Input Container */
+    #input-container {
+        height: auto;
+        dock: bottom;
+        padding: 1;
+    }
+    
+    #chat-input {
+        width: 1fr;
+        border: round $primary-muted;
         background: $surface;
     }
-    #chat-input {
-        dock: bottom;
-        margin-top: 1;
+    #chat-input:focus {
+        border: round $primary;
     }
     """
 
@@ -124,7 +189,6 @@ class Dashboard(App):
 
     def action_chat(self) -> None:
         content = self.query_one("#content")
-        # Remove anything in content
         for child in content.children:
             child.remove()
         content.mount(self.chat_pane)
