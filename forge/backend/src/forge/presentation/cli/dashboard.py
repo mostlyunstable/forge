@@ -168,14 +168,22 @@ class GraphPane(Vertical):
 class FloatingRobot(Static):
     FRAMES = [
         r"""
-   [b][cyan]🤖[/cyan][/b]
-  ┌/||\┐
-   /  \ 
+   [b][blue]▄███▄[/blue][/b]
+  [b][white]═[/white][/b][b][blue]▐[/blue][/b][b][cyan]◉[/cyan][/b][b][dim]▄[/dim][/b][b][cyan]◉[/cyan][/b][b][blue]▌[/blue][/b][b][white]═[/white][/b]
+   [b][blue]█████[/blue][/b]
+    [b][white]▟[/white][/b] [b][white]▙[/white][/b]
 """,
         r"""
-   [b][cyan]🤖[/cyan][/b]
-  ┌\||/┐
-   \  / 
+   [b][blue]▄███▄[/blue][/b]
+  [b][white]═[/white][/b][b][blue]▐[/blue][/b][b][cyan]◉[/cyan][/b][b][dim]▄[/dim][/b][b][cyan]◉[/cyan][/b][b][blue]▌[/blue][/b][b][white]═[/white][/b]
+   [b][blue]█████[/blue][/b]
+    [b][white]▚[/white][/b] [b][white]▞[/white][/b]
+""",
+        r"""
+   [b][blue]▄███▄[/blue][/b]
+  [b][white]─[/white][/b][b][blue]▐[/blue][/b][b][cyan]◉[/cyan][/b][b][dim]▄[/dim][/b][b][cyan]◉[/cyan][/b][b][blue]▌[/blue][/b][b][white]─[/white][/b]
+   [b][blue]█████[/blue][/b]
+    [b][white]▟[/white][/b] [b][white]▙[/white][/b]
 """
     ]
     
@@ -183,8 +191,8 @@ class FloatingRobot(Static):
         self.frame_idx = 0
         self.pos_x = 35.0
         self.pos_y = 10.0
-        self.vx = 8.0  # cells per second X
-        self.vy = 4.0  # cells per second Y
+        self.vx = 5.0  # cells per second X
+        self.vy = 2.0  # cells per second Y
         
         self.styles.offset = (int(self.pos_x), int(self.pos_y))
         self.update(self.FRAMES[self.frame_idx])
