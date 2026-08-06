@@ -7,6 +7,7 @@ import re
 import sqlite3
 import json
 import asyncio
+import random
 
 from forge.application.conversation.reasoning_engine import ReasoningEngine
 from forge.infrastructure.llm.llm_service import LLMService
@@ -164,6 +165,49 @@ class GraphPane(Vertical):
             kg_node.add(f"{src_icon} [dim]{src['title']}[/dim]  [b][blue]──({rel['type']})──>[/blue][/b]  {tgt_icon} [dim]{tgt['title']}[/dim]")
 
 
+class MiniRobot(Static):
+    FRAMES = [
+        r"""
+ [b][cyan]┌───┐[/cyan][/b]
+ [b][cyan]│[/cyan][/b]o o[b][cyan]│[/cyan][/b]
+ [b][cyan]└───┘[/cyan][/b]
+  /|\  
+  / \  
+""",
+        r"""
+ [b][cyan]┌───┐[/cyan][/b]
+ [b][cyan]│[/cyan][/b]- -[b][cyan]│[/cyan][/b]
+ [b][cyan]└───┘[/cyan][/b]
+  /|\  
+  / \  
+""",
+        r"""
+ [b][cyan]┌───┐[/cyan][/b]
+ [b][cyan]│[/cyan][/b]> <[b][cyan]│[/cyan][/b]
+ [b][cyan]└───┘[/cyan][/b]
+  /|\  
+  / \  
+"""
+    ]
+    
+    def on_mount(self) -> None:
+        self.frame_idx = 0
+        self.state = "idle"
+        self.update_robot()
+        self.set_interval(1.0, self.update_robot)
+        
+    def update_robot(self):
+        if self.state == "idle":
+            self.frame_idx = (self.frame_idx + 1) % 2
+        elif self.state == "thinking":
+            self.frame_idx = 2
+            
+        if random.random() < 0.2:
+            self.state = "thinking" if self.state == "idle" else "idle"
+            
+        self.update(self.FRAMES[self.frame_idx])
+
+
 class Dashboard(App):
     """Interactive Textual Dashboard for Forge."""
 
@@ -300,6 +344,8 @@ class Dashboard(App):
                 yield Label(f"Index: {self.project_info.get('index_status', 'Unknown')}")
                 yield Label(f"Memory: {self.project_info.get('memory_count', 0)}")
                 yield Label(f"Sessions: {self.project_info.get('active_sessions', 0)}")
+                yield Static("")
+                yield MiniRobot()
             with Container(id="content"):
                 yield self.welcome
         yield Footer()
