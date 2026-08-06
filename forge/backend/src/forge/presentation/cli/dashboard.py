@@ -180,38 +180,42 @@ class FloatingRobot(Static):
     FRAMES = {
         "idle": [
             r"""
-   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][cyan]●[/cyan][/b]   [b][cyan]●[/cyan][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
-    [b][yellow]███████[/yellow][/b]
-    [b][yellow]▟[/yellow][/b]   [b][yellow]▙[/yellow][/b]
+    [b][blue]██████╗[/blue][/b]
+   [b][blue]██╔═══██╗[/blue][/b]
+ [b][cyan]═╗[/cyan][blue]██║[/blue][white]◉ ◉[/white][blue]██║[/blue][cyan]╔═[/cyan][/b]
+ [b][cyan]╚╝[/cyan][blue]██║[/blue][white] ▄ [/white][blue]██║[/blue][cyan]╚╝[/cyan][/b]
+   [b][blue]╚██████╔╝[/blue][/b]
+    [b][blue]╚═════╝[/blue][/b]
+    [b][cyan]╔╝[/cyan]   [cyan]╚╗[/cyan][/b]
 """,
             r"""
-   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][cyan]─[/cyan][/b]   [b][cyan]─[/cyan][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
-    [b][yellow]███████[/yellow][/b]
-    [b][yellow]▟[/yellow][/b]   [b][yellow]▙[/yellow][/b]
+    [b][blue]██████╗[/blue][/b]
+   [b][blue]██╔═══██╗[/blue][/b]
+ [b][cyan]═╗[/cyan][blue]██║[/blue][white]─ ─[/white][blue]██║[/blue][cyan]╔═[/cyan][/b]
+ [b][cyan]╚╝[/cyan][blue]██║[/blue][white] ▄ [/white][blue]██║[/blue][cyan]╚╝[/cyan][/b]
+   [b][blue]╚██████╔╝[/blue][/b]
+    [b][blue]╚═════╝[/blue][/b]
+    [b][cyan]╔╝[/cyan]   [cyan]╚╗[/cyan][/b]
 """
         ],
         "working": [
             r"""
-   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][cyan]>[/cyan][/b]   [b][cyan]<[/cyan][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
-    [b][yellow]███████[/yellow][/b]
-    [b][yellow]▟[/yellow][/b] [b][cyan]⚡[/cyan][/b] [b][yellow]▙[/yellow][/b]
+    [b][blue]██████╗[/blue][/b]
+ [b][cyan]╔═[/cyan][blue]██╔═══██╗[/blue][cyan]═╗[/cyan][/b]
+ [b][cyan]╚╗[/cyan][blue]██║[/blue][magenta]>[/magenta] [magenta]<[/magenta][blue]██║[/blue][cyan]╔╝[/cyan][/b]
+   [b][blue]██║[/blue][white] ▅ [/white][blue]██║[/blue][/b]
+   [b][blue]╚██████╔╝[/blue][/b]
+    [b][blue]╚═════╝[/blue][/b]
+    [b][cyan]╔╝[/cyan] [magenta]⚡[/magenta] [cyan]╚╗[/cyan][/b]
 """,
             r"""
-   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]█[/yellow][/b] [b][cyan]>[/cyan][/b]   [b][cyan]<[/cyan][/b] [b][yellow]█[/yellow][/b]
-   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
-    [b][yellow]███████[/yellow][/b]
-    [b][cyan]⚡[/cyan][/b] [b][yellow]▟[/yellow][/b] [b][yellow]▙[/yellow][/b] [b][cyan]⚡[/cyan][/b]
+    [b][blue]██████╗[/blue][/b]
+ [b][cyan]╔═[/cyan][blue]██╔═══██╗[/blue][cyan]═╗[/cyan][/b]
+ [b][cyan]╚╗[/cyan][blue]██║[/blue][magenta]<[/magenta] [magenta]>[/magenta][blue]██║[/blue][cyan]╔╝[/cyan][/b]
+   [b][blue]██║[/blue][white] ▅ [/white][blue]██║[/blue][/b]
+   [b][blue]╚██████╔╝[/blue][/b]
+    [b][blue]╚═════╝[/blue][/b]
+    [b][magenta]⚡[/magenta][cyan]╝[/cyan]   [cyan]╚[/cyan][magenta]⚡[/magenta][/b]
 """
         ]
     }
