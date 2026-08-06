@@ -168,25 +168,22 @@ class GraphPane(Vertical):
 class MiniRobot(Static):
     FRAMES = [
         r"""
- [b][cyan]┌───┐[/cyan][/b]
- [b][cyan]│[/cyan][/b]o o[b][cyan]│[/cyan][/b]
- [b][cyan]└───┘[/cyan][/b]
-  /|\  
-  / \  
+  [b][blue]╔═════╗[/blue][/b]
+  [b][blue]║[/blue][/b][b][cyan] ◕ ◕ [/cyan][/b][b][blue]║[/blue][/b]
+  [b][blue]╚═[white]╦═╦[/white]═╝[/blue][/b]
+    [b][white]▼ ▼[/white][/b]  
 """,
         r"""
- [b][cyan]┌───┐[/cyan][/b]
- [b][cyan]│[/cyan][/b]- -[b][cyan]│[/cyan][/b]
- [b][cyan]└───┘[/cyan][/b]
-  /|\  
-  / \  
+  [b][blue]╔═════╗[/blue][/b]
+  [b][blue]║[/blue][/b][b][cyan] ─ ─ [/cyan][/b][b][blue]║[/blue][/b]
+  [b][blue]╚═[white]╦═╦[/white]═╝[/blue][/b]
+    [b][white]▼ ▼[/white][/b]  
 """,
         r"""
- [b][cyan]┌───┐[/cyan][/b]
- [b][cyan]│[/cyan][/b]> <[b][cyan]│[/cyan][/b]
- [b][cyan]└───┘[/cyan][/b]
-  /|\  
-  / \  
+  [b][blue]╔═════╗[/blue][/b]
+  [b][blue]║[/blue][/b][b][cyan] > < [/cyan][/b][b][blue]║[/blue][/b]
+  [b][blue]╚═[white]╦═╦[/white]═╝[/blue][/b]
+    [b][white]▼ ▼[/white][/b]  
 """
     ]
     
