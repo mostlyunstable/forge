@@ -29,9 +29,9 @@ class Dashboard(App):
 
     BINDINGS = [
         Binding("q", "quit", "Quit", show=True),
-        Binding("f1", "chat", "F1 Chat", show=True),
-        Binding("f2", "search", "F2 Search", show=True),
-        Binding("f3", "graph", "F3 Graph", show=True),
+        Binding("c", "chat", "Chat", show=True),
+        Binding("s", "search", "Search", show=True),
+        Binding("g", "graph", "Graph", show=True),
     ]
 
     def __init__(self, project_info: dict, *args, **kwargs):
@@ -50,7 +50,7 @@ class Dashboard(App):
                 yield Label(f"Sessions: {self.project_info.get('active_sessions', 0)}")
             with Container(id="content"):
                 yield Static(
-                    "Welcome to Forge Interactive Dashboard.\nUse Command Palette F1-F7 for actions.",
+                    "Welcome to Forge Interactive Dashboard.\nUse 'c' to Chat, 's' to Search, 'g' to view Graph.",
                     id="main-text",
                 )
         yield Footer()
