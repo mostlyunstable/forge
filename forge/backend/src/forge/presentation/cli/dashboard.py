@@ -127,7 +127,6 @@ class Dashboard(App):
         color: $text;
         padding: 1;
         margin-bottom: 1;
-        border-radius: 1;
         border-left: thick $accent;
     }
     
@@ -140,7 +139,6 @@ class Dashboard(App):
         background: $error-muted;
         color: $error;
         padding: 1;
-        border-radius: 1;
     }
 
     /* Input Container */
