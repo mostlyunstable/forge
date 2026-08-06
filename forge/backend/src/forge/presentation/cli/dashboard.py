@@ -123,7 +123,7 @@ class Dashboard(App):
     
     /* Message Bubbles */
     .user-msg {
-        background: $surface-light;
+        background: $surface-lighten-3;
         color: $text;
         padding: 1;
         margin-bottom: 1;
