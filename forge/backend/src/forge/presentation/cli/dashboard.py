@@ -45,7 +45,12 @@ class ChatPane(Vertical):
     @work(exclusive=True)
     async def fetch_response(self, text: str) -> None:
         feed = self.app.query_one("#chat-feed", VerticalScroll)
-        
+        try:
+            pet = self.app.query_one("#floating-robot")
+            pet.state = "working"
+        except:
+            pass
+            
         ai_msg = Markdown("*Thinking...*", classes="forge-msg")
         feed.mount(ai_msg)
         feed.scroll_end(animate=False)
@@ -85,6 +90,12 @@ class ChatPane(Vertical):
             err_msg = Static(f"[bold red]Error communicating with AI Engine:[/bold red]\n{str(e)}", classes="error-msg")
             feed.mount(err_msg)
             feed.scroll_end(animate=False)
+        finally:
+            try:
+                pet = self.app.query_one("#floating-robot")
+                pet.state = "idle"
+            except:
+                pass
 
 
 class GraphPane(Vertical):
@@ -166,36 +177,55 @@ class GraphPane(Vertical):
 
 
 class FloatingRobot(Static):
-    FRAMES = [
-        r"""
-   [b][blue]▄███▄[/blue][/b]
-  [b][white]═[/white][/b][b][blue]▐[/blue][/b][b][cyan]◉[/cyan][/b][b][dim]▄[/dim][/b][b][cyan]◉[/cyan][/b][b][blue]▌[/blue][/b][b][white]═[/white][/b]
-   [b][blue]█████[/blue][/b]
-    [b][white]▟[/white][/b] [b][white]▙[/white][/b]
+    FRAMES = {
+        "idle": [
+            r"""
+   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][cyan]●[/cyan][/b]   [b][cyan]●[/cyan][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
+    [b][yellow]███████[/yellow][/b]
+    [b][yellow]▟[/yellow][/b]   [b][yellow]▙[/yellow][/b]
 """,
-        r"""
-   [b][blue]▄███▄[/blue][/b]
-  [b][white]═[/white][/b][b][blue]▐[/blue][/b][b][cyan]◉[/cyan][/b][b][dim]▄[/dim][/b][b][cyan]◉[/cyan][/b][b][blue]▌[/blue][/b][b][white]═[/white][/b]
-   [b][blue]█████[/blue][/b]
-    [b][white]▚[/white][/b] [b][white]▞[/white][/b]
-""",
-        r"""
-   [b][blue]▄███▄[/blue][/b]
-  [b][white]─[/white][/b][b][blue]▐[/blue][/b][b][cyan]◉[/cyan][/b][b][dim]▄[/dim][/b][b][cyan]◉[/cyan][/b][b][blue]▌[/blue][/b][b][white]─[/white][/b]
-   [b][blue]█████[/blue][/b]
-    [b][white]▟[/white][/b] [b][white]▙[/white][/b]
+            r"""
+   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][cyan]─[/cyan][/b]   [b][cyan]─[/cyan][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
+    [b][yellow]███████[/yellow][/b]
+    [b][yellow]▟[/yellow][/b]   [b][yellow]▙[/yellow][/b]
 """
-    ]
+        ],
+        "working": [
+            r"""
+   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][cyan]>[/cyan][/b]   [b][cyan]<[/cyan][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
+    [b][yellow]███████[/yellow][/b]
+    [b][yellow]▟[/yellow][/b] [b][cyan]⚡[/cyan][/b] [b][yellow]▙[/yellow][/b]
+""",
+            r"""
+   [b][yellow]▄▀▄[/yellow][/b]   [b][yellow]▄▀▄[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][yellow]▀███▀[/yellow][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]█[/yellow][/b] [b][cyan]>[/cyan][/b]   [b][cyan]<[/cyan][/b] [b][yellow]█[/yellow][/b]
+   [b][yellow]▀▄▄[/yellow][/b] [b][magenta]▅[/magenta][/b] [b][yellow]▄▄▀[/yellow][/b]
+    [b][yellow]███████[/yellow][/b]
+    [b][cyan]⚡[/cyan][/b] [b][yellow]▟[/yellow][/b] [b][yellow]▙[/yellow][/b] [b][cyan]⚡[/cyan][/b]
+"""
+        ]
+    }
     
     def on_mount(self) -> None:
         self.frame_idx = 0
+        self.state = "idle"
         self.pos_x = 35.0
         self.pos_y = 10.0
         self.vx = 5.0  # cells per second X
         self.vy = 2.0  # cells per second Y
         
         self.styles.offset = (int(self.pos_x), int(self.pos_y))
-        self.update(self.FRAMES[self.frame_idx])
+        self.update(self.FRAMES[self.state][self.frame_idx])
         
         self.set_interval(0.2, self.tick)
         
@@ -222,8 +252,13 @@ class FloatingRobot(Static):
             
         self.styles.offset = (int(self.pos_x), int(self.pos_y))
         
-        self.frame_idx = (self.frame_idx + 1) % len(self.FRAMES)
-        self.update(self.FRAMES[self.frame_idx])
+        frames = self.FRAMES[self.state]
+        if random.random() < 0.2 or self.state == "working":
+            self.frame_idx = (self.frame_idx + 1) % len(frames)
+        else:
+            self.frame_idx = 0
+            
+        self.update(frames[self.frame_idx])
 
 
 class Dashboard(App):
