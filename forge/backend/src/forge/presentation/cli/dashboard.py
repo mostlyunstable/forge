@@ -219,39 +219,10 @@ class FloatingRobot(Static):
     def on_mount(self) -> None:
         self.frame_idx = 0
         self.state = "idle"
-        self.pos_x = 35.0
-        self.pos_y = 10.0
-        self.vx = 5.0  # cells per second X
-        self.vy = 2.0  # cells per second Y
-        
-        self.styles.offset = (int(self.pos_x), int(self.pos_y))
         self.update(self.FRAMES[self.state][self.frame_idx])
-        
         self.set_interval(0.2, self.tick)
         
     def tick(self):
-        self.pos_x += self.vx * 0.2
-        self.pos_y += self.vy * 0.2
-        
-        max_x = max(0, self.screen.size.width - 10)
-        max_y = max(0, self.screen.size.height - 7)
-        
-        if self.pos_x <= 0:
-            self.pos_x = 0
-            self.vx *= -1
-        elif self.pos_x >= max_x:
-            self.pos_x = max_x
-            self.vx *= -1
-            
-        if self.pos_y <= 2:
-            self.pos_y = 2
-            self.vy *= -1
-        elif self.pos_y >= max_y:
-            self.pos_y = max_y
-            self.vy *= -1
-            
-        self.styles.offset = (int(self.pos_x), int(self.pos_y))
-        
         frames = self.FRAMES[self.state]
         if random.random() < 0.2 or self.state == "working":
             self.frame_idx = (self.frame_idx + 1) % len(frames)
@@ -267,12 +238,10 @@ class Dashboard(App):
     CSS = """
     Screen {
         layout: vertical;
-        layers: base overlay;
     }
     #main-container {
         height: 1fr;
         layout: horizontal;
-        layer: base;
     }
     #sidebar {
         width: 30;
@@ -361,10 +330,7 @@ class Dashboard(App):
     }
     
     #floating-robot {
-        layer: overlay;
-        position: absolute;
-        width: 10;
-        height: 5;
+        margin-top: 2;
     }
     """
 
@@ -397,7 +363,6 @@ class Dashboard(App):
         self.welcome = Static(logo, id="main-text", classes="welcome-text")
 
     def compose(self) -> ComposeResult:
-        yield FloatingRobot(id="floating-robot")
         yield Header()
         with Container(id="main-container"):
             with Vertical(id="sidebar"):
@@ -407,6 +372,7 @@ class Dashboard(App):
                 yield Label(f"Index: {self.project_info.get('index_status', 'Unknown')}")
                 yield Label(f"Memory: {self.project_info.get('memory_count', 0)}")
                 yield Label(f"Sessions: {self.project_info.get('active_sessions', 0)}")
+                yield FloatingRobot(id="floating-robot")
             with Container(id="content"):
                 yield self.welcome
         yield Footer()
