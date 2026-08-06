@@ -4,10 +4,12 @@ from textual.binding import Binding
 from textual.containers import Container, Vertical, VerticalScroll, Horizontal
 from textual.widgets import Footer, Header, Label, Static, Input, Markdown, Tree
 import re
-import sqlite3
 import json
 import asyncio
 import random
+import os
+from PIL import Image
+from rich_pixels import Pixels
 
 from forge.application.conversation.reasoning_engine import ReasoningEngine
 from forge.infrastructure.llm.llm_service import LLMService
@@ -177,63 +179,33 @@ class GraphPane(Vertical):
 
 
 class FloatingRobot(Static):
-    FRAMES = {
-        "idle": [
-            r"""
-    [b][blue]██████╗[/blue][/b]
-   [b][blue]██╔═══██╗[/blue][/b]
- [b][cyan]═╗[/cyan][blue]██║[/blue][white]◉ ◉[/white][blue]██║[/blue][cyan]╔═[/cyan][/b]
- [b][cyan]╚╝[/cyan][blue]██║[/blue][white] ▄ [/white][blue]██║[/blue][cyan]╚╝[/cyan][/b]
-   [b][blue]╚██████╔╝[/blue][/b]
-    [b][blue]╚═════╝[/blue][/b]
-    [b][cyan]╔╝[/cyan]   [cyan]╚╗[/cyan][/b]
-""",
-            r"""
-    [b][blue]██████╗[/blue][/b]
-   [b][blue]██╔═══██╗[/blue][/b]
- [b][cyan]═╗[/cyan][blue]██║[/blue][white]─ ─[/white][blue]██║[/blue][cyan]╔═[/cyan][/b]
- [b][cyan]╚╝[/cyan][blue]██║[/blue][white] ▄ [/white][blue]██║[/blue][cyan]╚╝[/cyan][/b]
-   [b][blue]╚██████╔╝[/blue][/b]
-    [b][blue]╚═════╝[/blue][/b]
-    [b][cyan]╔╝[/cyan]   [cyan]╚╗[/cyan][/b]
-"""
-        ],
-        "working": [
-            r"""
-    [b][blue]██████╗[/blue][/b]
- [b][cyan]╔═[/cyan][blue]██╔═══██╗[/blue][cyan]═╗[/cyan][/b]
- [b][cyan]╚╗[/cyan][blue]██║[/blue][magenta]>[/magenta] [magenta]<[/magenta][blue]██║[/blue][cyan]╔╝[/cyan][/b]
-   [b][blue]██║[/blue][white] ▅ [/white][blue]██║[/blue][/b]
-   [b][blue]╚██████╔╝[/blue][/b]
-    [b][blue]╚═════╝[/blue][/b]
-    [b][cyan]╔╝[/cyan] [magenta]⚡[/magenta] [cyan]╚╗[/cyan][/b]
-""",
-            r"""
-    [b][blue]██████╗[/blue][/b]
- [b][cyan]╔═[/cyan][blue]██╔═══██╗[/blue][cyan]═╗[/cyan][/b]
- [b][cyan]╚╗[/cyan][blue]██║[/blue][magenta]<[/magenta] [magenta]>[/magenta][blue]██║[/blue][cyan]╔╝[/cyan][/b]
-   [b][blue]██║[/blue][white] ▅ [/white][blue]██║[/blue][/b]
-   [b][blue]╚██████╔╝[/blue][/b]
-    [b][blue]╚═════╝[/blue][/b]
-    [b][magenta]⚡[/magenta][cyan]╝[/cyan]   [cyan]╚[/cyan][magenta]⚡[/magenta][/b]
-"""
-        ]
-    }
-    
     def on_mount(self) -> None:
-        self.frame_idx = 0
         self.state = "idle"
-        self.update(self.FRAMES[self.state][self.frame_idx])
-        self.set_interval(0.2, self.tick)
+        
+        # Load and resize images
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        try:
+            idle_img = Image.open(os.path.join(base_dir, "assets", "pet_idle.jpg")).resize((28, 28))
+            work_img = Image.open(os.path.join(base_dir, "assets", "pet_working.jpg")).resize((28, 28))
+            
+            self.frames = {
+                "idle": Pixels.from_image(idle_img),
+                "working": Pixels.from_image(work_img)
+            }
+        except Exception:
+            # Fallback if images fail to load
+            self.frames = {
+                "idle": " [b][cyan]🤖[/cyan][/b] (idle)",
+                "working": " [b][red]🤖[/red][/b] (working)"
+            }
+
+        self.update(self.frames[self.state])
+        self.set_interval(0.5, self.tick)
         
     def tick(self):
-        frames = self.FRAMES[self.state]
-        if random.random() < 0.2 or self.state == "working":
-            self.frame_idx = (self.frame_idx + 1) % len(frames)
-        else:
-            self.frame_idx = 0
-            
-        self.update(frames[self.frame_idx])
+        # We just swap the frame based on the state. No complex animation loop needed since it's just 2 states.
+        self.update(self.frames[self.state])
 
 
 class Dashboard(App):
@@ -335,6 +307,7 @@ class Dashboard(App):
     
     #floating-robot {
         margin-top: 2;
+        align: center middle;
     }
     """
 
