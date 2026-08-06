@@ -170,18 +170,20 @@ class Dashboard(App):
         self.project_info = project_info
         self.chat_pane = ChatPane(id="chat-pane")
         
-        logo = r"""[b][blue]
-    ______                           
-   / ____/___  _________ ____  
-  / /_  / __ \/ ___/ __ `/ _ \ 
- / __/ / /_/ / /  / /_/ /  __/ 
-/_/    \____/_/   \__, /\___/  
-                 /____/        
-[/blue][/b]
-Welcome to the Forge Interactive Dashboard.
-[dim]Use 'c' to Chat, 's' to Search, 'g' to view Graph.[/dim]
+        logo = r"""[b][cyan]
+███████╗ ██████╗ ██████╗  ██████╗ ███████╗
+██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
+█████╗  ██║   ██║██████╔╝██║  ███╗█████╗  
+██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝  
+██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
+╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+[/cyan][/b][b][white]
+      A U T O N O M O U S   E N G I N E E R I N G
+[/white][/b]
+
+[dim]Press [b]'c'[/b] to Chat   |   Press [b]'s'[/b] to Search   |   Press [b]'g'[/b] to Graph[/dim]
 """
-        self.welcome = Static(logo, id="main-text")
+        self.welcome = Static(logo, id="main-text", classes="welcome-text")
 
     def compose(self) -> ComposeResult:
         yield Header()
