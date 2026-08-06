@@ -168,22 +168,31 @@ class GraphPane(Vertical):
 class MiniRobot(Static):
     FRAMES = [
         r"""
-  [b][blue]╔═════╗[/blue][/b]
-  [b][blue]║[/blue][/b][b][cyan] ◕ ◕ [/cyan][/b][b][blue]║[/blue][/b]
-  [b][blue]╚═[white]╦═╦[/white]═╝[/blue][/b]
-    [b][white]▼ ▼[/white][/b]  
+       [b][blue]▞[/blue][cyan]▀▀▀▀▀▀▀▀[/cyan][blue]▚[/blue][/b]
+      [b][blue]▐[/blue][/b] [b][white]▄▄▄▄▄▄▄▄[/white][/b] [b][blue]▌[/blue][/b]
+      [b][blue]▐[/blue][/b] [b][cyan]◉[/cyan][/b]  [b][dim]▄▄[/dim][/b]  [b][cyan]◉[/cyan][/b] [b][blue]▌[/blue][/b]
+      [b][blue]▐[/blue][/b]   [b][yellow]▀▀▀▀[/yellow][/b]   [b][blue]▌[/blue][/b]
+       [b][blue]▚[/blue][cyan]▄▄▄▄▄▄▄▄[/cyan][blue]▞[/blue][/b]
+       [b][dim]╱[/dim][/b] [b][white]======[/white][/b] [b][dim]╲[/dim][/b]
+     [b][magenta]▞[/magenta][white]▀[/white][/b]          [b][white]▀[/white][magenta]▚[/magenta][/b]
 """,
         r"""
-  [b][blue]╔═════╗[/blue][/b]
-  [b][blue]║[/blue][/b][b][cyan] ─ ─ [/cyan][/b][b][blue]║[/blue][/b]
-  [b][blue]╚═[white]╦═╦[/white]═╝[/blue][/b]
-    [b][white]▼ ▼[/white][/b]  
+       [b][blue]▞[/blue][cyan]▀▀▀▀▀▀▀▀[/cyan][blue]▚[/blue][/b]
+      [b][blue]▐[/blue][/b] [b][white]▄▄▄▄▄▄▄▄[/white][/b] [b][blue]▌[/blue][/b]
+      [b][blue]▐[/blue][/b] [b][cyan]─[/cyan][/b]  [b][dim]▄▄[/dim][/b]  [b][cyan]─[/cyan][/b] [b][blue]▌[/blue][/b]
+      [b][blue]▐[/blue][/b]   [b][yellow]▀▀▀▀[/yellow][/b]   [b][blue]▌[/blue][/b]
+       [b][blue]▚[/blue][cyan]▄▄▄▄▄▄▄▄[/cyan][blue]▞[/blue][/b]
+       [b][dim]╱[/dim][/b] [b][white]======[/white][/b] [b][dim]╲[/dim][/b]
+     [b][magenta]▞[/magenta][white]▀[/white][/b]          [b][white]▀[/white][magenta]▚[/magenta][/b]
 """,
         r"""
-  [b][blue]╔═════╗[/blue][/b]
-  [b][blue]║[/blue][/b][b][cyan] > < [/cyan][/b][b][blue]║[/blue][/b]
-  [b][blue]╚═[white]╦═╦[/white]═╝[/blue][/b]
-    [b][white]▼ ▼[/white][/b]  
+       [b][blue]▞[/blue][cyan]▀▀▀▀▀▀▀▀[/cyan][blue]▚[/blue][/b]
+      [b][blue]▐[/blue][/b] [b][white]▄▄▄▄▄▄▄▄[/white][/b] [b][blue]▌[/blue][/b]
+      [b][blue]▐[/blue][/b] [b][cyan]>[/cyan][/b]  [b][dim]▄▄[/dim][/b]  [b][cyan]<[/cyan][/b] [b][blue]▌[/blue][/b]
+      [b][blue]▐[/blue][/b]   [b][yellow]▅▅▅▅[/yellow][/b]   [b][blue]▌[/blue][/b]
+       [b][blue]▚[/blue][cyan]▄▄▄▄▄▄▄▄[/cyan][blue]▞[/blue][/b]
+       [b][dim]╱[/dim][/b] [b][cyan]======[/cyan][/b] [b][dim]╲[/dim][/b]
+     [b][magenta]▞[/magenta][white]▀[/white][/b]          [b][white]▀[/white][magenta]▚[/magenta][/b]
 """
     ]
     
