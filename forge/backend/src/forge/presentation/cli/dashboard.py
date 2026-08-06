@@ -37,13 +37,13 @@ class ChatPane(Vertical):
         try:
             llm = LLMService()
             engine = ReasoningEngine(llm)
-            
+            from forge.application.conversation.token_manager import ContextWindow, DEFAULT_MAX_TOKENS
             cw = ContextWindow(
                 summary="",
                 summary_tokens=0,
                 messages=[],
                 message_tokens=0,
-                total_tokens=4000
+                total_tokens=DEFAULT_MAX_TOKENS
             )
             
             # Let's use non-streaming for the UI to avoid RichLog chunking issues for now

@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from forge.domain.conversation.entities.conversation import Conversation
 from forge.domain.conversation.entities.message import Message
 
-# Defaults
-DEFAULT_MAX_TOKENS = 12000  # conservative budget for context window
-SUMMARY_TARGET_TOKENS = 2000
-RECENT_MESSAGES_BUDGET = 6000
-MEMORY_BUDGET = 4000
+# Defaults (Expanded for Modern 128k+ LLMs)
+DEFAULT_MAX_TOKENS = 100000  # Expanded budget for massive context windows
+SUMMARY_TARGET_TOKENS = 4000
+RECENT_MESSAGES_BUDGET = 76000
+MEMORY_BUDGET = 20000
 
 
 @dataclass
