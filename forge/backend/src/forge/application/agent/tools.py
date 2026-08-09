@@ -4,9 +4,11 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-import threading
+import contextvars
+from pathlib import Path
 
-_thread_local = threading.local()
+# Context variable for the base directory of tools
+_tools_base_dir: contextvars.ContextVar[Path | None] = contextvars.ContextVar("tools_base_dir", default=None)
 _ALLOWED_BASE_DIR: Path | None = None
 
 
@@ -15,12 +17,12 @@ def set_tools_base_dir(base_dir: str | Path) -> None:
     global _ALLOWED_BASE_DIR  # noqa: PLW0603
     path = Path(base_dir).resolve()
     _ALLOWED_BASE_DIR = path
-    _thread_local.base_dir = path
+    _tools_base_dir.set(path)
 
 
 def get_tools_base_dir() -> Path | None:
-    """Get base dir: thread-local if set, else global fallback."""
-    return getattr(_thread_local, 'base_dir', _ALLOWED_BASE_DIR)
+    """Get base dir: context-local if set, else global fallback."""
+    return _tools_base_dir.get() or _ALLOWED_BASE_DIR
 
 
 def _safe_path(filepath: str) -> Path:
@@ -196,10 +198,9 @@ class ForgeTools:
 
             elif name == "run_shell_command":
                 import shlex
+                from forge.application.agent.command_policy import CommandSecurityPolicy
 
                 command = arguments["command"]
-
-                ALLOWED_EXECUTABLES = {"rg", "grep", "find", "ls", "cat", "git", "echo", "pwd", "wc", "head", "tail", "sort", "uniq", "diff", "python3", "python", "uv", "pytest"}
 
                 try:
                     tokens = shlex.split(command)
@@ -209,9 +210,14 @@ class ForgeTools:
                 if not tokens:
                     return "Error: Empty command"
 
-                executable = os.path.basename(tokens[0])
-                if executable not in ALLOWED_EXECUTABLES:
-                    return f"Error: Executable '{executable}' is not allowed."
+                base_dir = get_tools_base_dir()
+                if not base_dir:
+                    return "Error: File operations are disabled: no project directory has been set."
+
+                try:
+                    tokens = CommandSecurityPolicy.validate_and_sanitize(tokens, base_dir)
+                except PermissionError as e:
+                    return f"Security Error: {str(e)}"
 
                 base_dir = get_tools_base_dir()
                 cwd = str(base_dir) if base_dir else None

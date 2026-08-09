@@ -42,9 +42,9 @@ def test_learn_rule_fails_without_base_dir():
     """FIND-004: learn_rule must fail safely when no project is set."""
     import forge.application.agent.tools as tools_module
     tools_module._ALLOWED_BASE_DIR = None
-    if hasattr(tools_module._thread_local, 'base_dir'):
-        del tools_module._thread_local.base_dir
-    result = ForgeTools.execute_tool("learn_rule", {"rule": "Some rule"})
+    tools_module._tools_base_dir.set(None)
+
+    result = tools_module.ForgeTools.execute_tool("learn_rule", {"rule": "Never delete files."})
     assert "Error" in result or "Cannot" in result
 
 
