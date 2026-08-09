@@ -19,6 +19,21 @@ from forge.infrastructure.repositories.project_repository import ProjectReposito
 from forge.infrastructure.search.context_retriever import ContextRetriever
 from forge.infrastructure.search.qdrant_client import QdrantClient
 from forge.presentation.deps import get_session
+from fastapi.responses import StreamingResponse
+import json
+
+from forge.application.use_cases.send_message import SendMessageUseCase
+from forge.infrastructure.repositories.conversation_repository import ConversationRepository
+from forge.infrastructure.llm.llm_service import LLMService
+
+def get_send_message_use_case(session: AsyncSession = Depends(get_session)) -> SendMessageUseCase:
+    from forge.infrastructure.search.context_retriever import ContextRetriever
+    retriever = ContextRetriever(vector_store=QdrantClient())
+    return SendMessageUseCase(
+        conversation_repo=ConversationRepository(session),
+        retriever=retriever,
+        llm_provider=LLMService(),
+    )
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -78,96 +93,31 @@ async def start_session(request: StartSessionRequest, session: AsyncSession = De
     )
 
 
-@router.post("/{conversation_id}/messages", response_model=SendMessageResponse)
+@router.post("/{conversation_id}/messages")
 async def send_message(
-    conversation_id: str, request: SendMessageRequest, session: AsyncSession = Depends(get_session)
+    conversation_id: str,
+    request: SendMessageRequest,
+    use_case: SendMessageUseCase = Depends(get_send_message_use_case),
+    session: AsyncSession = Depends(get_session),
 ):
-    conv_repo = ConversationRepository(session)
     try:
         conv_id = ConversationId.from_string(conversation_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid conversation ID format")
 
-    conversation = await conv_repo.get_by_id(conv_id)
-    if not conversation:
+    conv_repo = ConversationRepository(session)
+    if not await conv_repo.get_by_id(conv_id):
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    user_msg = Message.create_user(
-        conversation_id=conv_id,
-        content=request.message,
-        token_count=max(1, len(request.message) // 4),
-    )
-    conversation.add_message(user_msg)
-    await conv_repo.save(conversation)
+    import logging
+    logger = logging.getLogger(__name__)
 
-    retriever = ContextRetriever(vector_store=QdrantClient())
-    retrieval_result = await retriever.retrieve(
-        query=request.message, project_id=conversation.project_id, context_window=None
-    )
+    async def event_generator():
+        try:
+            async for chunk in use_case.execute(conversation_id, request.message):
+                yield f"data: {json.dumps(chunk)}\n\n"
+        except Exception as e:
+            logger.error("Streaming error", exc_info=True)
+            yield f"data: {json.dumps({'type': 'error', 'content': 'Internal server error'})}\n\n"
 
-    retrieved_contexts = []
-    for t in ["relevant_code", "relevant_decisions", "relevant_bugs"]:
-        for res in retrieval_result.get(t, []):
-            content = res.get("payload", {}).get("content", "")
-            source = (
-                res.get("payload", {}).get("file_path", "")
-                or res.get("payload", {}).get("title", "")
-                or "unknown"
-            )
-            retrieved_contexts.append(
-                RetrievedContext(source=source, content=content, score=res.get("score", 1.0))
-            )
-
-    context_manager = ConversationContextManager(conv_repo)
-    assembled_context = await context_manager.build_context(conv_id, retrieved_contexts)
-
-    messages_for_llm = []
-    for m in assembled_context["messages"]:
-        if m["role"] == "user":
-            messages_for_llm.append(
-                Message.create_user(
-                    conversation_id=conv_id, content=m["content"], token_count=1
-                )
-            )
-        elif m["role"] == "assistant":
-            messages_for_llm.append(
-                Message.create_assistant(
-                    conversation_id=conv_id, content=m["content"], token_count=1
-                )
-            )
-
-    context_window = ContextWindow(
-        summary=assembled_context["summary"],
-        summary_tokens=0,
-        messages=messages_for_llm,
-        message_tokens=0,
-        total_tokens=assembled_context["total_tokens_estimated"],
-    )
-
-    retrieved_context_str = "\n\n".join(
-        [f"Source: {ctx['source']}\n{ctx['content']}" for ctx in assembled_context["retrieved"]]
-    )
-
-    llm_service = LLMService()
-    reasoning_engine = ReasoningEngine(llm_provider=llm_service) # type: ignore
-
-    response_text = await reasoning_engine.generate_response(
-        context_window=context_window, retrieved_context=retrieved_context_str
-    )
-
-    assistant_msg = Message.create_assistant(
-        conversation_id=conv_id,
-        content=response_text,
-        token_count=max(1, len(response_text) // 4),
-    )
-    conversation.add_message(assistant_msg)
-    await conv_repo.save(conversation)
-
-    citations = [
-        Citation(source=ctx["source"], content=ctx["content"], score=ctx["score"])
-        for ctx in assembled_context["retrieved"]
-    ]
-
-    return SendMessageResponse(
-        conversation_id=conversation_id, response=response_text, citations=citations
-    )
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

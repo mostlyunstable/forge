@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-
-
-from typing import Type, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T", bound="MemoryId")
 
@@ -20,7 +18,7 @@ class MemoryId:
         object.__setattr__(self, "value", value or uuid.uuid4())
 
     @classmethod
-    def from_string(cls: Type[T], raw: str) -> T:
+    def from_string(cls: type[T], raw: str) -> T:
         return cls(uuid.UUID(raw))
 
     def __str__(self) -> str:

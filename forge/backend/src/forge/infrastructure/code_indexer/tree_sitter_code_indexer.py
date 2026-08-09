@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from typing import Any
+
+import diskcache
 
 from forge.infrastructure.code_indexer.tree_sitter_parser import TreeSitterParser
 from forge.infrastructure.search.embedding_service import EmbeddingService
@@ -18,6 +21,7 @@ class TreeSitterCodeIndexer:
         self._parser = TreeSitterParser()
         self._embedding_service = EmbeddingService()
         self._vector_store = vector_store
+        self._cache = diskcache.Cache(".forge_ast_cache")
 
     async def index(self, project_id, repo_path: str, commit_parser: Any = None):
         import os
@@ -113,11 +117,17 @@ class TreeSitterCodeIndexer:
                     with open(real_file_path, encoding="utf-8", errors="ignore") as f:
                         content = f.read()
 
+                    content_hash = hashlib.sha256(content.encode()).hexdigest()
+                    cache_key = f"{relative_path}_{content_hash}"
+                    parsed = self._cache.get(cache_key)
+                    if parsed is None:
+                        parsed = self._parser.parse_file(real_file_path, content)
+                        self._cache.set(cache_key, parsed, expire=86400 * 7)
+
                     git_metadata = {}
                     if commit_parser:
                         git_metadata = commit_parser.get_file_metadata(repo_path, relative_path)
 
-                    parsed = self._parser.parse_file(real_file_path, content)
                     for p in parsed:
                         metadata = p.metadata.copy()
                         metadata.update(git_metadata)

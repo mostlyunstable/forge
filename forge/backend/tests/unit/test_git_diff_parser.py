@@ -1,9 +1,10 @@
 import subprocess
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from forge.infrastructure.git.git_diff_parser import GitDiffParser
+
 
 @pytest.fixture
 def parser():
@@ -19,7 +20,7 @@ def test_get_changed_files_success(parser):
 
         files = parser.get_changed_files("/repo", "HEAD~1", "HEAD")
         assert len(files) == 4
-        
+
         # Check added
         assert files[0]["file_path"] == "added.py"
         assert files[0]["change_type"] == "added"

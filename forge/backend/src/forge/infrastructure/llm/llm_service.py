@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 from dataclasses import dataclass
 from typing import Any
 
+import diskcache
 import openai
 import structlog
 from openai import AsyncOpenAI
@@ -33,6 +36,7 @@ class LLMService:
     def __init__(self) -> None:
         self._settings = get_settings()
         self._client: AsyncOpenAI | None = None
+        self._cache = diskcache.Cache(".forge_llm_cache")
 
     @property
     def is_configured(self) -> bool:
@@ -78,6 +82,19 @@ class LLMService:
             if tools:
                 kwargs["tools"] = tools
 
+            # Generate cache key
+            cache_key = hashlib.sha256(json.dumps(kwargs, sort_keys=True).encode()).hexdigest()
+            cached_response = self._cache.get(cache_key)
+            if cached_response:
+                # Safety check: never return a cached response with tool_calls
+                if not cached_response.tool_calls:
+                    logger.info("llm_cache_hit", model=self._settings.LLM_MODEL)
+                    return cached_response
+                else:
+                    # Stale cached tool_calls — delete and proceed to fresh LLM call
+                    logger.warning("llm_cache_stale_tool_calls", model=self._settings.LLM_MODEL)
+                    self._cache.delete(cache_key)
+
             response = await client.chat.completions.create(**kwargs)
             duration = time.perf_counter() - start_time
             LLM_CALLS.labels(model=self._settings.LLM_MODEL, status="success").inc()
@@ -101,9 +118,9 @@ class LLMService:
                     for tc in message.tool_calls
                 ]
 
-            return LLMResponse(
+            llm_response = LLMResponse(
                 content=message.content or "",
-                model=response.model,
+                model=self._settings.LLM_MODEL,
                 usage={
                     "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
                     "completion_tokens": response.usage.completion_tokens if response.usage else 0,
@@ -111,6 +128,13 @@ class LLMService:
                 },
                 tool_calls=tool_calls,
             )
+
+            # Never cache tool_calls responses — they are state-dependent and unsafe to replay
+            if llm_response.tool_calls:
+                return llm_response
+
+            self._cache.set(cache_key, llm_response, expire=86400 * 7) # Cache for 7 days
+            return llm_response
         except Exception as e:
             duration = time.perf_counter() - start_time
             LLM_CALLS.labels(model=self._settings.LLM_MODEL, status="error").inc()

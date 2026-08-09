@@ -4,7 +4,7 @@ from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 
-def UUIDType():
+def uuid_type():
     """Return a UUID column type that works with both SQLite and PostgreSQL."""
     from forge.config.settings import get_settings
 

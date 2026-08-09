@@ -152,7 +152,8 @@ async def test_citation_integrity_no_fabrication(reasoning_engine, mock_llm_prov
     )
 
     called_messages = mock_llm_provider.chat_mock.call_args[0][0]
-    system_prompt = called_messages[0]["content"]
+    user_prompt = called_messages[-1]["content"]
 
-    assert "cite:" in system_prompt
-    assert retrieved_context in system_prompt
+    from forge.application.conversation.reasoning_engine import DELIMITER_OPEN
+    assert DELIMITER_OPEN in user_prompt
+    assert retrieved_context in user_prompt

@@ -7,14 +7,13 @@ from pathlib import Path
 backend_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(backend_dir / "src"))
 
-from forge.application.conversation.reasoning_engine import ReasoningEngine
-from forge.application.conversation.token_manager import ContextWindow
-from forge.infrastructure.llm.llm_service import LLMService
+import argparse  # noqa: E402
 
+from forge.application.agent.tools import set_tools_base_dir  # noqa: E402
+from forge.application.conversation.reasoning_engine import ReasoningEngine  # noqa: E402
+from forge.application.conversation.token_manager import ContextWindow  # noqa: E402
+from forge.infrastructure.llm.llm_service import LLMService  # noqa: E402
 
-import argparse
-
-from forge.application.agent.tools import ForgeTools, set_tools_base_dir
 
 async def run_evals():
     parser = argparse.ArgumentParser(description="Forge AI Evaluation Harness")
@@ -36,7 +35,7 @@ async def run_evals():
         sys.exit(1)
 
     tasks = json.loads(tasks_file.read_text())
-    
+
     if args.filter:
         tasks = [t for t in tasks if args.filter in t["id"]]
 
@@ -119,7 +118,7 @@ Return ONLY the integer score (1, 2, 3, 4, or 5). Do not include any other text.
         total_score += score
 
         print(f"Score for {task['id']}: {score}/5")
-        
+
         report_lines.extend([
             f"\n### {task['id']}",
             f"**Prompt:** {task['prompt']}",
@@ -136,9 +135,9 @@ Return ONLY the integer score (1, 2, 3, 4, or 5). Do not include any other text.
         f"🏆 FINAL EVALUATION SCORE: {total_score}/{total_possible} ({final_percentage:.1f}%)"
     )
     print("=" * 60)
-    
+
     report_lines.insert(1, f"**Final Score:** {total_score}/{total_possible} ({final_percentage:.1f}%)\n")
-    
+
     report_path = Path(__file__).parent / "eval_report.md"
     report_path.write_text("\n".join(report_lines))
     print(f"📄 Report written to {report_path.resolve()}")

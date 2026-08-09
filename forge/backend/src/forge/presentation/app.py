@@ -5,7 +5,9 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
+import os
+import secrets
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from forge.config.logging import setup_logging
@@ -14,8 +16,8 @@ from forge.config.settings import get_settings
 from forge.domain.analysis.exceptions import AnalysisError, AnalysisReportNotFoundError
 from forge.domain.code.exceptions import CodeEntryNotFoundError, IndexingError
 from forge.domain.conversation.exceptions import (
-    ConversationAccessDenied,
-    ConversationLimitExceeded,
+    ConversationAccessDeniedError,
+    ConversationLimitExceededError,
     ConversationNotFoundError,
 )
 from forge.domain.git.exceptions import CommitNotFoundError
@@ -28,6 +30,7 @@ from forge.domain.projects.exceptions import ProjectAlreadyExistsError, ProjectN
 from forge.infrastructure.database.connection import database_manager
 from forge.infrastructure.search.in_memory_vector_store import in_memory_vector_store
 from forge.infrastructure.search.qdrant_client import vector_store
+from forge.presentation.deps import verify_auth_token
 from forge.presentation.middleware.error_handler import (
     ErrorCode,
     _error_response,
@@ -66,6 +69,14 @@ logger = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifecycle: startup and shutdown."""
+    token_file_created = False
+    if not os.environ.get("FORGE_API_KEY"):
+        token = secrets.token_hex(32)
+        os.environ["FORGE_API_KEY"] = token
+        with open(".forge_auth_token", "w") as f:
+            f.write(token)
+        token_file_created = True
+
     setup_logging(log_level="INFO", json_output=True)
     settings = get_settings()
     settings.validate_production()
@@ -80,6 +91,12 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("application_shutting_down")
     await database_manager.close()
+    
+    if token_file_created and os.path.exists(".forge_auth_token"):
+        try:
+            os.remove(".forge_auth_token")
+        except OSError:
+            pass
 
 
 def create_app() -> FastAPI:
@@ -125,25 +142,27 @@ def create_app() -> FastAPI:
         conversation_not_found_handler,
     )
     app.add_exception_handler(
-        ConversationAccessDenied,
+        ConversationAccessDeniedError,
         conversation_access_denied_handler,
     )
     app.add_exception_handler(
-        ConversationLimitExceeded,
+        ConversationLimitExceededError,
         conversation_limit_exceeded_handler,
     )
     app.add_exception_handler(Exception, generic_error_handler)
 
-    app.include_router(projects.router, prefix="/api/v1")
-    app.include_router(memory.router, prefix="/api/v1")
-    app.include_router(chat.router, prefix="/api/v1")
-    app.include_router(code.router, prefix="/api/v1")
-    app.include_router(git.router, prefix="/api/v1")
-    app.include_router(dependencies.router, prefix="/api/v1")
-    app.include_router(analysis.router, prefix="/api/v1")
-    app.include_router(index.router, prefix="/api/v1")
-    app.include_router(conversations.router, prefix="/api/v1")
-    app.include_router(metrics.router)
+    deps = [Depends(verify_auth_token)]
+
+    app.include_router(projects.router, prefix="/api/v1", )
+    app.include_router(memory.router, prefix="/api/v1", )
+    app.include_router(chat.router, prefix="/api/v1", )
+    app.include_router(code.router, prefix="/api/v1", )
+    app.include_router(git.router, prefix="/api/v1", )
+    app.include_router(dependencies.router, prefix="/api/v1", )
+    app.include_router(analysis.router, prefix="/api/v1", )
+    app.include_router(index.router, prefix="/api/v1", )
+    app.include_router(conversations.router, prefix="/api/v1", )
+    app.include_router(metrics.router, )
 
     @app.get("/health")
     async def health():

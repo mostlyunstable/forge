@@ -54,6 +54,10 @@ class IntentRouter:
 
 @app.callback()
 def main(ctx: typer.Context):
+    if os.path.exists(".forge_auth_token"):
+        with open(".forge_auth_token", "r") as f:
+            os.environ["FORGE_API_KEY"] = f.read().strip()
+            
     if ctx.invoked_subcommand is None:
         info = get_project_info()
         renderer.print_panel(

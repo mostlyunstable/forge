@@ -51,10 +51,10 @@ class IntentRouter:
         query_lower = query.lower()
 
         # Analyze current query
-        bug_score = sum(1 for w in self.bug_keywords if w in query_lower)
-        arch_score = sum(1 for w in self.arch_keywords if w in query_lower)
-        code_score = sum(1 for w in self.code_keywords if w in query_lower)
-        graph_score = sum(1 for w in self.graph_keywords if w in query_lower)
+        bug_score = float(sum(1 for w in self.bug_keywords if w in query_lower))
+        arch_score = float(sum(1 for w in self.arch_keywords if w in query_lower))
+        code_score = float(sum(1 for w in self.code_keywords if w in query_lower))
+        graph_score = float(sum(1 for w in self.graph_keywords if w in query_lower))
 
         # Analyze conversational history (decayed importance)
         if context_window and hasattr(context_window, "messages"):

@@ -70,46 +70,25 @@ async def test_send_message_success(mock_conversation_repo):
     mock_conv.id = ConversationId.from_string(conv_id_str)
     mock_conversation_repo.get_by_id.return_value = mock_conv
 
-    with (
-        patch("forge.presentation.api.routers.conversation.ContextRetriever") as MockRetriever,
-        patch(
-            "forge.presentation.api.routers.conversation.ConversationContextManager"
-        ) as MockContextMgr,
-        patch("forge.presentation.api.routers.conversation.ReasoningEngine") as MockReasoningEngine,
-        patch("forge.presentation.api.routers.conversation.QdrantClient"),
-    ):
-        mock_retriever = MockRetriever.return_value
-        mock_retriever.retrieve = AsyncMock(
-            return_value={
-                "relevant_code": [
-                    {"payload": {"content": "code snippet", "file_path": "main.py"}, "score": 0.9}
-                ]
-            }
-        )
+    from forge.presentation.api.routers.conversation import get_send_message_use_case
+    mock_use_case = AsyncMock()
+    
+    async def mock_execute(*args, **kwargs):
+        yield {"type": "text", "content": "AI Reply"}
+        yield {"type": "citation", "source": "main.py"}
+    
+    mock_use_case.execute = mock_execute
+    app.dependency_overrides[get_send_message_use_case] = lambda: mock_use_case
+    
+    response = client.post(
+        f"/api/conversations/{conv_id_str}/messages", json={"message": "How does it work?"}
+    )
 
-        mock_context_mgr = MockContextMgr.return_value
-        mock_context_mgr.build_context = AsyncMock(
-            return_value={
-                "summary": "a summary",
-                "messages": [{"role": "user", "content": "Hello"}],
-                "retrieved": [{"source": "main.py", "content": "code snippet", "score": 0.9}],
-                "total_tokens_estimated": 10,
-            }
-        )
-
-        mock_reasoning_engine = MockReasoningEngine.return_value
-        mock_reasoning_engine.generate_response = AsyncMock(return_value="AI Reply")
-
-        response = client.post(
-            f"/api/conversations/{conv_id_str}/messages", json={"message": "How does it work?"}
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["conversation_id"] == conv_id_str
-        assert data["response"] == "AI Reply"
-        assert len(data["citations"]) == 1
-        assert data["citations"][0]["source"] == "main.py"
+    assert response.status_code == 200
+    content = response.content.decode("utf-8")
+    assert "data: {\"type\": \"text\", \"content\": \"AI Reply\"}" in content
+    assert "data: {\"type\": \"citation\", \"source\": \"main.py\"}" in content
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio

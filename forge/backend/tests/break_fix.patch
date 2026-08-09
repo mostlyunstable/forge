@@ -1,0 +1,17 @@
+--- src/forge/presentation/api/routers/conversation.py
++++ src/forge/presentation/api/routers/conversation.py
+@@ -87,6 +87,14 @@
+     import logging
+     logger = logging.getLogger(__name__)
+ 
++    # DUMMY LINES TO BREAK TEST
++    x = 1
++    x = 2
++    x = 3
++    x = 4
++    x = 5
++    x = 6
++    x = 7
++
+     async def event_generator():
+         try:

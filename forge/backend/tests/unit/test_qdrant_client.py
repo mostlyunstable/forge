@@ -1,11 +1,10 @@
-import asyncio
 import uuid
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-from qdrant_client.models import PointStruct, Filter
 
-from forge.infrastructure.search.qdrant_client import QdrantVectorStore, COLLECTIONS
+from forge.infrastructure.search.qdrant_client import COLLECTIONS, QdrantVectorStore
+
 
 @pytest.fixture
 def store():
@@ -67,7 +66,7 @@ async def test_search_code(store, mock_qdrant):
     mock_result.id = 1
     mock_result.score = 0.99
     mock_result.payload = {"file_path": "main.py"}
-    
+
     mock_query_result = MagicMock()
     mock_query_result.points = [mock_result]
     mock_qdrant.query_points.return_value = mock_query_result

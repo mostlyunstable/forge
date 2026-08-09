@@ -44,6 +44,17 @@ class DatabaseManager:
                 self._settings.DATABASE_URL,
                 **kwargs,
             )
+
+            if is_sqlite:
+                from sqlalchemy import event
+
+                @event.listens_for(self._engine.sync_engine, "connect")
+                def set_sqlite_pragma(dbapi_connection, connection_record):
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute("PRAGMA journal_mode=WAL")
+                    cursor.execute("PRAGMA synchronous=NORMAL")
+                    cursor.close()
+
         return self._engine
 
     def _ensure_session_factory(self) -> async_sessionmaker[AsyncSession]:

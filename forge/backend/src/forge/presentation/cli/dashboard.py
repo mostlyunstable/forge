@@ -1,18 +1,19 @@
+import asyncio
+import os
+import re
+import sqlite3
+from typing import Any, cast
+
+from PIL import Image
+from rich_pixels import Pixels
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Vertical, VerticalScroll, Horizontal
-from textual.widgets import Footer, Header, Label, Static, Input, Markdown, Tree
-import re
-import json
-import asyncio
-import random
-import os
-from PIL import Image
-from rich_pixels import Pixels
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.widgets import Footer, Header, Input, Label, Markdown, Static, Tree
 
-from forge.application.conversation.reasoning_engine import ReasoningEngine
 from forge.infrastructure.llm.llm_service import LLMService
+
 
 class ChatPane(Vertical):
     def compose(self) -> ComposeResult:
@@ -24,15 +25,15 @@ class ChatPane(Vertical):
     async def on_input_submitted(self, message: Input.Submitted) -> None:
         if not message.value.strip():
             return
-            
+
         user_text = message.value
         self.query_one("#chat-input", Input).value = ""
         feed = self.query_one("#chat-feed", VerticalScroll)
-        
+
         user_msg = Static(f"[b][white]You[/white][/b]\n{user_text}", classes="user-msg")
         feed.mount(user_msg)
         feed.scroll_end(animate=False)
-        
+
         # Trigger background task for LLM response
         self.fetch_response(user_text)
 
@@ -49,18 +50,25 @@ class ChatPane(Vertical):
         feed = self.app.query_one("#chat-feed", VerticalScroll)
         try:
             pet = self.app.query_one("#floating-robot")
-            pet.state = "working"
-        except:
+            cast(Any, pet).state = "working"
+        except Exception:
             pass
-            
+
         ai_msg = Markdown("*Thinking...*", classes="forge-msg")
         feed.mount(ai_msg)
         feed.scroll_end(animate=False)
-        
+
         try:
+            from forge.application.agent.swarm_orchestrator import SwarmOrchestrator
+            from forge.domain.agent.agent_registry import AgentRegistry
             llm = LLMService()
-            engine = ReasoningEngine(llm)
-            from forge.application.conversation.token_manager import ContextWindow, DEFAULT_MAX_TOKENS
+            registry = AgentRegistry()
+            registry.load_defaults()
+            orchestrator = SwarmOrchestrator(cast(Any, llm), registry)
+            from forge.application.conversation.token_manager import (
+                DEFAULT_MAX_TOKENS,
+                ContextWindow,
+            )
             cw = ContextWindow(
                 summary="",
                 summary_tokens=0,
@@ -68,26 +76,36 @@ class ChatPane(Vertical):
                 message_tokens=0,
                 total_tokens=DEFAULT_MAX_TOKENS
             )
-            
+
+            import time
+            last_update_time = time.perf_counter()
             full_text = ""
-            async for chunk in engine.generate_response_stream(
+            async for chunk in orchestrator.execute_task(
+                agent_name="forge_orchestrator",
                 context_window=cw,
                 retrieved_context="CLI interactive dashboard mode.",
                 user_prompt=text
             ):
+                needs_update = False
                 if chunk["type"] == "text":
                     full_text += chunk.get("content", "")
-                    display_text = self._format_thinking(full_text)
-                    # Update markdown
-                    ai_msg.update(display_text)
-                    feed.scroll_end(animate=False)
+                    if time.perf_counter() - last_update_time > 0.1:
+                        needs_update = True
                 elif chunk["type"] == "status":
                     # Status messages from tool calls
                     status = chunk.get("message", "")
                     full_text += f"\n> _{status}_\n"
+                    needs_update = True
+
+                if needs_update:
                     ai_msg.update(self._format_thinking(full_text))
                     feed.scroll_end(animate=False)
-            
+                    last_update_time = time.perf_counter()
+
+            # Final flush
+            ai_msg.update(self._format_thinking(full_text))
+            feed.scroll_end(animate=False)
+
         except Exception as e:
             err_msg = Static(f"[bold red]Error communicating with AI Engine:[/bold red]\n{str(e)}", classes="error-msg")
             feed.mount(err_msg)
@@ -95,8 +113,8 @@ class ChatPane(Vertical):
         finally:
             try:
                 pet = self.app.query_one("#floating-robot")
-                pet.state = "idle"
-            except:
+                cast(Any, pet).state = "idle"
+            except Exception:
                 pass
 
 
@@ -104,7 +122,7 @@ class GraphPane(Vertical):
     def compose(self) -> ComposeResult:
         with Container(id="graph-container"):
             yield Static(" [b]Forge Memory Graph[/b]", id="graph-header")
-            tree = Tree("Root", id="memory-tree")
+            tree: Tree[str] = Tree("Root", id="memory-tree")
             tree.root.expand()
             tree.show_root = False
             yield tree
@@ -115,11 +133,11 @@ class GraphPane(Vertical):
     @work(exclusive=True)
     async def fetch_graph_data(self) -> None:
         tree = self.app.query_one("#memory-tree", Tree)
-        
+
         # Add root nodes
         conv_node = tree.root.add("[b][cyan]💬 Conversations & Extracted Memories[/cyan][/b]", expand=True)
         kg_node = tree.root.add("[b][magenta]🧠 Semantic Knowledge Graph (Relationships)[/magenta][/b]", expand=True)
-        
+
         def _fetch():
             data = {"conversations": [], "relationships": [], "memories": {}}
             try:
@@ -129,12 +147,12 @@ class GraphPane(Vertical):
                     c_cursor = conn.execute("SELECT id, title FROM conversations ORDER BY created_at DESC LIMIT 20")
                     for c_id, title in c_cursor.fetchall():
                         data["conversations"].append({"id": c_id, "title": title})
-                    
+
                     # 2. Fetch memories (Notes, Bugs, Features, Decisions)
                     m_cursor = conn.execute("SELECT id, memory_type, title, source FROM memories")
                     for m_id, m_type, title, source in m_cursor.fetchall():
                         data["memories"][m_id] = {"type": m_type, "title": title, "source": source}
-                        
+
                 # Fetch from forge_knowledge_graph.db
                 try:
                     with sqlite3.connect("forge_knowledge_graph.db") as conn:
@@ -148,7 +166,7 @@ class GraphPane(Vertical):
             return data
 
         data = await asyncio.to_thread(_fetch)
-        
+
         if "error" in data:
             tree.root.add(f"[red]Error fetching graph data:[/red] {data['error']}")
             return
@@ -164,31 +182,31 @@ class GraphPane(Vertical):
                     node.add(f"[{color}]{icon} [{m['type'].upper()}][/{color}] [dim]{m['title']}[/dim]")
             else:
                 node.add("[dim]No memories extracted yet.[/dim]")
-                    
+
         # Render Knowledge Graph Relationships
         if not data["relationships"]:
             kg_node.add("[dim]No semantic relationships found.[/dim]")
         for rel in data["relationships"]:
             src = data["memories"].get(rel["src"], {"title": f"Unknown ({rel['src'][:8]})", "type": "node"})
             tgt = data["memories"].get(rel["tgt"], {"title": f"Unknown ({rel['tgt'][:8]})", "type": "node"})
-            
+
             src_icon = "🐛" if src['type'] == 'bug' else "📝" if src['type'] == 'note' else ("⚖️" if src['type'] == 'decision' else "⚡")
             tgt_icon = "🐛" if tgt['type'] == 'bug' else "📝" if tgt['type'] == 'note' else ("⚖️" if tgt['type'] == 'decision' else "⚡")
-            
+
             kg_node.add(f"{src_icon} [dim]{src['title']}[/dim]  [b][blue]──({rel['type']})──>[/blue][/b]  {tgt_icon} [dim]{tgt['title']}[/dim]")
 
 
 class FloatingRobot(Static):
     def on_mount(self) -> None:
         self.state = "idle"
-        
+
         # Load and resize images
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        
+
         try:
             idle_img = Image.open(os.path.join(base_dir, "assets", "pet_idle.jpg")).resize((28, 28))
             work_img = Image.open(os.path.join(base_dir, "assets", "pet_working.jpg")).resize((28, 28))
-            
+
             self.frames = {
                 "idle": Pixels.from_image(idle_img),
                 "working": Pixels.from_image(work_img)
@@ -201,11 +219,14 @@ class FloatingRobot(Static):
             }
 
         self.update(self.frames[self.state])
+        self._last_rendered_state = self.state
         self.set_interval(0.5, self.tick)
-        
+
     def tick(self):
         # We just swap the frame based on the state. No complex animation loop needed since it's just 2 states.
-        self.update(self.frames[self.state])
+        if self.state != getattr(self, "_last_rendered_state", None):
+            self.update(self.frames[self.state])
+            self._last_rendered_state = self.state
 
 
 class Dashboard(App):
@@ -230,7 +251,7 @@ class Dashboard(App):
         width: 1fr;
         align: center middle;
     }
-    
+
     /* Claude-like Centered Chat Container */
     #chat-container {
         width: 100%;
@@ -240,12 +261,12 @@ class Dashboard(App):
         padding-top: 1;
         padding-bottom: 1;
     }
-    
+
     #chat-feed {
         height: 1fr;
         padding: 1;
     }
-    
+
     /* Message Bubbles */
     .user-msg {
         background: $surface-lighten-3;
@@ -254,12 +275,12 @@ class Dashboard(App):
         margin-bottom: 1;
         border-left: thick $accent;
     }
-    
+
     .forge-msg {
         padding: 1;
         margin-bottom: 2;
     }
-    
+
     .error-msg {
         background: $error-muted;
         color: $error;
@@ -272,7 +293,7 @@ class Dashboard(App):
         dock: bottom;
         padding: 1;
     }
-    
+
     #chat-input {
         width: 1fr;
         border: round $primary-muted;
@@ -281,7 +302,7 @@ class Dashboard(App):
     #chat-input:focus {
         border: round $primary;
     }
-    
+
     /* Graph Container */
     #graph-container {
         width: 100%;
@@ -289,7 +310,7 @@ class Dashboard(App):
         layout: vertical;
         padding: 2;
     }
-    
+
     #graph-header {
         background: $surface-lighten-2;
         color: $text;
@@ -297,14 +318,14 @@ class Dashboard(App):
         padding: 1;
         margin-bottom: 1;
     }
-    
+
     #memory-tree {
         height: 1fr;
         border: round $primary-muted;
         background: $surface;
         padding: 1;
     }
-    
+
     #floating-robot {
         margin-top: 2;
         align: center middle;
@@ -323,12 +344,12 @@ class Dashboard(App):
         self.project_info = project_info
         self.chat_pane = ChatPane(id="chat-pane")
         self.graph_pane = GraphPane(id="graph-pane")
-        
+
         logo = r"""[b][cyan]
 ███████╗ ██████╗ ██████╗  ██████╗ ███████╗
 ██╔════╝██╔═══██╗██╔══██╗██╔════╝ ██╔════╝
-█████╗  ██║   ██║██████╔╝██║  ███╗█████╗  
-██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝  
+█████╗  ██║   ██║██████╔╝██║  ███╗█████╗
+██╔══╝  ██║   ██║██╔══██╗██║   ██║██╔══╝
 ██║     ╚██████╔╝██║  ██║╚██████╔╝███████╗
 ╚═╝      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 [/cyan][/b][b][white]

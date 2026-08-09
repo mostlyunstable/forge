@@ -9,7 +9,7 @@ class ConversationNotFoundError(Exception):
         self.identifier = identifier
 
 
-class ConversationAccessDenied(Exception):
+class ConversationAccessDeniedError(Exception):
     """Raised when a user tries to access a conversation they don't own."""
 
     def __init__(self, conversation_id: str) -> None:
@@ -17,7 +17,7 @@ class ConversationAccessDenied(Exception):
         self.conversation_id = conversation_id
 
 
-class ConversationLimitExceeded(Exception):
+class ConversationLimitExceededError(Exception):
     """Raised when too many conversations exist for a project."""
 
     def __init__(self, project_id: str, limit: int) -> None:

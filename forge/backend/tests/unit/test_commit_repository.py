@@ -124,16 +124,16 @@ async def test_save_new(repository, mock_session, sample_commit):
 @pytest.mark.asyncio
 async def test_save_existing(repository, mock_session, sample_commit):
     existing_model = create_mock_model(sample_commit)
-    
+
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = existing_model
     mock_session.execute.return_value = mock_result
 
     # Modify the commit to trigger an update
     sample_commit.message = "Updated message"
-    
+
     result = await repository.save(sample_commit)
-    
+
     assert existing_model.message == "Updated message"
     assert result.message == "Updated message"
     mock_session.add.assert_not_called()
@@ -143,9 +143,9 @@ async def test_save_existing(repository, mock_session, sample_commit):
 @pytest.mark.asyncio
 async def test_save_many(repository, mock_session, sample_commit):
     commits = [sample_commit]
-    
+
     result = await repository.save_many(commits)
-    
+
     assert len(result) == 1
     mock_session.add_all.assert_called_once()
     mock_session.flush.assert_called_once()

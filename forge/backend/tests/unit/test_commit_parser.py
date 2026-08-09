@@ -1,9 +1,9 @@
-import subprocess
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from forge.infrastructure.git.commit_parser import CommitParser, ParsedCommit
+
 
 @pytest.fixture
 def parser():
@@ -19,7 +19,7 @@ def test_get_commit_history_success(parser):
 
         commits = parser.get_commit_history("/repo", since="HEAD~1")
         assert len(commits) == 2
-        
+
         assert commits[0].sha == "sha1"
         assert commits[0].message == "msg1"
         assert commits[0].parent_shas == []

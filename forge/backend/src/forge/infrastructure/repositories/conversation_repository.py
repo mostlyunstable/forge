@@ -94,63 +94,74 @@ class ConversationRepository(IConversationRepository):
             )
             self._session.add(model)
 
-        # Clear existing relations
-        await self._session.execute(
-            delete(MessageModel).where(MessageModel.conversation_id == str(conversation.id.value))
-        )
-        await self._session.execute(
-            delete(ConversationSessionModel).where(
-                ConversationSessionModel.conversation_id == str(conversation.id.value)
-            )
-        )
-        await self._session.execute(
-            delete(ConversationSummaryModel).where(
-                ConversationSummaryModel.conversation_id == str(conversation.id.value)
-            )
-        )
+        # Find existing IDs
+        existing_msg_ids = {
+            row[0] for row in (
+                await self._session.execute(
+                    select(MessageModel.id).where(MessageModel.conversation_id == str(conversation.id.value))
+                )
+            ).fetchall()
+        }
+        existing_session_ids = {
+            row[0] for row in (
+                await self._session.execute(
+                    select(ConversationSessionModel.id).where(ConversationSessionModel.conversation_id == str(conversation.id.value))
+                )
+            ).fetchall()
+        }
+        existing_summary_ids = {
+            row[0] for row in (
+                await self._session.execute(
+                    select(ConversationSummaryModel.id).where(ConversationSummaryModel.conversation_id == str(conversation.id.value))
+                )
+            ).fetchall()
+        }
 
         # Insert new models
         for session in conversation.sessions:
-            sess_model = ConversationSessionModel(
-                id=str(session.id.value),
-                conversation_id=str(conversation.id.value),
-                started_at=session.started_at,
-                ended_at=session.ended_at,
-                metadata_json=session.metadata,
-            )
-            self._session.add(sess_model)
+            if str(session.id.value) not in existing_session_ids:
+                sess_model = ConversationSessionModel(
+                    id=str(session.id.value),
+                    conversation_id=str(conversation.id.value),
+                    started_at=session.started_at,
+                    ended_at=session.ended_at,
+                    metadata_json=session.metadata,
+                )
+                self._session.add(sess_model)
 
         for summary in conversation.summaries:
-            sum_model = ConversationSummaryModel(
-                id=str(summary.id.value),
-                conversation_id=str(conversation.id.value),
-                content=summary.content,
-                token_count=summary.token_count,
-                created_at=summary.created_at,
-            )
-            self._session.add(sum_model)
+            if str(summary.id.value) not in existing_summary_ids:
+                sum_model = ConversationSummaryModel(
+                    id=str(summary.id.value),
+                    conversation_id=str(conversation.id.value),
+                    content=summary.content,
+                    token_count=summary.token_count,
+                    created_at=summary.created_at,
+                )
+                self._session.add(sum_model)
 
         for msg in conversation.messages:
-            msg_model = MessageModel(
-                id=str(msg.id.value),
-                conversation_id=str(conversation.id.value),
-                role=msg.role,
-                content=msg.content,
-                token_count=msg.token_count,
-                metadata_json=msg.metadata if msg.metadata else {},
-                created_at=msg.created_at,
-            )
-            self._session.add(msg_model)
-            for cit in msg.citations:
-                cit_model = ConversationCitationModel(
-                    id=str(cit.id.value),
-                    message_id=str(msg.id.value),
-                    source_type=cit.source_type,
-                    source_reference=cit.source_reference,
-                    snippet=cit.snippet,
-                    metadata_json=cit.metadata if cit.metadata else {},
+            if str(msg.id.value) not in existing_msg_ids:
+                msg_model = MessageModel(
+                    id=str(msg.id.value),
+                    conversation_id=str(conversation.id.value),
+                    role=msg.role,
+                    content=msg.content,
+                    token_count=msg.token_count,
+                    metadata_json=msg.metadata if msg.metadata else {},
+                    created_at=msg.created_at,
                 )
-                self._session.add(cit_model)
+                self._session.add(msg_model)
+                for cit in msg.citations:
+                    cit_model = ConversationCitationModel(
+                        id=str(cit.id.value),
+                        message_id=str(msg.id.value),
+                        source_type=cit.source_type,
+                        source_reference=cit.source_reference,
+                        snippet=cit.snippet,
+                        metadata_json=cit.metadata if cit.metadata else {},
+                    )
+                    self._session.add(cit_model)
 
         await self._session.flush()
         return conversation

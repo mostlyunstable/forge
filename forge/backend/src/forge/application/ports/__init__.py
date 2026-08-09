@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any
-from uuid import UUID
 
 from forge.domain.code.entities.code_entry import CodeEntry
 from forge.domain.projects.value_objects.project_id import ProjectId

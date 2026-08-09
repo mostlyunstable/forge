@@ -1,6 +1,7 @@
 """API tests for conversation endpoints."""
 
 import os
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from forge.infrastructure.database.base import Base
 from forge.infrastructure.database.connection import database_manager
+from forge.infrastructure.llm.llm_service import LLMResponse
 from forge.presentation.app import create_app
 from forge.presentation.middleware.auth import create_access_token
 
@@ -27,10 +29,6 @@ async def setup_db():
     yield
     await engine.dispose()
 
-
-from unittest.mock import AsyncMock, patch
-
-from forge.infrastructure.llm.llm_service import LLMResponse
 
 
 @pytest.fixture(autouse=True)

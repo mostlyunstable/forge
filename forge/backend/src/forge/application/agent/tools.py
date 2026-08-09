@@ -1,30 +1,26 @@
 import json
 import os
-import re
 import subprocess
 from pathlib import Path
 from typing import Any
 
-# Sandbox: all file operations must resolve within this directory
-_ALLOWED_BASE_DIR: Path | None = None
+import threading
 
-# Commands that should never be executed via the agent shell tool
-_BLOCKED_COMMAND_PATTERNS: list[re.Pattern[str]] = [
-    re.compile(r"\brm\s+-rf\s+/"),      # rm -rf /
-    re.compile(r"\bmkfs\b"),             # filesystem format
-    re.compile(r"\bdd\s+if="),           # raw disk write
-    re.compile(r"\b:()\s*\{"),           # fork bomb
-    re.compile(r"\bcurl\b.*\|\s*bash"),  # pipe-to-shell
-    re.compile(r"\bwget\b.*\|\s*bash"),
-    re.compile(r"\bchmod\s+777\s+/"),    # global permission change
-    re.compile(r"\bsudo\b"),             # privilege escalation
-]
+_thread_local = threading.local()
+_ALLOWED_BASE_DIR: Path | None = None
 
 
 def set_tools_base_dir(base_dir: str | Path) -> None:
     """Set the allowed base directory for file operations."""
     global _ALLOWED_BASE_DIR  # noqa: PLW0603
-    _ALLOWED_BASE_DIR = Path(base_dir).resolve()
+    path = Path(base_dir).resolve()
+    _ALLOWED_BASE_DIR = path
+    _thread_local.base_dir = path
+
+
+def get_tools_base_dir() -> Path | None:
+    """Get base dir: thread-local if set, else global fallback."""
+    return getattr(_thread_local, 'base_dir', _ALLOWED_BASE_DIR)
 
 
 def _safe_path(filepath: str) -> Path:
@@ -33,24 +29,22 @@ def _safe_path(filepath: str) -> Path:
     Raises:
         PermissionError: If the path escapes the sandbox.
     """
-    if _ALLOWED_BASE_DIR is None:
+    base_dir = get_tools_base_dir()
+    if base_dir is None:
         raise PermissionError(
             "File operations are disabled: no project directory has been set."
         )
     resolved = Path(filepath).resolve()
-    if not str(resolved).startswith(str(_ALLOWED_BASE_DIR)):
+    try:
+        resolved.relative_to(base_dir)
+    except ValueError:
         raise PermissionError(
             f"Access denied: path '{filepath}' is outside the project directory."
         )
     return resolved
 
 
-def _check_command_safety(command: str) -> str | None:
-    """Return an error message if the command matches a blocked pattern."""
-    for pattern in _BLOCKED_COMMAND_PATTERNS:
-        if pattern.search(command):
-            return f"Blocked: command matches dangerous pattern '{pattern.pattern}'."
-    return None
+
 
 
 class ForgeTools:
@@ -58,6 +52,27 @@ class ForgeTools:
     def get_tool_schemas() -> list[dict[str, Any]]:
         """Return the JSON schemas for the tools to pass to the LLM."""
         return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "delegate_task",
+                    "description": "Delegates a complex sub-task to a specialized agent (e.g., 'code_debugger', 'researcher'). The agent will execute the task and return a summary of its findings and actions. The current context window is NOT passed to the child agent, so you must explain the task completely.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "agent_name": {
+                                "type": "string",
+                                "description": "The name of the agent to delegate to.",
+                            },
+                            "task": {
+                                "type": "string",
+                                "description": "A detailed explanation of what the agent should accomplish.",
+                            }
+                        },
+                        "required": ["agent_name", "task"],
+                    },
+                },
+            },
             {
                 "type": "function",
                 "function": {
@@ -180,15 +195,29 @@ class ForgeTools:
                 return f"Successfully wrote to {filepath}"
 
             elif name == "run_shell_command":
+                import shlex
+
                 command = arguments["command"]
-                # Check against denylist before execution
-                blocked = _check_command_safety(command)
-                if blocked:
-                    return f"Error: {blocked}"
-                cwd = str(_ALLOWED_BASE_DIR) if _ALLOWED_BASE_DIR else None
+
+                ALLOWED_EXECUTABLES = {"rg", "grep", "find", "ls", "cat", "git", "echo", "pwd", "wc", "head", "tail", "sort", "uniq", "diff", "python3", "python", "uv", "pytest"}
+
+                try:
+                    tokens = shlex.split(command)
+                except ValueError as e:
+                    return f"Error parsing command: {e}"
+
+                if not tokens:
+                    return "Error: Empty command"
+
+                executable = os.path.basename(tokens[0])
+                if executable not in ALLOWED_EXECUTABLES:
+                    return f"Error: Executable '{executable}' is not allowed."
+
+                base_dir = get_tools_base_dir()
+                cwd = str(base_dir) if base_dir else None
                 result = subprocess.run(
-                    command,
-                    shell=True,
+                    tokens,
+                    shell=False,
                     capture_output=True,
                     text=True,
                     timeout=30.0,
@@ -199,21 +228,24 @@ class ForgeTools:
                     output += "\nSTDERR:\n" + result.stderr
                 if not output.strip():
                     return "Command executed successfully with no output."
+
+                if len(output) > 50000:
+                    output = output[:50000] + "\n... (output truncated)"
                 return output
 
             elif name == "learn_rule":
                 rule = arguments["rule"]
-                backend_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
-                forge_dir = backend_dir.parent
-                rules_path = forge_dir / ".forge_rules.md"
-
+                # Rules are project-scoped — write to the current project directory, not the Forge system directory
+                base_dir = get_tools_base_dir()
+                if base_dir is None:
+                    return "Error: Cannot learn rules — no project directory is set."
+                rules_path = base_dir / ".forge_rules.md"
                 existing = ""
                 if rules_path.exists():
                     existing = rules_path.read_text(encoding="utf-8")
-
                 new_content = existing + f"\n- {rule}" if existing else f"- {rule}"
                 rules_path.write_text(new_content, encoding="utf-8")
-                return f"Successfully learned rule: {rule}"
+                return f"Successfully learned rule for this project: {rule}"
 
             elif name == "search_web":
                 from ddgs import DDGS
@@ -244,6 +276,9 @@ class ForgeTools:
                         output += "\nSTDERR:\n" + result.stderr
                     if not output.strip():
                         return "Command executed successfully with no output."
+
+                    if len(output) > 50000:
+                        output = output[:50000] + "\n... (output truncated)"
                     return output
                 finally:
                     os.unlink(temp_file_name)
