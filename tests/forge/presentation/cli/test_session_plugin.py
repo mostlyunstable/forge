@@ -1,14 +1,15 @@
-import pytest
 import os
-from typer.testing import CliRunner
 import uuid
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime
 
-from forge.presentation.cli.plugins.session import app as session_app
+import pytest
+from forge.domain.conversation.repository_contracts.conversation_repository import (
+    IConversationRepository,
+)
 from forge.presentation.cli.di import cli_container
-from forge.domain.conversation.repository_contracts.conversation_repository import IConversationRepository
-from forge.domain.conversation.value_objects.conversation_state import ConversationState
+from forge.presentation.cli.plugins.session import app as session_app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 
@@ -21,10 +22,10 @@ def mock_session_repo():
     conv1.title = "Test Session 1"
     try:
         conv1.state.value = "ACTIVE"
-    except Exception:
+    except AttributeError:
         conv1.state = "ACTIVE"
     conv1.messages = []
-    conv1.created_at = datetime.now()
+    conv1.created_at = datetime.now(timezone.utc)
     
     repo.get_by_project.return_value = [conv1]
     repo.get_by_id.return_value = conv1
@@ -34,7 +35,7 @@ def mock_session_repo():
     return repo, conv1
 
 def test_list_sessions(mock_session_repo):
-    repo, conv1 = mock_session_repo
+    _, _ = mock_session_repo
     result = runner.invoke(session_app, ["list"])
     assert result.exit_code == 0
     assert "Test Session 1" in result.stdout
@@ -71,7 +72,7 @@ def test_delete_session(mock_session_repo):
     repo.delete.assert_called_once()
 
 def test_export_session(mock_session_repo):
-    repo, conv1 = mock_session_repo
+    _, conv1 = mock_session_repo
     session_id = str(conv1.id.value)
     
     # Mocking a message

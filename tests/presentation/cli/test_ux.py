@@ -1,8 +1,8 @@
 import pytest
-from typer.testing import CliRunner
-from forge.presentation.cli.main import app, IntentRouter
-from forge.presentation.cli.renderer import OutputRenderer
 from forge.presentation.cli.dashboard import Dashboard
+from forge.presentation.cli.main import IntentRouter, app
+from forge.presentation.cli.renderer import OutputRenderer
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

@@ -83,6 +83,27 @@ async def lifespan(app: FastAPI):
     APP_INFO.info({"version": settings.APP_VERSION, "name": settings.APP_NAME})
     logger.info("application_starting", version=settings.APP_VERSION)
     await database_manager.run_migrations()
+    
+    # Recover orphaned running index jobs
+    try:
+        from sqlalchemy import update
+        from forge.infrastructure.database.models.index_job_model import IndexJobModel
+        from forge.domain.indexing.value_objects.job_status import JobStatus
+        
+        async with database_manager.get_session() as session:
+            await session.execute(
+                update(IndexJobModel)
+                .where(IndexJobModel.status == JobStatus.RUNNING.value)
+                .values(
+                    status=JobStatus.FAILED.value,
+                    error_log=["System crashed or was restarted while the job was running."]
+                )
+            )
+            await session.commit()
+        logger.info("startup_recovery_completed")
+    except Exception as e:
+        logger.error("startup_recovery_failed", error=str(e))
+
     if settings.USE_QDRANT:
         await vector_store.init_collections()
     else:

@@ -1,12 +1,12 @@
-import pytest
-from typer.testing import CliRunner
 import uuid
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime
 
-from forge.presentation.cli.plugins.memory import app as memory_app
-from forge.presentation.cli.di import cli_container
+import pytest
 from forge.domain.memory.repository_contracts.memory_repository import IMemoryRepository
+from forge.presentation.cli.di import cli_container
+from forge.presentation.cli.plugins.memory import app as memory_app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 
@@ -20,7 +20,7 @@ def mock_memory_repo():
     mem1.title = "Test ADR"
     mem1.memory_type = "decision"
     mem1.status = "Accepted"
-    mem1.created_at = datetime.now()
+    mem1.created_at = datetime.now(timezone.utc)
     
     mem2 = MagicMock()
     mem2.id.value = uuid.uuid4()
@@ -28,7 +28,7 @@ def mock_memory_repo():
     mem2.memory_type = "bug"
     mem2.severity = "High"
     mem2.resolved = False
-    mem2.created_at = datetime.now()
+    mem2.created_at = datetime.now(timezone.utc)
     
     repo.get_by_project.return_value = [mem1, mem2]
     

@@ -1,6 +1,5 @@
-import pytest
-from typer.testing import CliRunner
 from forge.presentation.cli.plugins.automation import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

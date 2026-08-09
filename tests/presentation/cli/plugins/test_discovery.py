@@ -1,17 +1,17 @@
-import pytest
-from typer.testing import CliRunner
 from unittest.mock import MagicMock
 
-from forge.presentation.cli.di import cli_container
-from forge.presentation.cli.plugins.discovery import app
+import pytest
 from forge.application.discovery import (
     ContextRetriever,
-    ReasoningEngine,
-    IGraphAdapter,
-    SearchResult,
     ExplainResult,
     GraphResult,
+    IGraphAdapter,
+    ReasoningEngine,
+    SearchResult,
 )
+from forge.presentation.cli.di import cli_container
+from forge.presentation.cli.plugins.discovery import app
+from typer.testing import CliRunner
 
 runner = CliRunner()
 

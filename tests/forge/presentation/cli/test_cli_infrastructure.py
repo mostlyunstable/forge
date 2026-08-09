@@ -1,11 +1,11 @@
-import pytest
-import typer
-from typer.testing import CliRunner
 import sys
 
-from forge.presentation.cli.app import app, setup_global_exception_handler
+import pytest
+import typer
+from forge.presentation.cli.app import setup_global_exception_handler
 from forge.presentation.cli.di import cli_container
 from forge.presentation.cli.plugin_loader import load_plugins
+from typer.testing import CliRunner
 
 runner = CliRunner()
 
