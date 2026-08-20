@@ -58,14 +58,26 @@ async def test_rel_crash_recovery(temp_db):
         await session.commit()
         
     # 2. Simulate application startup
-    # We call the FastAPI lifespan to simulate a full boot up
-    from forge.presentation.app import lifespan, create_app
-    app = create_app()
+    # Patch global database_manager to use our temp_db engine and session factory
+    from forge.infrastructure.database.connection import database_manager
+    orig_engine = database_manager._engine
+    orig_factory = database_manager._session_factory
     
-    async with lifespan(app):
-        # The application is running. The background recovery should have run.
-        # Allow a tiny bit of time for background tasks if any
-        await asyncio.sleep(0.1)
+    database_manager._engine = temp_db._engine
+    database_manager._session_factory = temp_db._session_factory
+    
+    try:
+        # We call the FastAPI lifespan to simulate a full boot up
+        from forge.presentation.app import lifespan, create_app
+        app = create_app()
+        
+        async with lifespan(app):
+            # The application is running. The background recovery should have run.
+            # Allow a tiny bit of time for background tasks if any
+            await asyncio.sleep(0.1)
+    finally:
+        database_manager._engine = orig_engine
+        database_manager._session_factory = orig_factory
         
     # 3. Assert the job is no longer RUNNING
     async with temp_db.get_session() as session:
